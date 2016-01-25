@@ -14,9 +14,15 @@ const uint8 PrimaryState_MASK = 15;
 const uint8 SecondaryState_BITS = 3;
 const uint8 SecondaryState_MASK = 7;
 
-void UGGAnimatorComponent::PostInitProperties()
+UGGAnimatorComponent::UGGAnimatorComponent()
 {
-    Super::PostInitProperties();
+    bReplicates = true;
+    bWantsInitializeComponent = true;
+}
+
+void UGGAnimatorComponent::InitializeComponent()
+{
+    Super::InitializeComponent();
     if (AvailableStates.Num() == 0 )
     {
         return;

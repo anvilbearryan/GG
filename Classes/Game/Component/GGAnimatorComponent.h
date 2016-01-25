@@ -12,13 +12,15 @@
 
 class UPaperFlipbookComponent;
 
-UCLASS()
+UCLASS(Blueprintable, ClassGroup = (Animation))
 class GG_API UGGAnimatorComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-    virtual void PostInitProperties() override;
+    UGGAnimatorComponent();
+    
+    virtual void InitializeComponent() override;
     
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
     

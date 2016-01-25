@@ -8,7 +8,7 @@
 #include "Game/Component/GGAnimatorComponent.h"
 
 FName AGGCharacter::FlipbookComponentName(TEXT("FlipbookComponent"));
-FName AGGCharacter::AnimatorComponentName(TEXT("FlipbookComponent"));
+FName AGGCharacter::AnimatorComponentName(TEXT("AnimatorComponent"));
 
 // Sets default values
 AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
@@ -20,14 +20,13 @@ AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
 	Right = FVector::RightVector;
 	Left = Right * -1.f;
     
-    FlipbookComponent = ObjectInitializer.CreateDefaultSubobject<UPaperFlipbookComponent>(this, AGGCharacter::FlipbookComponentName, false);
+    FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(AGGCharacter::FlipbookComponentName);
     if (RootComponent)
     {
         FlipbookComponent->AttachTo(RootComponent);
     }
     
-    AnimatorComponent = ObjectInitializer.CreateDefaultSubobject<UGGAnimatorComponent>(this, AGGCharacter::AnimatorComponentName, false);
-    AnimatorComponent->PlaybackComponent = FlipbookComponent;
+    AnimatorComponent = CreateDefaultSubobject<UGGAnimatorComponent>(AGGCharacter::AnimatorComponentName);
 }
 
 void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -41,7 +40,7 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void AGGCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	AnimatorComponent->PlaybackComponent = FlipbookComponent;
 }
 
 // Called every frame
