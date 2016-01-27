@@ -27,8 +27,9 @@ void UGGAnimatorComponent::InitializeComponent()
     {
         return;
     }
-    //  sort secondary states in elements of AvailableStates
-    for (FGGAnimationStateArray PrimArray : AvailableStates)
+    //  sort secondary states in elements of a copy of AvailableStates
+    TArray<FGGAnimationStateArray> loc_AvailableStates = AvailableStates;
+    for (FGGAnimationStateArray PrimArray : loc_AvailableStates)
     {
         // create a copy
         TArray<FGGAnimationState> StatesCache = PrimArray.States;
@@ -52,7 +53,7 @@ void UGGAnimatorComponent::InitializeComponent()
     for (int32 i = 0;i <=PrimaryState_MASK; i++)
     {
         SortedStates.AddDefaulted();
-        for (auto PrimArray : AvailableStates)
+        for (auto PrimArray : loc_AvailableStates)
         {
             if (PrimArray.PrimaryState == i)
             {

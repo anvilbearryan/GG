@@ -131,7 +131,7 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
 		if (bWallJumpLateralMode)
 		{
 			WallJumpAcceleration = ScaleInputAcceleration(WallJumpAcceleration);
-			if (!HasAnimRootMotion() && WallJumpAcceleration.SizeSquared2D() > 0.f)
+			if (!HasAnimRootMotion() && (ggChar->WallJumpLateralHoldTime < 0.1f || WallJumpAcceleration.SizeSquared2D() > 0.f))
 			{
 				WallJumpAcceleration = GetAirControl(deltaTime, AirControl, WallJumpAcceleration);
 				WallJumpAcceleration = WallJumpAcceleration.GetClampedToMaxSize(GetMaxAcceleration());
@@ -142,9 +142,6 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
 		const bool bHasAirControl = bWallJumpLateralMode || FallAcceleration.SizeSquared2D() > 0.f;
 
 		float remainingTime = deltaTime;
-		
-		//	Additional cache for wall jump calculation
-		//float YLocationCache = UpdatedComponent->GetComponentLocation().Y;
 
 		while ((remainingTime >= MIN_TICK_TIME) && (Iterations < MaxSimulationIterations))
 		{

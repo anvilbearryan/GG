@@ -40,7 +40,11 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void AGGCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	AnimatorComponent->PlaybackComponent = FlipbookComponent;
+	if (AnimatorComponent && FlipbookComponent)
+    {
+        AnimatorComponent->PlaybackComponent = FlipbookComponent;
+        FlipbookComponent->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);
+    }
 }
 
 // Called every frame

@@ -121,21 +121,22 @@ namespace EGGActionCategorySpecific
     // Specific states contains enumeration for 3 possibilities with each containing 5 possible direction named in WSAD space
     enum Type
     {
-        Mode0_S = 0,
-        Mode0_SD,
-        Mode0_D,
-        Mode0_DW,
-        Mode0_W,
-        Mode1_S,
-        Mode1_SD,
-        Mode1_D,
-        Mode1_DW,
-        Mode1_W,
-        Mode2_S,
-        Mode2_SD,
-        Mode2_D,
-        Mode2_DW,
-        Mode2_W,
+        NotSpecified = 0,   // Case for which we should have information to figure out from elsewhere, specifically reserved
+        Mode0_2,
+        Mode0_6,
+        Mode0_8,
+        Mode1_2,
+        Mode1_6,
+        Mode1_8,
+        Mode2_2,
+        Mode2_6,
+        Mode2_8,
+        Mode3_2,
+        Mode3_6,
+        Mode3_8,
+        Mode4_2,
+        Mode4_6,
+        Mode4_8,
         TYPES_COUNT
     };
 }
@@ -145,14 +146,14 @@ struct FGGAnimationState
 {
     GENERATED_BODY()
     
-    UPROPERTY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TEnumAsByte<EGGActionCategorySpecific::Type> SecondaryState;
-    UPROPERTY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         UPaperFlipbook* PlaybackFlipbook;
-    UPROPERTY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TEnumAsByte<EGGAnimationStateEndType::Type> StateEndType;
-    UPROPERTY()
-        uint32 bMustPlayTillEnd : 1;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
+            uint32 bMustPlayTillEnd : 1;
 };
 
 USTRUCT(BlueprintType)
@@ -160,9 +161,9 @@ struct FGGAnimationStateArray
 {
     GENERATED_BODY()
     
-    UPROPERTY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TEnumAsByte<EGGActionCategory::Type> PrimaryState;
-    UPROPERTY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TArray<FGGAnimationState> States;
 };
 
