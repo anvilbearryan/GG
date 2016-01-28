@@ -24,7 +24,7 @@ public:
     
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
     
-    virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    virtual void ManualTick(float DeltaTime);
     
     //  User configured array to store possible states, internally we save a sorted copy with holes for missing states
     UPROPERTY( EditAnywhere, Category ="GG|Animation")
@@ -33,6 +33,7 @@ public:
         UPaperFlipbookComponent* PlaybackComponent;
     
 protected:
+    //UPROPERTY(VisibleAnywhere, Category = "GG|Animation")
     TArray<FGGAnimationStateArray> SortedStates;
     
 public:
@@ -41,14 +42,18 @@ public:
         uint8 Rep_CompressedState;
     
     FGGAnimationState* AnimationState_Previous;
-    int8 PrimaryStateIndex_Previous;
-    int8 SecondaryStateIndex_Previous;
+    int32 PrimaryStateIndex_Previous;
+    int32 SecondaryStateIndex_Previous;
+    
     FGGAnimationState* AnimationState_Current;
-    int8 PrimaryStateIndex_Current;
-    int8 SecondaryStateIndex_Current;
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category ="GG|Animation", meta=(DisplayName="PrimaryStateIndex"))
+    int32 PrimaryStateIndex_Current;
+    UPROPERTY(VisibleAnywhere,BlueprintReadWrite, Category ="GG|Animation", meta=(DisplayName="SecondaryStateIndex"))
+    int32 SecondaryStateIndex_Current;
+    
     FGGAnimationState* AnimationState_Queued;
-    int8 PrimaryStateIndex_Queued;
-    int8 SecondaryStateIndex_Queued;
+    int32 PrimaryStateIndex_Queued;
+    int32 SecondaryStateIndex_Queued;
     
     /**
     * Entry method for exiting a state, either due to current state being a locomotion like state or we reached the end of the current state
@@ -56,6 +61,10 @@ public:
     UFUNCTION(BlueprintNativeEvent, Category="GG|Animation")
         void PollStateFromOwningActor();
         virtual void PollStateFromOwningActor_Implementation();
+    
+    /** Update the state index using values from enum. Returns whether change has occured */
+    UFUNCTION(BlueprintImplementableEvent, Category="GG|Animation")
+        bool CheckOwnerForStateChange();
     
     UFUNCTION()
         virtual uint8 GetCompressedState() const;
@@ -73,10 +82,16 @@ public:
         virtual void UpdateFromCompressedState();
     
     UFUNCTION()
-    virtual void TransitToAnimationState(FGGAnimationState &ToState, int8 PrimaryStateIndex, int8 SecondaryStateIndex);
+    virtual void TransitToAnimationState(FGGAnimationState &ToState, int32 PrimaryStateIndex, int32 SecondaryStateIndex);
+    
+    UFUNCTION()
+    virtual void TickCurrentBlendSpace();
     
     UFUNCTION(BlueprintNativeEvent, Category ="GG|Animation")
         void OnReachEndOfState();
         virtual void OnReachEndOfState_Implementation();
-
+    
+    /** Utility method to handle changes done in blueprint */
+    UFUNCTION(BlueprintCallable, Category ="GG|Animation")
+        void ReflectIndexChanges();
 };

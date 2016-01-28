@@ -111,7 +111,7 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
 		//	the input acceleration
 		FVector FallAcceleration = GetFallingLateralAcceleration(deltaTime);
 		FallAcceleration.Z = 0.f;
-
+        FVector SavedFallAcceleration = FallAcceleration;
 		//	saving the wall jump enforced acceleration to avoid calculating it each substep
 		bool bWallJumpLateralMode = ggChar->bModeWallJump;
 		FVector WallJumpAcceleration;
@@ -131,15 +131,16 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
 		if (bWallJumpLateralMode)
 		{
 			WallJumpAcceleration = ScaleInputAcceleration(WallJumpAcceleration);
-			if (!HasAnimRootMotion() && (ggChar->WallJumpLateralHoldTime < 0.1f || WallJumpAcceleration.SizeSquared2D() > 0.f))
+			if (!HasAnimRootMotion() && WallJumpAcceleration.SizeSquared2D() > 0.f)
 			{
 				WallJumpAcceleration = GetAirControl(deltaTime, AirControl, WallJumpAcceleration);
 				WallJumpAcceleration = WallJumpAcceleration.GetClampedToMaxSize(GetMaxAcceleration());
 			}
 			WallJumpAcceleration.Z = 0.f;
+            FallAcceleration = WallJumpAcceleration;
 		}
 
-		const bool bHasAirControl = bWallJumpLateralMode || FallAcceleration.SizeSquared2D() > 0.f;
+		const bool bHasAirControl = FallAcceleration.SizeSquared2D() > 0.f;
 
 		float remainingTime = deltaTime;
 
@@ -157,13 +158,14 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
 
 			FVector OldVelocity = Velocity;
 			FVector VelocityNoAirControl = Velocity;
-			//	Update our data so we know whether to use input acceleration in this substep
+			//	Update our timestamp so we know when to switch back to input acceleration during a substep
 			if (bWallJumpLateralMode)
 			{
 				ggChar->WallJumpLateralHoldTime += timeTick;
 				if (!ggChar->CanWallJump())
 				{
 					bWallJumpLateralMode = false;
+                    FallAcceleration = SavedFallAcceleration;
 					GEngine->AddOnScreenDebugMessage(1, 2.f, FColor::Red, TEXT("Lateral wall jump finished"));
 				}
 			}
@@ -181,35 +183,20 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
 					CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
 					VelocityNoAirControl = FVector(Velocity.X, Velocity.Y, OldVelocity.Z);
 				}
-				/**
-				************************************************************************************************
-				* We modify the acceleration used to calculate lateral velocity based on wall jump usage
-				************************************************************************************************
-				*/
-				
 				// Compute Velocity
-				if (bWallJumpLateralMode)
-				{
-					// Acceleration = WallJumpAcceleration for CalcVelocity
-					TGuardValue<FVector> RestoreAcceleration(Acceleration, WallJumpAcceleration);
-					Velocity.Z = 0.f;
-					CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);										
-					GEngine->AddOnScreenDebugMessage(3, 0.0f, FColor::Red, TEXT("Lateral updated as wj"));
-				}
-				else
-				{
-					// Acceleration = FallAcceleration for CalcVelocity(), but we restore it after using it.
-					TGuardValue<FVector> RestoreAcceleration(Acceleration, FallAcceleration);
-					Velocity.Z = 0.f;
-					CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
-					//GEngine->AddOnScreenDebugMessage(3, 0.1f, FColor::Red, TEXT("Lateral updated as normal"));
-				}				
-				Velocity.Z = OldVelocity.Z;
-				// Just copy Velocity to VelocityNoAirControl if they are the same (ie no acceleration).
-				if (!bHasAirControl)
-				{
-					VelocityNoAirControl = Velocity;
-				}
+                {
+                    // Acceleration = FallAcceleration for CalcVelocity(), but we restore it after using it.
+                    TGuardValue<FVector> RestoreAcceleration(Acceleration, FallAcceleration);
+                    Velocity.Z = 0.f;
+                    CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
+                    Velocity.Z = OldVelocity.Z;
+                }
+                
+                // Just copy Velocity to VelocityNoAirControl if they are the same (ie no acceleration).
+                if (!bHasAirControl)
+                {
+                    VelocityNoAirControl = Velocity;
+                }
 			}
 			/**
 			***************************************************************************************************
