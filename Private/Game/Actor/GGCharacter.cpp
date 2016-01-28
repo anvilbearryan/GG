@@ -305,6 +305,14 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     //  We changes axis values from input based on wall jump condition
 	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
 	{
+        if (LastActualMovementInput.Y * ScaleValue < 0.f)
+        {
+            // turn detected
+            if (FlipbookComponent)
+            {
+                FlipbookComponent->SetRelativeScale3D(FVector(FMath::Sign(ScaleValue), 1.f, 1.f));
+            }
+        }
 		LastActualMovementInput = WorldDirection * ScaleValue;
         if (CanWallJump())
         {
@@ -334,7 +342,11 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
 
 FVector AGGCharacter::GetPlanarForwardVector()
 {
-	return LastActualMovementInput.Y < 0.f ? Left : Right;
+    if (FlipbookComponent)
+    {
+        return FlipbookComponent->RelativeScale3D.Y < 0.f ? Left : Right;
+    }
+    return Right;
 }
 
 bool AGGCharacter::ServerReceiveDamage_Validate(int32 DamageData)

@@ -158,13 +158,26 @@ void UGGAnimatorComponent::UpdateFromCompressedState()
 {
     //  extract information to human readable local variables
     uint8 state = Rep_CompressedState;
-    bool bIsPlaybackComponentFlipped = (state & FLIP_MASK) > 0;
+    bool bIsFacingLeft = (state & FLIP_MASK) != 0;
     int32 loc_PrimaryStateIndex = (state >> SecondaryState_BITS) & PrimaryState_MASK;
     int32 loc_SecondaryStateIndex = (state & SecondaryState_MASK);
     
     //  apply the extracted information, i.e. state transition
     // TODO: Possible to smoothen experience by wait till current state finishes through Queued state (unused currently)
+    /** Handle flipping */
+    if (PlaybackComponent)
+    {
+        if (bIsFacingLeft)
+        {
+            PlaybackComponent->SetRelativeScale3D(FVector(-1.f, 1.f, 1.f));
+        }
+        else
+        {
+            PlaybackComponent->SetRelativeScale3D(FVector(1.f, 1.f, 1.f));
+        }
+    }
     
+    /** Apply state transition */
     // Check flags received are valid
     if (SortedStates.IsValidIndex(loc_PrimaryStateIndex) && SortedStates[loc_PrimaryStateIndex].States.IsValidIndex(loc_SecondaryStateIndex))
     {
@@ -172,7 +185,9 @@ void UGGAnimatorComponent::UpdateFromCompressedState()
     }
     else
     {
+#if WITH_EDITOR
         GEngine->AddOnScreenDebugMessage(-1, 2.25f, FColor::Cyan, TEXT("Invalid state index"));
+#endif
     }
 }
 
@@ -211,7 +226,6 @@ void UGGAnimatorComponent::TickCurrentBlendSpace()
         FGGAnimationState& ToState = *AnimationState_Current;
         if (ToState.ShouldBlendHorizontal())
         {
-            //float time = PlaybackComponent->GetPlaybackPosition();
             float velocity_h = GetOwner()->GetVelocity().Y * FMath::Sign(PlaybackComponent->RelativeScale3D.X);
             if (velocity_h > BLENDSPACE_SENSATIVITY)
             {
@@ -225,7 +239,6 @@ void UGGAnimatorComponent::TickCurrentBlendSpace()
             {
                 PlaybackComponent->SetFlipbook(ToState.NeutralFlipbook);
             }
-            //PlaybackComponent->SetPlaybackPosition(time, false);
         }
         else if (ToState.PositiveFlipbook != nullptr)
         {
