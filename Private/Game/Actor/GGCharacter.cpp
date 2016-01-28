@@ -26,7 +26,7 @@ AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
         FlipbookComponent->AttachTo(RootComponent);
     }
     
-    AnimatorComponent = CreateDefaultSubobject<UGGAnimatorComponent>(AGGCharacter::AnimatorComponentName);
+    //AnimatorComponent = CreateDefaultSubobject<UGGAnimatorComponent>(AGGCharacter::AnimatorComponentName);
 }
 
 void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -40,9 +40,13 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void AGGCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if (AnimatorComponent && FlipbookComponent)
+    TArray<UGGAnimatorComponent*> anim;
+    GetComponents(anim);
+	if (anim.Num() > 0 && FlipbookComponent)
     {
+        AnimatorComponent = anim[0];
         AnimatorComponent->PlaybackComponent = FlipbookComponent;
+        AnimatorComponent->TickCurrentBlendSpace();
         FlipbookComponent->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);
     }
 }
@@ -50,15 +54,17 @@ void AGGCharacter::BeginPlay()
 // Called every frame
 void AGGCharacter::Tick( float DeltaTime )
 {
-	Super::Tick( DeltaTime );
-
+    Super::Tick(DeltaTime);
+    if (AnimatorComponent)
+    {
+        AnimatorComponent->ManualTick(DeltaTime);
+    }
 }
 
 // Called to bind functionality to input
 void AGGCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
-
 }
 
 void AGGCharacter::Jump()
@@ -296,11 +302,34 @@ float AGGCharacter::GetDashMaxDuration() const
 
 void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bForce)
 {
+    //  We changes axis values from input based on wall jump condition
 	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
 	{
 		LastActualMovementInput = WorldDirection * ScaleValue;
+        if (CanWallJump())
+        {
+            if (bPressedWallJumpLeft)
+            {
+                ScaleValue = -1.f;
+            }
+            else if (bPressedWallJumpRight)
+            {
+                ScaleValue = 1.f;
+            }
+        }
 	}
-	Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
+    else if (WallJumpLateralHoldTime < NormalWallJumpMinHoldTimeLateral)
+    {
+        if (bPressedWallJumpLeft)
+        {
+            ScaleValue = -1.f;
+        }
+        else if (bPressedWallJumpRight)
+        {
+            ScaleValue = 1.f;
+        }
+    }
+    Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
 }
 
 FVector AGGCharacter::GetPlanarForwardVector()

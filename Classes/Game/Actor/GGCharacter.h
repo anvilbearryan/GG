@@ -48,17 +48,19 @@ public:
 	*/
 	//	Flags indicating wall jump direction
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-	uint32 bPressedWallJumpRight : 1;
+        uint32 bPressedWallJumpRight : 1;
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-	uint32 bPressedWallJumpLeft : 1;
+        uint32 bPressedWallJumpLeft : 1;
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-	uint32 bModeWallJump : 1;
+        uint32 bModeWallJump : 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
 		float WallJumpMaxHoldTimeVertical;
 	/**
 	* The defined time lateral movement is fixed in a wall jump. Different from vertical velocity
 	* from jumping, the time of lateral velocity being enforced is not controllable.
 	*/
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
+        float NormalWallJumpMinHoldTimeLateral;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
 		float NormalWallJumpMaxHoldTimeLateral;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
@@ -175,6 +177,6 @@ public:
     UPROPERTY(VisibleAnywhere, Category = "GG|Animation")
         UPaperFlipbookComponent* FlipbookComponent;
     static FName AnimatorComponentName;
-    UPROPERTY(EditAnywhere, Category = "GG|Animation")
+    //UPROPERTY(EditAnywhere, Category = "GG|Animation")
         UGGAnimatorComponent* AnimatorComponent;
 };

@@ -122,38 +122,50 @@ namespace EGGActionCategorySpecific
     enum Type
     {
         NotSpecified = 0,   // Case for which we should have information to figure out from elsewhere, specifically reserved
-        Mode0_2,
-        Mode0_6,
-        Mode0_8,
-        Mode1_2,
-        Mode1_6,
-        Mode1_8,
-        Mode2_2,
-        Mode2_6,
-        Mode2_8,
-        Mode3_2,
-        Mode3_6,
-        Mode3_8,
-        Mode4_2,
-        Mode4_6,
-        Mode4_8,
+        Mode0_Horizontal = 1,
+        Mode0_Vertical = 2,
+        Mode1_Horizontal,
+        Mode1_Vertical,
+        Mode2_Horizontal,
+        Mode2_Vertical,
+        Mode3_Horizontal,
+        Mode3_Vertical,
+        Mode4_Horizontal,
+        Mode4_Vertical,
+        Mode5_Horizontal,
+        Mode5_Vertical,
+        Mode6_Horizontal,
+        Mode6_Vertical,
+        Mode7_Horizontal,
+        Mode7_Vertical,
         TYPES_COUNT
     };
 }
 
+/** 1D Digital blend space state */
 USTRUCT(BlueprintType)
 struct FGGAnimationState
 {
     GENERATED_BODY()
-    
+    /** Picker enum for convinience to replicate the blend spaces through an index, also indicates blend direction */
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TEnumAsByte<EGGActionCategorySpecific::Type> SecondaryState;
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
-        UPaperFlipbook* PlaybackFlipbook;
+        uint8 bMustPlayTillEnd : 1;
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TEnumAsByte<EGGAnimationStateEndType::Type> StateEndType;
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
-            uint32 bMustPlayTillEnd : 1;
+        UPaperFlipbook* NeutralFlipbook;
+    /** Leave empty (=null) if we do not wish to make this a blend-space state*/
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
+        UPaperFlipbook* PositiveFlipbook;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
+        UPaperFlipbook* NegativeFlipbook;
+    
+    FORCEINLINE bool ShouldBlendHorizontal()
+    {
+        return (SecondaryState % 2) == 1;
+    }
 };
 
 USTRUCT(BlueprintType)
