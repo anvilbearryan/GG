@@ -3,6 +3,7 @@
 #include "GG.h"
 #include "Game/Component/GGRangedAttackComponent.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Game/Component/GGDamageReceiveComponent.h"
 
 UGGRangedAttackComponent::UGGRangedAttackComponent() : Super()
 {
@@ -72,6 +73,7 @@ void UGGRangedAttackComponent::MulticastInitiateAttack_Implementation()
 void UGGRangedAttackComponent::LocalHitTarget(AActor* target)
 {
 	HitTarget(target);
+    // this is sufficient as ServerRPCs invoked on simulated proxies are dropped
 	if (target && GetOwnerRole() != ROLE_Authority)
 	{
 		//	If we are not server, also needs server to update to display effects 
@@ -148,14 +150,19 @@ void UGGRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 void UGGRangedAttackComponent::HitTarget(AActor* target)
 {
-	//	Attack landing logic
+	//	Attack landing logic, in charge of damaging
 	if (target)
 	{
-
+        // get the damage receiving component and deal damage
+        TArray<UGGDamageReceiveComponent*> dmgCmpArray;
+        target->GetComponents(dmgCmp);
+        if (dmgCmp.Num() > 0)
+        {
+            UGGDamageReceiveComponent* dmgCmp = dmgCmpArray[0];
+        }
 	}
 }
 
 void UGGRangedAttackComponent::ResetForRetrigger()
 {
 	bIsReadyToBeUsed = true;
-}
