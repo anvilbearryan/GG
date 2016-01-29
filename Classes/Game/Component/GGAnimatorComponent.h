@@ -46,10 +46,15 @@ public:
     int32 SecondaryStateIndex_Previous;
     
     FGGAnimationState* AnimationState_Current;
+    /** Represent the category of action being performed, replicated */
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category ="GG|Animation", meta=(DisplayName="PrimaryStateIndex"))
     int32 PrimaryStateIndex_Current;
+    /** Represent the mode in which the action is being performed in, replicated */
     UPROPERTY(VisibleAnywhere,BlueprintReadWrite, Category ="GG|Animation", meta=(DisplayName="SecondaryStateIndex"))
     int32 SecondaryStateIndex_Current;
+    /** Represent which blendspace the action is performed in, polled from outer and not replicated */
+    UPROPERTY(VisibleAnywhere,BlueprintReadWrite, Category ="GG|Animation", meta=(DisplayName="BlendspaceIndex"))
+    int32 BlendspaceIndex_Current;
     
     FGGAnimationState* AnimationState_Queued;
     int32 PrimaryStateIndex_Queued;
@@ -61,7 +66,17 @@ public:
     UFUNCTION(BlueprintNativeEvent, Category="GG|Animation")
         void PollStateFromOwningActor();
         virtual void PollStateFromOwningActor_Implementation();
-    
+
+    /** Setter wrapper with enum to save messy BP castings */
+    UFUNCTION(BlueprintCallable, Category ="GG|Animation")
+        void PerformAction(TEnumAsByte<EGGActionCategory::Type> NewAction);
+    /** Setter wrapper with enum to save messy BP castings */
+    UFUNCTION(BlueprintCallable, Category ="GG|Animation")
+        void AlterActionMode(TEnumAsByte<EGGActionCategorySpecific::Type> NewActionMode);    
+    /** Updates the field BlendspaceIndex_Current through querying owner state */
+    UFUNCTION(BlueprintImplementableEvent, Category="GG|Animation")
+        void PollBlendspaceIndex();
+
     /** Update the state index using values from enum. Returns whether change has occured */
     UFUNCTION(BlueprintImplementableEvent, Category="GG|Animation")
         bool CheckOwnerForStateChange();
@@ -90,8 +105,16 @@ public:
     UFUNCTION(BlueprintNativeEvent, Category ="GG|Animation")
         void OnReachEndOfState();
         virtual void OnReachEndOfState_Implementation();
-    
-    /** Utility method to handle changes done in blueprint */
+
+protected:
+    uint8 bActionStateDirty : 1;
+    uint8 bActionModeStateDirty : 1;
+    /** Utility method to action / action mode changes, on top of changing index we also check state specification to see if playback option etc needs to be changed */
+    UFUNCTION()
+        void ReflectStateChanges();
+
+public:
+    /** We assume specific state specification remain constatnt if we are just changing blendspace for pure index change */
     UFUNCTION(BlueprintCallable, Category ="GG|Animation")
         void ReflectIndexChanges();
 };

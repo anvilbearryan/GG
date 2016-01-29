@@ -76,13 +76,31 @@ void UGGAnimatorComponent::ManualTick(float DeltaTime)
     if (AnimationState_Current == nullptr)
     {
         GEngine->AddOnScreenDebugMessage(1, DeltaTime, FColor::Red, TEXT("Null state"));
-        //SetComponentTickEnabled(false);
+
         ReflectIndexChanges();
     }
     if(!AnimationState_Current->bMustPlayTillEnd)
     {
         // Do work every tick since we may change state anytime
-        PollStateFromOwningActor();
+        //PollStateFromOwningActor();
+        
+        // Cache blendspace index before polling for new
+        int32 loc_BlendSpaceIndex = BlendspaceIndex_Current;
+        PollBlendspaceIndex();
+        if (bActionStateDirty || bActionModeStateDirty)
+        {
+            ReflectStateChanges();
+        }
+        else if (loc_BlendSpaceIndex != BlendspaceIndex_Current)
+        {
+            // prevent unnecessary array fetching
+            ReflectIndexChanges();
+        }
+        
+        //ReflectIndexChanges();
+        
+        /** With appropriate state selected, update our blendspace */
+        TickCurrentBlendSpace();
     }
 }
 
@@ -115,6 +133,28 @@ void UGGAnimatorComponent::PollStateFromOwningActor_Implementation()
             Rep_CompressedState = compressedState;
             ServerSetFromCompressedState(compressedState);
         }
+    }
+}
+
+void UGGAnimatorComponent::PerformAction(TEnumAsByte<EGGActionCategory::Type> NewAction)
+{
+    if (PrimaryStateIndex_Current != NewAction)
+    {
+        PrimaryStateIndex_Previous = PrimaryStateIndex_Current;
+        PrimaryStateIndex_Current = NewAction;
+        bActionStateDirty = true;
+    }
+}
+
+void UGGAnimatorComponent::AlterActionMode(TEnumAsByte<EGGActionCategorySpecific::Type> NewActionMode)
+{
+    // Cannot just cast to int32 for action mode
+    int32 mode = (NewActionMode -1) / 2;
+    if (SecondaryStateIndex_Current != mode)
+    {
+        SecondaryStateIndex_Previous = SecondaryStateIndex_Current;
+        SecondaryStateIndex_Current = mode;
+        bActionModeStateDirty = true;
     }
 }
 
@@ -159,8 +199,15 @@ void UGGAnimatorComponent::UpdateFromCompressedState()
     //  extract information to human readable local variables
     uint8 state = Rep_CompressedState;
     bool bIsFacingLeft = (state & FLIP_MASK) != 0;
+    /*
     int32 loc_PrimaryStateIndex = (state >> SecondaryState_BITS) & PrimaryState_MASK;
+    
     int32 loc_SecondaryStateIndex = (state & SecondaryState_MASK);
+    */
+    TEnumAsByte<EGGActionCategory::Type> loc_Action((uint8)((state >> SecondaryState_BITS) & PrimaryState_MASK));
+    TEnumAsByte<EGGActionCategorySpecific::Type> loc_ActionMode((uint8)(state & SecondaryState_MASK));
+    PerformAction(loc_Action);
+    AlterActionMode(loc_ActionMode);
     
     //  apply the extracted information, i.e. state transition
     // TODO: Possible to smoothen experience by wait till current state finishes through Queued state (unused currently)
@@ -176,12 +223,11 @@ void UGGAnimatorComponent::UpdateFromCompressedState()
             PlaybackComponent->SetRelativeScale3D(FVector(1.f, 1.f, 1.f));
         }
     }
-    
-    /** Apply state transition */
+    /*
     // Check flags received are valid
-    if (SortedStates.IsValidIndex(loc_PrimaryStateIndex) && SortedStates[loc_PrimaryStateIndex].States.IsValidIndex(loc_SecondaryStateIndex))
+    if (SortedStates.IsValidIndex(loc_PrimaryStateIndex) && SortedStates[loc_PrimaryStateIndex].States.IsValidIndex(loc_SecondaryStateIndex * 2 + 1))
     {
-        TransitToAnimationState(SortedStates[loc_PrimaryStateIndex].States[loc_SecondaryStateIndex], loc_PrimaryStateIndex, loc_SecondaryStateIndex);
+        TransitToAnimationState(SortedStates[loc_PrimaryStateIndex].States[loc_SecondaryStateIndex + BlendspaceIndex_Current], loc_PrimaryStateIndex, loc_SecondaryStateIndex);
     }
     else
     {
@@ -189,6 +235,7 @@ void UGGAnimatorComponent::UpdateFromCompressedState()
         GEngine->AddOnScreenDebugMessage(-1, 2.25f, FColor::Cyan, TEXT("Invalid state index"));
 #endif
     }
+    */
 }
 
 const float BLENDSPACE_SENSATIVITY = 10.f;
@@ -202,9 +249,7 @@ void UGGAnimatorComponent::TransitToAnimationState(FGGAnimationState& ToState, i
         AnimationState_Current = &ToState;
         PrimaryStateIndex_Current = ParentIndex;
         SecondaryStateIndex_Current = SecondaryStateIndex;
-        
-        SetComponentTickEnabled(!ToState.bMustPlayTillEnd);
-        
+    
         if (PlaybackComponent)
         {
             TickCurrentBlendSpace();
@@ -243,7 +288,6 @@ void UGGAnimatorComponent::TickCurrentBlendSpace()
         else if (ToState.PositiveFlipbook != nullptr)
         {
             // blend vertical
-            //float time = PlaybackComponent->GetPlaybackPosition();
             float velocity_v = GetOwner()->GetVelocity().Z;
             if (velocity_v > BLENDSPACE_SENSATIVITY)
             {
@@ -257,7 +301,6 @@ void UGGAnimatorComponent::TickCurrentBlendSpace()
             {
                 PlaybackComponent->SetFlipbook(ToState.NeutralFlipbook);
             }
-            //PlaybackComponent->SetPlaybackPosition(time, false);
         }
         else
         {
@@ -283,10 +326,27 @@ void UGGAnimatorComponent::OnReachEndOfState_Implementation()
     }
 }
 
+void UGGAnimatorComponent::ReflectStateChanges()
+{
+    AnimationState_Previous = AnimationState_Current;
+    
+    ReflectIndexChanges();
+    
+    if (PlaybackComponent && AnimationState_Current)
+    {
+        if (AnimationState_Current->StateEndType == EGGAnimationStateEndType::Loop)
+        {
+            PlaybackComponent->SetLooping(true);
+        }
+        else
+        {
+            PlaybackComponent->SetLooping(false);
+        }
+    }
+}
+
 void UGGAnimatorComponent::ReflectIndexChanges()
 {
     check(SortedStates.IsValidIndex(PrimaryStateIndex_Current) && SortedStates[PrimaryStateIndex_Current].States.IsValidIndex(SecondaryStateIndex_Current));
-    AnimationState_Current = &SortedStates[PrimaryStateIndex_Current].States[SecondaryStateIndex_Current];
-    // Give a manual tick nudge
-    //TickCurrentBlendSpace();
+    AnimationState_Current = &SortedStates[PrimaryStateIndex_Current].States[SecondaryStateIndex_Current + BlendspaceIndex_Current];
 }
