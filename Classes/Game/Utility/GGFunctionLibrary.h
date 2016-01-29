@@ -121,24 +121,24 @@ namespace EGGActionCategorySpecific
     // Specific states contains enumeration for 3 possibilities with each containing 5 possible direction named in WSAD space
     enum Type
     {
-        NotSpecified = 0,   // Case for which we should have information to figure out from elsewhere, specifically reserved
-        Mode0_Horizontal = 1,
-        Mode0_Vertical = 2,
-        Mode1_Horizontal,
-        Mode1_Vertical,
-        Mode2_Horizontal,
-        Mode2_Vertical,
-        Mode3_Horizontal,
-        Mode3_Vertical,
-        Mode4_Horizontal,
-        Mode4_Vertical,
-        Mode5_Horizontal,
-        Mode5_Vertical,
-        Mode6_Horizontal,
-        Mode6_Vertical,
-        Mode7_Horizontal,
-        Mode7_Vertical,
-        TYPES_COUNT
+        Mode0_Horizontal = 0,
+        Mode0_Vertical = 1,
+        Mode1_Horizontal = 2,
+        Mode1_Vertical = 3,
+        Mode2_Horizontal = 4,
+        Mode2_Vertical = 5,
+        Mode3_Horizontal = 6,
+        Mode3_Vertical = 7,
+        Mode4_Horizontal = 8,
+        Mode4_Vertical = 9,
+        Mode5_Horizontal = 10,
+        Mode5_Vertical = 11,
+        Mode6_Horizontal = 12,
+        Mode6_Vertical = 13,
+        Mode7_Horizontal = 14,
+        Mode7_Vertical = 15,
+        NotSpecified = 16,   // Case for which we should have information to figure out from elsewhere, specifically reserved
+        TYPES_COUNT = 17
     };
 }
 
@@ -164,7 +164,7 @@ struct FGGAnimationState
     
     FORCEINLINE bool ShouldBlendHorizontal()
     {
-        return (SecondaryState % 2) == 1;
+        return (SecondaryState % 2) == 0;
     }
 };
 

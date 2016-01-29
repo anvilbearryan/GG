@@ -149,7 +149,7 @@ void UGGAnimatorComponent::PerformAction(TEnumAsByte<EGGActionCategory::Type> Ne
 void UGGAnimatorComponent::AlterActionMode(TEnumAsByte<EGGActionCategorySpecific::Type> NewActionMode)
 {
     // Cannot just cast to int32 for action mode
-    int32 mode = (NewActionMode -1) / 2;
+    int32 mode = NewActionMode / 2;
     if (SecondaryStateIndex_Current != mode)
     {
         SecondaryStateIndex_Previous = SecondaryStateIndex_Current;
@@ -317,7 +317,9 @@ void UGGAnimatorComponent::OnReachEndOfState_Implementation()
         EGGAnimationStateEndType::Type EndType = AnimationState_Current->StateEndType;
         if (EndType == EGGAnimationStateEndType::Revert)
         {
+            /*
             TransitToAnimationState(*AnimationState_Previous, PrimaryStateIndex_Previous, SecondaryStateIndex_Previous);
+            */
         } else if (EndType == EGGAnimationStateEndType::Exit)
         {
             //  replay this state while let it continue to work out whats next
@@ -347,6 +349,6 @@ void UGGAnimatorComponent::ReflectStateChanges()
 
 void UGGAnimatorComponent::ReflectIndexChanges()
 {
-    check(SortedStates.IsValidIndex(PrimaryStateIndex_Current) && SortedStates[PrimaryStateIndex_Current].States.IsValidIndex(SecondaryStateIndex_Current));
-    AnimationState_Current = &SortedStates[PrimaryStateIndex_Current].States[SecondaryStateIndex_Current + BlendspaceIndex_Current];
+    check(SortedStates.IsValidIndex(PrimaryStateIndex_Current) && SortedStates[PrimaryStateIndex_Current].States.IsValidIndex(SecondaryStateIndex_Current * 2 + BlendspaceIndex_Current));
+    AnimationState_Current = &SortedStates[PrimaryStateIndex_Current].States[SecondaryStateIndex_Current*2 + BlendspaceIndex_Current];
 }
