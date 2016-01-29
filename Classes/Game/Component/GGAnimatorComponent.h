@@ -60,26 +60,15 @@ public:
     int32 PrimaryStateIndex_Queued;
     int32 SecondaryStateIndex_Queued;
     
-    /**
-    * Entry method for exiting a state, either due to current state being a locomotion like state or we reached the end of the current state
-    */
-    UFUNCTION(BlueprintNativeEvent, Category="GG|Animation")
-        void PollStateFromOwningActor();
-        virtual void PollStateFromOwningActor_Implementation();
-
     /** Setter wrapper with enum to save messy BP castings */
     UFUNCTION(BlueprintCallable, Category ="GG|Animation")
         void PerformAction(TEnumAsByte<EGGActionCategory::Type> NewAction);
     /** Setter wrapper with enum to save messy BP castings */
     UFUNCTION(BlueprintCallable, Category ="GG|Animation")
-        void AlterActionMode(TEnumAsByte<EGGActionCategorySpecific::Type> NewActionMode);    
+        void AlterActionMode(TEnumAsByte<EGGActionMode::Type> NewActionMode);
     /** Updates the field BlendspaceIndex_Current through querying owner state */
     UFUNCTION(BlueprintImplementableEvent, Category="GG|Animation")
         void PollBlendspaceIndex();
-
-    /** Update the state index using values from enum. Returns whether change has occured */
-    UFUNCTION(BlueprintImplementableEvent, Category="GG|Animation")
-        bool CheckOwnerForStateChange();
     
     UFUNCTION()
         virtual uint8 GetCompressedState() const;
@@ -95,9 +84,6 @@ public:
     //  Catch up steps taken by non-owners using the new Rep_CompressedState
     UFUNCTION()
         virtual void UpdateFromCompressedState();
-    
-    UFUNCTION()
-    virtual void TransitToAnimationState(FGGAnimationState &ToState, int32 PrimaryStateIndex, int32 SecondaryStateIndex);
     
     UFUNCTION()
     virtual void TickCurrentBlendSpace();

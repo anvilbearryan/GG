@@ -116,9 +116,28 @@ namespace EGGActionCategory
 }
 
 UENUM(BlueprintType)
+namespace EGGActionMode
+{
+    // used within Animator to represent which mode we are in, multiplied in determing the "specific category" state to be used
+    enum Type
+    {
+        Mode0 = 0,
+        Mode1 = 1,
+        Mode2 = 2,
+        Mode3 = 3,
+        Mode4 = 4,
+        Mode5 = 5,
+        Mode6 = 6,
+        Mode7 = 7,
+        TYPES_COUNT
+    };
+}
+
+/** A combination of ActionMode and blend space direction, use in Editor for configuration convinience */
+UENUM(BlueprintType)
 namespace EGGActionCategorySpecific
 {
-    // Specific states contains enumeration for 3 possibilities with each containing 5 possible direction named in WSAD space
+    // Specific states contains all combination of EGGActionMode and horizontal / vertical mode
     enum Type
     {
         Mode0_Horizontal = 0,
