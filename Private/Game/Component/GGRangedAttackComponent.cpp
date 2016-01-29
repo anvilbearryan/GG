@@ -106,9 +106,6 @@ void UGGRangedAttackComponent::InitiateAttack()
 void UGGRangedAttackComponent::FinalizeAttack()
 {
 	OnFinalizeAttack.Broadcast();
-
-	GetWorld()->GetTimerManager().SetTimer(
-		StateTimerHandle, this, &UGGRangedAttackComponent::ResetForRetrigger, Retrigger);
 }
 
 void UGGRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
@@ -125,7 +122,8 @@ void UGGRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	}
 	//	Time to launch
 	else
-	{		
+	{
+        /*
 		//Code to spawn projectile				
 		FTransform transform = GetOwner()->GetTransform();
 		transform.AddToTranslation(LaunchOffset*LaunchOffsetMultiplier);
@@ -141,10 +139,16 @@ void UGGRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 			// Configure as dummy projectile
 
 		}
-		//	Adjust for cooldown
+        */
+        LaunchProjectile(bIsLocalInstruction);
+		//	Set timer for completion event for cooldown
 		SetComponentTickEnabled(false);
+        //  Animation completion
 		GetWorld()->GetTimerManager().SetTimer(
 			StateTimerHandle, this, &UGGRangedAttackComponent::FinalizeAttack, Cooldown);
+        //  Re-launching cooldown
+        GetWorld()->GetTimerManager().SetTimer(
+                                               StateTimerHandle, this, &UGGRangedAttackComponent::ResetForRetrigger, Retrigger);
 	}		
 }
 
@@ -155,8 +159,8 @@ void UGGRangedAttackComponent::HitTarget(AActor* target)
 	{
         // get the damage receiving component and deal damage
         TArray<UGGDamageReceiveComponent*> dmgCmpArray;
-        target->GetComponents(dmgCmp);
-        if (dmgCmp.Num() > 0)
+        target->GetComponents(dmgCmpArray);
+        if (dmgCmpArray.Num() > 0)
         {
             UGGDamageReceiveComponent* dmgCmp = dmgCmpArray[0];
         }
@@ -166,3 +170,4 @@ void UGGRangedAttackComponent::HitTarget(AActor* target)
 void UGGRangedAttackComponent::ResetForRetrigger()
 {
 	bIsReadyToBeUsed = true;
+}

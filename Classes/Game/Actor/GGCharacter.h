@@ -150,7 +150,8 @@ protected:
 	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.f, bool bForce= false) override;
 
 public:
-	FVector GetPlanarForwardVector();
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category="GG|View")
+	FVector GetPlanarForwardVector() const;
 
     /**
     * Entity damage receiving interface
@@ -174,9 +175,9 @@ public:
     virtual void ReceiveDamage(int32 DamageData);
     
     static FName FlipbookComponentName;
-    UPROPERTY(VisibleAnywhere, Category = "GG|Animation")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
         UPaperFlipbookComponent* FlipbookComponent;
     static FName AnimatorComponentName;
-    //UPROPERTY(EditAnywhere, Category = "GG|Animation")
-        UGGAnimatorComponent* AnimatorComponent;
+    
+    UGGAnimatorComponent* AnimatorComponent;
 };

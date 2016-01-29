@@ -25,8 +25,7 @@ AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
     {
         FlipbookComponent->AttachTo(RootComponent);
     }
-    
-    //AnimatorComponent = CreateDefaultSubobject<UGGAnimatorComponent>(AGGCharacter::AnimatorComponentName);
+
 }
 
 void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -340,11 +339,11 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
 }
 
-FVector AGGCharacter::GetPlanarForwardVector()
+FVector AGGCharacter::GetPlanarForwardVector() const
 {
     if (FlipbookComponent)
     {
-        return FlipbookComponent->RelativeScale3D.Y < 0.f ? Left : Right;
+        return FlipbookComponent->RelativeScale3D.X < 0.f ? Left : Right;
     }
     return Right;
 }

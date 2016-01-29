@@ -40,11 +40,11 @@ public:
 	//============
 
 	/** Local entry point for starting an attack, calls ServerMethod for replication */
-	UFUNCTION(BlueprintCallable, Category ="Attack|Input")
+	UFUNCTION(BlueprintCallable, Category ="GGAttack|Input")
 		void LocalInitiateAttack();
 
 	/**	Server receives attack instruction from client, calls MulticastInitiateAttack for remote replication */
-	UFUNCTION(Server, Reliable, WithValidation, Category = "Attack|Replication")
+	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
 		void ServerInitiateAttack();
 	bool ServerInitiateAttack_Validate();
 	void ServerInitiateAttack_Implementation();
@@ -53,7 +53,7 @@ public:
 	* Replicates instruction to remote simulated proxies, unfortunately there is no "except owning client type"
 	* RPC so its done in the body manually
 	*/
-	UFUNCTION(NetMulticast, Reliable, Category = "Attack|Replication")
+	UFUNCTION(NetMulticast, Reliable, Category = "GGAttack|Replication")
 		void MulticastInitiateAttack();
 	void MulticastInitiateAttack_Implementation();
 	
@@ -61,26 +61,29 @@ public:
 	* Hit detection is done in owning client for co-op smooth experience and reports to the server to handle
 	* neccesary change in target state.
 	*/
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category ="GGAttack")
 		void LocalHitTarget(AActor* target);
 	//	TODO: Change parameter type to enemy base class
-	UFUNCTION(Server, Reliable, WithValidation, Category = "Attack|Replication")
+	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
 		void ServerHitTarget(AActor* target);
 	bool ServerHitTarget_Validate(AActor* target);
 	void ServerHitTarget_Implementation(AActor* target);
 
 	//	Specification
-	UPROPERTY(EditAnywhere, Category = "Attack|Specification")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GGAttack|Specification")
 		FVector LaunchOffset;
-	UPROPERTY(EditAnywhere, Category = "Attack|Specification")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GGAttack|Specification")
 		TSubclassOf<AActor> ProjectileClass;
-	UPROPERTY(EditAnywhere, Category = "Attack|Specification")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GGAttack|Specification")
 		TEnumAsByte<ECollisionChannel> HitChannel;
-	UPROPERTY(EditAnywhere, Category = "Attack|Specification")
+	/** Spawn projectile delay */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GGAttack|Specification")
 		float StartUp;
-	UPROPERTY(EditAnywhere, Category = "Attack|Specification")
+    /** Animation cooldown. NOTE: concurrent timer with Retrigger */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GGAttack|Specification")
 		float Cooldown;
-	UPROPERTY(EditAnywhere, Category = "Attack|Specification")
+    /** Re-using cooldown. NOTE: concurrent timer with Cooldown */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GGAttack|Specification")
 		float Retrigger;
 
 	//	Just so we don't need to reconstruct everytime
@@ -101,15 +104,21 @@ protected:
 		virtual void FinalizeAttack();
 
 public:
-	//	Sub-classes / Owning actors should bind to this delegate for functionality
-	UPROPERTY(BlueprintAssignable)
+	//	Sub-classes / Owning actors should bind to this delegate in BP for animation state transition
+	UPROPERTY(BlueprintAssignable, Category ="GGAttack")
 		FStatusUpdateEventSignature OnInitiateAttack;
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category ="GGAttack")
 		FStatusUpdateEventSignature OnFinalizeAttack;
 	/** Where all updates are handled, consider moving the StartUp -> Active part via timer */
 	virtual void TickComponent(
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+    /** Spawn and configure projectile */
+    UFUNCTION(BlueprintImplementableEvent, Category="GGAttack")
+        void LaunchProjectile(bool bIsFromLocal);
+    /** opportunity in BP to catch the event and do effects */
+    UFUNCTION(BlueprintImplementableEvent, Category ="GGAttack")
+        void OnLaunchProjectile();
 protected:
 	UFUNCTION()
 		virtual void HitTarget(AActor* target);
