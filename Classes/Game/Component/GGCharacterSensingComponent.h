@@ -1,0 +1,44 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "Components/ActorComponent.h"
+#include "Game/Actor/GGCharacter.h"
+#include "Game/Utility/GGFunctionLibrary.h"
+#include "GGCharacterSensingComponent.generated.h"
+
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class GG_API UGGCharacterSensingComponent : public UActorComponent
+{
+	GENERATED_BODY()
+
+    DECLARE_DYNAMIC_DELEGATE(FSensingEvent);
+public:
+    UPROPERTY(Category ="GGAI|Sensing", EditAnywhere, BlueprintReadOnly)
+    FVector2D ActiveZone;
+    UPROPERTY(Category ="GGAI|Sensing", EditAnywhere, BlueprintReadOnly)
+    FVector2D AlertZone;
+    /** Active sensing is not done per frame to save cpu, however alertness is to ensure entites look responsive */
+    UPROPERTY(Category ="GGAI|Sensing", EditAnywhere, BlueprintReadOnly)
+    float ActiveSensingInterval;
+    
+    float TimeUntilNextActiveSenseCheck;
+    
+    FSensingEvent OnActivate;
+    FSensingEvent OnAlert;
+    FSensingEvent OnUnalert;
+    FSensingEvent OnDeactivate;
+    
+    TEnumAsByte<EGGAISensingState::Type> SensingState;
+    TWeakObjectPtr<AGGCharacter> Target;
+    
+    // Sets default values for this component's properties
+	UGGCharacterSensingComponent();
+
+	// Called when the game starts
+	virtual void BeginPlay() override;
+	
+	// Called every frame
+	virtual void TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction ) override;
+
+};

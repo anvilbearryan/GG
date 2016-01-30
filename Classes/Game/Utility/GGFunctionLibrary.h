@@ -81,7 +81,7 @@ struct FGGDamageInformation
 };
 
 /**
-**** Game type for animation ****
+******** BEGIN ANIMATION STATE MACHINE TYPES ********
 */
 UENUM(BlueprintType)
 namespace EGGAnimationStateEndType
@@ -197,6 +197,30 @@ struct FGGAnimationStateArray
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TArray<FGGAnimationState> States;
 };
+/** 
+******** END ANIMATION STATE MACHINE TYPES ********
+*/
+
+/**
+******** BEGIN ENEMY AI TYPES ********
+*/
+
+/** Possible states of an enemy's player sensing behaviour */
+UENUM(BlueprintType)
+namespace EGGAISensingState
+{
+    enum Type
+    {
+        Inactive = 0,
+        Active = 1,
+        Alert = 2,
+        TYPE_COUNT
+    };
+}
+
+/**
+******** END ENEMY AI TYPES ********
+*/
 
 UCLASS()
 class GG_API UGGFunctionLibrary: public UObject
