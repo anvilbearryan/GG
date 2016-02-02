@@ -6,8 +6,10 @@
 #include "Game/Actor/GGCharacter.h"
 #include "Game/Utility/GGFunctionLibrary.h"
 #include "GGCharacterSensingComponent.generated.h"
-
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+/**
+* A 2-D box GGCharacter sensing component using dynamic delegates for event binding
+*/
+UCLASS(Blueprintable, ClassGroup = "GG|AI", meta=(BlueprintSpawnableComponent) )
 class GG_API UGGCharacterSensingComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -35,10 +37,8 @@ public:
     // Sets default values for this component's properties
 	UGGCharacterSensingComponent();
 
-	// Called when the game starts
-	virtual void BeginPlay() override;
+	// Called when the game starts=	virtual void BeginPlay() override;
 	
 	// Called every frame
 	virtual void TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction ) override;
-
 };

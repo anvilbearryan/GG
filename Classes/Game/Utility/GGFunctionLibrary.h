@@ -218,6 +218,21 @@ namespace EGGAISensingState
     };
 }
 
+/** Generalized phases of AI action */
+UENUM(BlueprintType)
+namespace EGGAIActionState
+{
+    enum Type
+    {
+        Inactive = 0,
+        Patrol = 1,
+        PrepareAttack = 2,
+        Attack = 3,
+        Evade = 4,
+        TYPE_COUNT
+    };
+}
+
 /**
 ******** END ENEMY AI TYPES ********
 */

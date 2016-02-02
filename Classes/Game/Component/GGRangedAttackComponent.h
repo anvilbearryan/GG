@@ -24,7 +24,7 @@
 class AActor;
 class UProjectile;
 
-UCLASS(Blueprintable, ClassGroup = (Attack))
+UCLASS(Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
 class GG_API UGGRangedAttackComponent : public UActorComponent
 {
 	GENERATED_BODY()

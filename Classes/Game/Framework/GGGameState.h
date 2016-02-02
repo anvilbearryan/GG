@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Blueprintable, ClassGroup="GG|Framework")
 class GG_API AGGGameState : public AGameState
 {
 	GENERATED_BODY()

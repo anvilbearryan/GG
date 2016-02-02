@@ -22,7 +22,7 @@
  */
 class AActor;
 
-UCLASS(Blueprintable, ClassGroup = (Attack))
+UCLASS(Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
 class GG_API UGGMeleeAttackComponent : public UActorComponent
 {
 	GENERATED_BODY()

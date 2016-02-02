@@ -8,33 +8,23 @@
 // Sets default values for this component's properties
 UGGCharacterSensingComponent::UGGCharacterSensingComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	bWantsBeginPlay = true;
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+    // Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
+    // off to improve performance if you don't need them.
+    bWantsBeginPlay = true;
+    PrimaryComponentTick.bCanEverTick = true;
+    
+    // ...
 }
-
-
-// Called when the game starts
-void UGGCharacterSensingComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	// ...
-	
-}
-
 
 // Called every frame
 void UGGCharacterSensingComponent::TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction )
 {
-	Super::TickComponent( DeltaTime, TickType, ThisTickFunction );
+    Super::TickComponent( DeltaTime, TickType, ThisTickFunction );
     switch(SensingState)
     {
         case EGGAISensingState::Inactive:
-        {    TimeUntilNextActiveSenseCheck -= DeltaTime;
+        {
+            TimeUntilNextActiveSenseCheck -= DeltaTime;
             if (TimeUntilNextActiveSenseCheck < 0.f)
             {
                 //  Check active
@@ -57,7 +47,8 @@ void UGGCharacterSensingComponent::TickComponent( float DeltaTime, ELevelTick Ti
                 }
                 TimeUntilNextActiveSenseCheck = ActiveSensingInterval;
             }
-    }    break;
+        }
+            break;
         case EGGAISensingState::Active:
         {    AGGCharacter* character= Target.Get(false);
             if (character == nullptr)
@@ -78,14 +69,14 @@ void UGGCharacterSensingComponent::TickComponent( float DeltaTime, ELevelTick Ti
                     SensingState = EGGAISensingState::Alert;
                     OnAlert.ExecuteIfBound();
                 }
-                else if (dy > ActiveZone.X || dz < ActiveZone.Y)
+                else if (dy > ActiveZone.X || dz > ActiveZone.Y)
                 {
                     SensingState = EGGAISensingState::Inactive;
                     Target.Reset();
                     OnDeactivate.ExecuteIfBound();
                 }
             }
-    }    //  Check if ANY target gets in alert range
+        }    //  Check if ANY target gets in alert range
             break;
         case EGGAISensingState::Alert:
         {    // Check if target flied away~
@@ -109,7 +100,7 @@ void UGGCharacterSensingComponent::TickComponent( float DeltaTime, ELevelTick Ti
                     OnUnalert.ExecuteIfBound();
                 }
             }
-    }
+        }
             break;
     }
     

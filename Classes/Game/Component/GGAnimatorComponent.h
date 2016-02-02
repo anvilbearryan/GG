@@ -12,7 +12,7 @@
 
 class UPaperFlipbookComponent;
 
-UCLASS(Blueprintable, ClassGroup = (Animation))
+UCLASS(Blueprintable, ClassGroup = "GG|Animation", meta=(BlueprintSpawnableComponent))
 class GG_API UGGAnimatorComponent : public UActorComponent
 {
 	GENERATED_BODY()
