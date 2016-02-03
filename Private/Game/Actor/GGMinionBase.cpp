@@ -4,6 +4,8 @@
 #include "Game/Actor/GGMinionBase.h"
 #include "Game/Component/GGCharacterSensingComponent.h"
 #include "Game/Component/GGAIMovementComponent.h"
+#include "PaperFlipbookComponent.h"
+#include "Game/Component/GGAnimatorComponent.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
 
@@ -42,10 +44,20 @@ void AGGMinionBase::PostInitializeComponents()
         UGGAIMovementComponent* mc =movementComp[0];
         if (mc)
         {
-            mc->SetUpdatedComponent(RootComponent);
+            mc->SetUpdatedComponent(MovementCapsule);
             mc->MinionOwner = this;
-            mc->MovementMode = EMovementMode::MOVE_Falling;
         }
+    }
+    TArray<UPaperFlipbookComponent*> flipbook;
+    GetComponents(flipbook);
+    TArray<UGGAnimatorComponent*> anim;
+    GetComponents(anim);
+    if (anim.Num() > 0 && flipbook.Num()>0 && anim[0] && flipbook[0])
+    {
+        AnimatorComponent = anim[0];
+        AnimatorComponent->PlaybackComponent = flipbook[0];
+        AnimatorComponent->TickCurrentBlendSpace();
+        flipbook[0]->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);
     }
 }
 
@@ -53,7 +65,10 @@ void AGGMinionBase::PostInitializeComponents()
 void AGGMinionBase::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-
+    if (AnimatorComponent)
+    {
+        AnimatorComponent->ManualTick(DeltaTime);
+    }
 }
 
 void AGGMinionBase::TransitToActionState(TEnumAsByte<EGGAIActionState::Type> newState)
@@ -97,7 +112,7 @@ void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActo
     UPrimitiveComponent* OldBase = BasePlatform.PlatformPrimitive;
     if (OldBase == NewBaseComponent)
     {
-        UE_LOG(LogActor, Warning, TEXT("SetBase procedure not executed, already using component as base"));
+        //UE_LOG(LogActor, Warning, TEXT("SetBase procedure not executed, already using component as base"));
         return;
     }
     
@@ -119,6 +134,7 @@ void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActo
             // Opportunity to notify for base updates
             BasePlatform.PlatformPrimitive = NewBaseComponent;
             BasePlatform.bIsDynamic = NewBaseComponent->Mobility == EComponentMobility::Movable;
+            UE_LOG(LogActor, Warning, TEXT("SetBase to new base"));
         }
     }
 }

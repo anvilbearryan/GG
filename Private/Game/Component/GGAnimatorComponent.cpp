@@ -104,6 +104,7 @@ void UGGAnimatorComponent::ManualTick(float DeltaTime)
             ServerSetFromCompressedState(NewState);
         }
     }
+    
 }
 
 void UGGAnimatorComponent::PerformAction(TEnumAsByte<EGGActionCategory::Type> NewAction)

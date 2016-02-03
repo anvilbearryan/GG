@@ -31,6 +31,7 @@ public:
     FSensingEvent OnUnalert;
     FSensingEvent OnDeactivate;
     
+    UPROPERTY(VisibleAnywhere, Category ="GGAI|Sensing")
     TEnumAsByte<EGGAISensingState::Type> SensingState;
     TWeakObjectPtr<AGGCharacter> Target;
     

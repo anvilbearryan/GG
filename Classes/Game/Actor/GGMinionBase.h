@@ -24,6 +24,7 @@ struct FGGBasePlatform
 class UGGCharacterSensingComponent;
 class AGGCharacter;
 class UActorComponent;
+class UGGAnimatorComponent;
 
 UCLASS()
 class GG_API AGGMinionBase : public AActor
@@ -68,6 +69,8 @@ public:
     UFUNCTION(Category="GGAI|State", BlueprintImplementableEvent)
     void OnStateTransition(EGGAIActionState::Type newState);
     
+    UGGAnimatorComponent* AnimatorComponent;
+    
     /** Utility */
     UFUNCTION(Category="GGAI|Utility", BlueprintPure, BlueprintCallable, meta=(DisplayName="GetTargetLocation"))
     FVector GGGetTargetLocation() const;
@@ -79,6 +82,9 @@ public:
     FGGBasePlatform BasePlatform;
     
     void SetMovementBase(UPrimitiveComponent* NewBase, UActorComponent* MovementComponent);
+    
+    UFUNCTION(BlueprintImplementableEvent, Category="GGAI|Movement")
+    virtual void OnWalkingReachesCliff();
 };
 
 namespace GGMovementBaseUtils

@@ -4,6 +4,11 @@
 #include "Game/Component/GGAIMovementComponent.h"
 #include "Game/Actor/GGMinionBase.h"
 
+UGGAIMovementComponent::UGGAIMovementComponent()
+{
+    bWantsInitializeComponent = true;
+}
+
 bool UGGAIMovementComponent::HasValidData()
 {
     return MinionOwner && UpdatedComponent;
@@ -88,13 +93,15 @@ void UGGAIMovementComponent::CalcVelocity(FVector& OutVelocity, FVector& Current
         }
     }
 }
-float GROUND_CHECK_DELTA = 2.f;
-void UGGAIMovementComponent::CheckForGround(TArray<FHitResult> &Hits)
+float GROUND_CHECK_DELTA = 10.f;
+void UGGAIMovementComponent::CheckForGround(FHitResult& Result, ECollisionChannel Channel, float Direction)
 {
     FVector Start = UpdatedComponent->GetComponentLocation();
+    Start.Y = Start.Y + Direction * GetMinionOwner()->GetHalfWidth();
     FVector End = Start;
-    End.Z -= GROUND_CHECK_DELTA + MinionOwner->GetHalfHeight();
-    GetWorld()->LineTraceMultiByObjectType(Hits, Start, End, GroundQueryParams);
+    End.Z = End.Z - GROUND_CHECK_DELTA - MinionOwner->GetHalfHeight();
+    GetWorld()->LineTraceSingleByChannel(Result, Start, End, Channel, GroundQueryParams);
+    
 }
 
 void UGGAIMovementComponent::TickWalking(float DeltaTime)
@@ -102,72 +109,76 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
     FVector NewVelocity = Velocity;
     CalcVelocity(NewVelocity, Velocity, Acceleration, DeltaTime);
     FVector MoveDelta = (NewVelocity + Velocity) * 0.5f * DeltaTime;
-    ConfineWalkingMoveDelta(MoveDelta);
-    
+
     FHitResult MoveResult;
     FQuat Quat = UpdatedComponent->GetComponentQuat();
-    
     SafeMoveUpdatedComponent(MoveDelta, Quat, true, MoveResult);
-    if (!MoveResult.bBlockingHit)
+    if (MoveResult.IsValidBlockingHit())
     {
-        Velocity = NewVelocity;
+        // handled incline
+        float slid = SlideAlongSurface(MoveDelta, 1.f - MoveResult.Time, MoveResult.Normal, MoveResult);
+        Velocity = NewVelocity * slid;
+        // update floor
+        float TraceDirection = slid > 0 ? FMath::Sign(MoveDelta.Y) : 0.f;
+        FHitResult StepResult;
+        CheckForGround(StepResult, SteppingChannel, TraceDirection);
+        if (StepResult.bBlockingHit)
+        {
+            GetMinionOwner()->SetMovementBase(StepResult.GetComponent(), this);
+        }
+        else
+        {
+            FHitResult PlatformResult;
+            CheckForGround(PlatformResult, PlatformChannel, FMath::Sign(MoveDelta.Y));
+            if (PlatformResult.bBlockingHit)
+            {
+                GetMinionOwner()->SetMovementBase(PlatformResult.GetComponent(), this);
+            }
+        }
     }
     else
     {
-        // Handle collision
-   
-        Velocity = FVector::ZeroVector;
+        Velocity = NewVelocity;
+        // 2 possibility, flat surface or decline
+        /** Strategy: move actor downwards and check distance moved, if it exceeds */
+        FHitResult StepResult;
+        CheckForGround(StepResult, SteppingChannel, FMath::Sign(MoveDelta.Y));
+        if (StepResult.bBlockingHit)
+        {
+            FHitResult ZPushResult;
+            SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 30.f * DeltaTime), Quat, true, ZPushResult);
+            GetMinionOwner()->SetMovementBase(StepResult.GetComponent(), this);
+        
+            GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground"));
+        }
+        else
+        {
+            FHitResult PlatformResult;
+            CheckForGround(PlatformResult, PlatformChannel, FMath::Sign(MoveDelta.Y));
+            if (PlatformResult.bBlockingHit)
+            {
+                FHitResult ZPushResult;
+                SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 30.f * DeltaTime), Quat, true, ZPushResult);
+                GetMinionOwner()->SetMovementBase(PlatformResult.GetComponent(), this);
+                
+                GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground"));
+            }
+            else
+            {
+                // cliff, reverse the movement
+                SafeMoveUpdatedComponent(-MoveDelta, Quat, true, MoveResult);
+                GetMinionOwner()->OnWalkingReachesCliff();
+                
+                Velocity = FVector::ZeroVector;
+                GEngine->AddOnScreenDebugMessage(3, DeltaTime, FColor::Cyan, TEXT("Walking: no ground"));
+            }
+        }
     }
 }
 
 void UGGAIMovementComponent::ConfineWalkingMoveDelta(FVector& MoveDelta)
 {
-    //  We want to limit the move delta to ensure we don't walk off ground
-    if (!HasValidData())
-    {
-        return;
-    }
-    TArray<FHitResult> Hits;
-    FVector Start = UpdatedComponent->GetComponentLocation();
-    //  cast from centre of capsule to 2cm undeaneath
-    Start.Y += FMath::Sign(MoveDelta.Y) * MinionOwner->GetHalfWidth();
-    Start += MoveDelta;
-    
-    FVector End = Start;
-    Start.Z += GROUND_CHECK_DELTA * 0.5f;
-    End.Z -= GROUND_CHECK_DELTA + MinionOwner->GetHalfHeight();
-    
-    GetWorld()->LineTraceMultiByObjectType(Hits, Start, End, GroundQueryParams);
-    if (Hits.Num() > 0)
-    {
-        // check normal to adjust movement direction
-        // get ground height
-        float dz = Hits[0].ImpactPoint.Z - End.Z - GROUND_CHECK_DELTA;
-        // greater than a 3cm per second ascend at 60fps, should catch most
-        if (dz >  0.05f)
-        {
-            //climb
-            MoveDelta.Z += dz;
-        }
-        else if (dz < 0.05f)
-        {
-            // ditto for descend, not to worry for magnitude as dz is at least -2.f
-            MoveDelta.Z -= dz;
-        }
-        // there is ground in destination, check
-        UPrimitiveComponent* FoundBase = Hits[0].Component.Get();
-        if (FoundBase && FoundBase != GetMinionOwner()->BasePlatform.PlatformPrimitive)
-        {
-            // need to set as new movement base
-            GetMinionOwner()->SetMovementBase(FoundBase, this);
-            OldBaseLocation = GetMinionOwner()->GetActorLocation() - FoundBase->GetComponentLocation();
-        }
-    }
-    else
-    {
-        // lazy, lets just stop moving this frame
-        MoveDelta = FVector::ZeroVector;
-    }
+
 }
 
 bool UGGAIMovementComponent::IsMovingOnGround()
@@ -180,7 +191,7 @@ void UGGAIMovementComponent::TickFalling(float DeltaTime)
     FVector NewVelocity = Velocity;
     if (Acceleration.Z <= 0.f)
     {
-        Acceleration.Z = GetWorld()->GetDefaultGravityZ() * GravityScale;
+        Acceleration.Z = -FMath::Abs(GetWorld()->GetDefaultGravityZ() * GravityScale);
     }
     CalcVelocity(NewVelocity, Velocity, Acceleration, DeltaTime);
     FVector MoveDelta = (NewVelocity + Velocity) * 0.5f * DeltaTime;
@@ -200,35 +211,44 @@ void UGGAIMovementComponent::TickFalling(float DeltaTime)
             GetMinionOwner()->SetMovementBase(MoveResult.GetComponent(), this);
             // set movement mode to walking
             MovementMode = EMovementMode::MOVE_Walking;
-            
-            OldBaseLocation = GetMinionOwner()->GetActorLocation() - MoveResult.GetComponent()->GetComponentLocation();
+            Velocity.Z = 0;
+            OldBaseLocation = MoveResult.GetComponent()->GetComponentLocation();
         }
+        
+        GEngine->AddOnScreenDebugMessage(0, 1.5f, FColor::Cyan, TEXT("Falling: Initial blocking hit"));
     }
     else if (MoveDelta.Z < 0.f)
     {
         // Check if we are landing on 1-way platforms
-        FCollisionObjectQueryParams a;
-        TArray<FHitResult> Hits;
-        CheckForGround((Hits));
-        if (Hits.Num() > 0 && Hits[0].bBlockingHit)
+        FHitResult Hit;
+        CheckForGround(Hit, PlatformChannel, 0.f);
+
+        if (Hit.bBlockingHit)
         {
             /** we hit a ground that didn't stop us from movement, need to nudge back up
             */
-            float penetration = (1.f - Hits[0].Time) * GetMinionOwner()->GetHalfHeight();
-            GetMinionOwner()->AddActorWorldOffset(FVector(0.f, 0.f, penetration));
+            float halfheight = GetMinionOwner()->GetHalfHeight();
+            float ZDelta = Hit.ImpactPoint.Z + halfheight + 0.1f - UpdatedComponent->GetComponentLocation().Z;
+            GetMinionOwner()->AddActorWorldOffset(FVector(0.f, 0.f, ZDelta));
+
             //set new base from hit result
             // set new base
-            GetMinionOwner()->SetMovementBase(Hits[0].GetComponent(), this);
+            GetMinionOwner()->SetMovementBase(Hit.GetComponent(), this);
             // set movement mode to walking
             MovementMode = EMovementMode::MOVE_Walking;
             Velocity = FVector::ZeroVector;
-            
-            OldBaseLocation = GetMinionOwner()->GetActorLocation() - Hits[0].GetComponent()->GetComponentLocation();
+            OldBaseLocation = Hit.GetComponent()->GetComponentLocation();
+            GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Cyan, TEXT("Falling: secondary hit"));
         }
         else
         {
             Velocity = NewVelocity;
+            GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Falling: Not hits at all"));
         }
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(3, 1.f, FColor::Cyan, TEXT("Falling: WTF"));
     }
 }
 
@@ -244,6 +264,19 @@ void UGGAIMovementComponent::GetTravelDirection()
     }
     
 }
+void UGGAIMovementComponent::InitializeComponent()
+{
+    Super::InitializeComponent();
+    
+    MovementMode = EMovementMode::MOVE_Falling;
+    /*
+    TArray<TEnumAsByte<ECollisionChannel>> channels;
+    GroundQueryParams = FCollisionObjectQueryParams(channels);
+    */
+    GroundQueryParams.AddIgnoredActor(GetOwner());
+    GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Cyan, TEXT("Initialize"));
+
+}
 
 void UGGAIMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -253,7 +286,7 @@ void UGGAIMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType,
         return;
     }
     SyncBaseMovement();
-    
+    GetTravelDirection();
     if (!Acceleration.IsZero())
     {
         ConfineAcceleration(Acceleration);
@@ -262,4 +295,9 @@ void UGGAIMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType,
     {
         TickWalking(DeltaTime);
     }
+    else if (MovementMode == EMovementMode::MOVE_Falling)
+    {
+        TickFalling(DeltaTime);
+    }
+    UpdateComponentVelocity();
 }

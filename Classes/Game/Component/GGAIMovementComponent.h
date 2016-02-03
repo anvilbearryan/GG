@@ -35,13 +35,15 @@ private:
     uint32 bUseGradualAcceleration : 1;
 
 public:
+    UGGAIMovementComponent();
+    
     AGGMinionBase* MinionOwner;
     EMovementMode MovementMode;
     FVector Acceleration;
     // used to ensure we follow the movement base whenever possible
     FVector OldBaseLocation;
     // used for ground check
-    FCollisionObjectQueryParams GroundQueryParams;
+    FCollisionQueryParams GroundQueryParams;
     
 protected:
     virtual bool HasValidData();
@@ -56,7 +58,7 @@ protected:
     
     virtual void CalcVelocity(FVector& OutVelocity, FVector& CurrentVelocity, const FVector& InAcceleration, float DeltaTime);
     
-    virtual void CheckForGround(TArray<FHitResult> &Hits);
+    virtual void CheckForGround(FHitResult &Result, ECollisionChannel Channel, float Direction);
     
     virtual void TickWalking(float DeltatTime);
     
@@ -70,6 +72,8 @@ protected:
     virtual void TickFalling(float DeltaTime);
     
 public:
+    virtual void InitializeComponent() override;
+
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
     virtual void GetTravelDirection();

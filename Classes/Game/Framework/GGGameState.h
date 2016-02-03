@@ -18,4 +18,6 @@ class GG_API AGGGameState : public AGameState
 public:
     TArray<AGGCharacter*>& GetCharacterList();
 	
+    UFUNCTION(BlueprintCallable, Category ="GG|Framework")
+    void UpdateCharacterList();
 };
