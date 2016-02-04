@@ -21,7 +21,7 @@ void UGGAIMovementComponent::SyncBaseMovement()
     {
         return;
     }
-    UPrimitiveComponent* Base = MinionOwner->BasePlatform.PlatformPrimitive;
+    UPrimitiveComponent* Base = GetMinionOwner()->BasePlatform.PlatformPrimitive;
     if (Base && Base->Mobility == EComponentMobility::Movable)
     {
         FVector NewBaseLocation = Base->GetComponentLocation();
@@ -143,7 +143,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
         /** Strategy: move actor downwards and check distance moved, if it exceeds */
         FHitResult StepResult;
         CheckForGround(StepResult, SteppingChannel, FMath::Sign(MoveDelta.Y));
-        if (StepResult.bBlockingHit)
+        if (StepResult.IsValidBlockingHit())
         {
             FHitResult ZPushResult;
             SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 30.f * DeltaTime), Quat, true, ZPushResult);
@@ -154,7 +154,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
         else
         {
             FHitResult PlatformResult;
-            CheckForGround(PlatformResult, PlatformChannel, FMath::Sign(MoveDelta.Y));
+            CheckForGround(PlatformResult, PlatformChannel, -FMath::Sign(MoveDelta.Y));
             if (PlatformResult.bBlockingHit)
             {
                 FHitResult ZPushResult;

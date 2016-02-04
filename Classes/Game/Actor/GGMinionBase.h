@@ -25,6 +25,8 @@ class UGGCharacterSensingComponent;
 class AGGCharacter;
 class UActorComponent;
 class UGGAnimatorComponent;
+class UGGAIMovementComponent;
+class UPaperFlipbookComponent;
 
 UCLASS()
 class GG_API AGGMinionBase : public AActor
@@ -41,50 +43,90 @@ public:
 	
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
-    
+
+    /**
+     ******** Movement ********
+     */
     UPROPERTY(VisibleAnywhere, Category="GGAI")
     UCapsuleComponent* MovementCapsule;
-    // not uproperty as its added in Blueprint and cached in PostInitialize to easily use subclasses
-    UGGCharacterSensingComponent* Sensor;
+   
+    /** The desired travel direction set using AI logic input */
 	UPROPERTY(Category ="GGAI|Input", BlueprintReadWrite)
     FVector TravelDirection;
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-        void SwitchToPatrol();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-        void SwitchToAttackPreparation();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-        void SwitchToAttack();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-        void SwitchToEvade();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-        void SwitchToInactive();
+
+    UGGAIMovementComponent* MovementComponent;
     
+    FGGBasePlatform BasePlatform;
+    
+    void SetMovementBase(UPrimitiveComponent* NewBase, UActorComponent* InMovementComponent);
+    
+    virtual void WalkingReachesCliff();
+    
+    UFUNCTION(BlueprintImplementableEvent, Category="GGAI|Movement")
+    virtual void OnWalkingReachesCliff();
+    
+    /**
+     ******** AI Behaviour ********
+     */
     UPROPERTY(Category="GGAI|State", EditDefaultsOnly, BlueprintReadOnly)
     TEnumAsByte<EGGAIActionState::Type> ActionState;
-    
-    AGGCharacter* Target;
     
     UFUNCTION(Category="GGAI|State", BlueprintCallable)
     void TransitToActionState(TEnumAsByte<EGGAIActionState::Type> newState);
     UFUNCTION(Category="GGAI|State", BlueprintImplementableEvent)
     void OnStateTransition(EGGAIActionState::Type newState);
     
+    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
+    void SwitchToPatrol();
+    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
+    void SwitchToAttackPreparation();
+    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
+    void SwitchToAttack();
+    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
+    void SwitchToEvade();
+    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
+    void SwitchToInactive();
+    
+    /** Behaviour fields*/
+    uint32 bIsBehaviourTickEnabled : 1;
+    FTimerHandle BehaviourHandle;
+protected:
+    void PauseBehaviourTick(float Duration);
+private:
+    UFUNCTION()
+    void EnableBehaviourTick();
+protected:
+    /** Individual tick methods for different continuous states */
+    virtual void TickPatrol();
+    virtual void TickPrepareAttack();
+    virtual void TickEvade();
+
+public:
+    /**
+     ******** Character Sensing ********
+     */
+    UGGCharacterSensingComponent* Sensor;
+    AGGCharacter* Target;
+    
+    /**
+     ******** Animator ********
+     */
+    UPaperFlipbookComponent* FlipbookComponent;
     UGGAnimatorComponent* AnimatorComponent;
     
-    /** Utility */
+    /**
+     ******** Utility helpers ********
+     */
     UFUNCTION(Category="GGAI|Utility", BlueprintPure, BlueprintCallable, meta=(DisplayName="GetTargetLocation"))
     FVector GGGetTargetLocation() const;
     
     float GetHalfHeight() const;
     float GetHalfWidth() const;
     
-    /** Movement related */
-    FGGBasePlatform BasePlatform;
-    
-    void SetMovementBase(UPrimitiveComponent* NewBase, UActorComponent* MovementComponent);
-    
-    UFUNCTION(BlueprintImplementableEvent, Category="GGAI|Movement")
-    virtual void OnWalkingReachesCliff();
+    static FVector Right;
+    static FVector Left;
+    UFUNCTION()
+    FVector GetPlanarForwardVector() const;
 };
 
 namespace GGMovementBaseUtils

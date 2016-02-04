@@ -6,6 +6,7 @@
 #include "Game/Component/GGAIMovementComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "Game/Component/GGAnimatorComponent.h"
+#include "Game/Utility/GGFunctionLibrary.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
 
@@ -26,7 +27,7 @@ void AGGMinionBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
     /** Bind pawn sensing delegates */
-    TArray<UGGCharacterSensingComponent*> sensingComp;
+    TInlineComponentArray<UGGCharacterSensingComponent*> sensingComp;
     GetComponents(sensingComp);
     if (sensingComp.IsValidIndex(0))
     {
@@ -37,28 +38,36 @@ void AGGMinionBase::PostInitializeComponents()
         Sensor->OnDeactivate.BindDynamic(this, &AGGMinionBase::SwitchToInactive);
     }
     
-    TArray<UGGAIMovementComponent*> movementComp;
+    TInlineComponentArray<UGGAIMovementComponent*> movementComp;
     GetComponents(movementComp);
     if (movementComp.IsValidIndex(0))
     {
-        UGGAIMovementComponent* mc =movementComp[0];
-        if (mc)
+        MovementComponent = movementComp[0];
+        if (MovementComponent)
         {
-            mc->SetUpdatedComponent(MovementCapsule);
-            mc->MinionOwner = this;
+            MovementComponent->SetUpdatedComponent(MovementCapsule);
+            MovementComponent->MinionOwner = this;
         }
     }
-    TArray<UPaperFlipbookComponent*> flipbook;
+    
+    TInlineComponentArray<UPaperFlipbookComponent*> flipbook;
     GetComponents(flipbook);
-    TArray<UGGAnimatorComponent*> anim;
+    if (flipbook.IsValidIndex(0))
+    {
+        FlipbookComponent = flipbook[0];
+    }
+    
+    TInlineComponentArray<UGGAnimatorComponent*> anim;
     GetComponents(anim);
-    if (anim.Num() > 0 && flipbook.Num()>0 && anim[0] && flipbook[0])
+    if (anim.Num() > 0 && anim[0] && FlipbookComponent)
     {
         AnimatorComponent = anim[0];
-        AnimatorComponent->PlaybackComponent = flipbook[0];
+        AnimatorComponent->PlaybackComponent = FlipbookComponent;
         AnimatorComponent->TickCurrentBlendSpace();
-        flipbook[0]->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);
+        FlipbookComponent->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);
     }
+    
+    bIsBehaviourTickEnabled = true;
 }
 
 // Called every frame
@@ -69,6 +78,61 @@ void AGGMinionBase::Tick( float DeltaTime )
     {
         AnimatorComponent->ManualTick(DeltaTime);
     }
+    
+    TravelDirection = FVector::ZeroVector;
+    
+    if (bIsBehaviourTickEnabled)
+    {
+        switch(ActionState)
+        {
+            case EGGAIActionState::Patrol:
+                TickPatrol();
+                break;
+            case EGGAIActionState::PrepareAttack:
+                TickPrepareAttack();
+                break;
+            case EGGAIActionState::Evade:
+                TickEvade();
+                break;
+        }
+    }
+}
+
+void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActorComponent* InMovementComponent)
+{
+    UPrimitiveComponent* OldBase = BasePlatform.PlatformPrimitive;
+    if (OldBase == NewBaseComponent)
+    {
+        //UE_LOG(LogActor, Warning, TEXT("SetBase procedure not executed, already using component as base"));
+        return;
+    }
+    
+    AActor* Loop = (NewBaseComponent ? Cast<AActor>(NewBaseComponent->GetOwner()) : NULL);
+    if( Loop == this)
+    {
+        UE_LOG(LogActor, Warning, TEXT(" SetBase failed! trying to set self as base."));
+        return;
+    }
+    
+    if (MovementComponent)
+    {
+        const bool bBaseChanged = (NewBaseComponent != BasePlatform.PlatformPrimitive);
+        if (bBaseChanged)
+        {
+            MovementBaseUtility::RemoveTickDependency(MovementComponent->PrimaryComponentTick, BasePlatform.PlatformPrimitive);
+            MovementBaseUtility::AddTickDependency(MovementComponent->PrimaryComponentTick, NewBaseComponent);
+            
+            // Opportunity to notify for base updates
+            BasePlatform.PlatformPrimitive = NewBaseComponent;
+            BasePlatform.bIsDynamic = NewBaseComponent->Mobility == EComponentMobility::Movable;
+            UE_LOG(LogActor, Warning, TEXT("SetBase to new base"));
+        }
+    }
+}
+
+void AGGMinionBase::WalkingReachesCliff()
+{
+    OnWalkingReachesCliff();
 }
 
 void AGGMinionBase::TransitToActionState(TEnumAsByte<EGGAIActionState::Type> newState)
@@ -78,6 +142,36 @@ void AGGMinionBase::TransitToActionState(TEnumAsByte<EGGAIActionState::Type> new
         OnStateTransition(newState);
         ActionState = newState;
     }
+}
+
+void AGGMinionBase::PauseBehaviourTick(float Duration)
+{
+    GetWorld()->GetTimerManager().SetTimer(BehaviourHandle, this, &AGGMinionBase::EnableBehaviourTick, Duration);
+}
+
+void AGGMinionBase::EnableBehaviourTick()
+{
+    if (bIsBehaviourTickEnabled)
+    {
+        UE_LOG(GGAIError, Warning, TEXT("Attempting to re-enable Behaviour Tick"));
+        return;
+    }
+    bIsBehaviourTickEnabled = true;
+}
+
+void AGGMinionBase::TickPatrol()
+{
+    
+}
+
+void AGGMinionBase::TickPrepareAttack()
+{
+    
+}
+
+void AGGMinionBase::TickEvade()
+{
+    
 }
 
 FVector AGGMinionBase::GGGetTargetLocation() const
@@ -107,36 +201,16 @@ float AGGMinionBase::GetHalfWidth() const
     return 0.f;
 }
 
-void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActorComponent* MovementComponent)
+FVector AGGMinionBase::Right = FVector(0.f, 1.f, 0.f);
+FVector AGGMinionBase::Left = FVector(0.f, -1.f, 0.f);
+
+FVector AGGMinionBase::GetPlanarForwardVector() const
 {
-    UPrimitiveComponent* OldBase = BasePlatform.PlatformPrimitive;
-    if (OldBase == NewBaseComponent)
+    if (FlipbookComponent)
     {
-        //UE_LOG(LogActor, Warning, TEXT("SetBase procedure not executed, already using component as base"));
-        return;
+        return FlipbookComponent->RelativeScale3D.X > 0 ? Right : Left;
     }
-    
-    AActor* Loop = (NewBaseComponent ? Cast<AActor>(NewBaseComponent->GetOwner()) : NULL);
-    if( Loop == this)
-    {
-            UE_LOG(LogActor, Warning, TEXT(" SetBase failed! trying to set self as base."));
-            return;
-    }
-    
-    if (MovementComponent)
-    {
-        const bool bBaseChanged = (NewBaseComponent != BasePlatform.PlatformPrimitive);
-        if (bBaseChanged)
-        {
-            MovementBaseUtility::RemoveTickDependency(MovementComponent->PrimaryComponentTick, BasePlatform.PlatformPrimitive);
-            MovementBaseUtility::AddTickDependency(MovementComponent->PrimaryComponentTick, NewBaseComponent);
-            
-            // Opportunity to notify for base updates
-            BasePlatform.PlatformPrimitive = NewBaseComponent;
-            BasePlatform.bIsDynamic = NewBaseComponent->Mobility == EComponentMobility::Movable;
-            UE_LOG(LogActor, Warning, TEXT("SetBase to new base"));
-        }
-    }
+    return Right;
 }
 
 namespace GGMovementBaseUtils
