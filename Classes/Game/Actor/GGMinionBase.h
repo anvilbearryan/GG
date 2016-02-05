@@ -63,7 +63,7 @@ public:
     virtual void WalkingReachesCliff();
     
     UFUNCTION(BlueprintImplementableEvent, Category="GGAI|Movement")
-    virtual void OnWalkingReachesCliff();
+    void OnWalkingReachesCliff();
     
     /**
      ******** AI Behaviour ********
@@ -73,19 +73,26 @@ public:
     
     UFUNCTION(Category="GGAI|State", BlueprintCallable)
     void TransitToActionState(TEnumAsByte<EGGAIActionState::Type> newState);
-    UFUNCTION(Category="GGAI|State", BlueprintImplementableEvent)
+	// Default behaviour calls OnStateTransition and updates the Actor's ActionState field
+	UFUNCTION(Category="GGAI|State", BlueprintNativeEvent, meta=(DisplayName="TransitToActionState"))
+	void TransitToActionStateInternal(EGGAIActionState::Type newState);
+	virtual void TransitToActionStateInternal_Implementation(EGGAIActionState::Type newState);
+
+	UFUNCTION(Category="GGAI|State", BlueprintImplementableEvent)
     void OnStateTransition(EGGAIActionState::Type newState);
     
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-    void SwitchToPatrol();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-    void SwitchToAttackPreparation();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-    void SwitchToAttack();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-    void SwitchToEvade();
-    UFUNCTION(Category="GGAI|Task", BlueprintImplementableEvent, BlueprintCallable)
-    void SwitchToInactive();
+    UFUNCTION(Category="GGAI|Task", BlueprintNativeEvent)
+    void OnSensorActivate();
+	virtual void OnSensorActivate_Implementation();
+    UFUNCTION(Category="GGAI|Task", BlueprintNativeEvent)
+    void OnSensorAlert();
+	virtual void OnSensorAlert_Implementation();
+    UFUNCTION(Category="GGAI|Task", BlueprintNativeEvent)
+    void OnSensorUnalert();
+	virtual void OnSensorUnalert_Implementation();
+    UFUNCTION(Category="GGAI|Task", BlueprintNativeEvent)
+    void OnSensorDeactivate();
+	virtual void OnSensorDeactivate_Implementation();
     
     /** Behaviour fields*/
     uint32 bIsBehaviourTickEnabled : 1;
@@ -97,9 +104,9 @@ private:
     void EnableBehaviourTick();
 protected:
     /** Individual tick methods for different continuous states */
-    virtual void TickPatrol();
-    virtual void TickPrepareAttack();
-    virtual void TickEvade();
+    virtual void TickPatrol(float DeltaSeconds);
+    virtual void TickPrepareAttack(float DeltaSeconds);
+    virtual void TickEvade(float DeltaSeconds);
 
 public:
     /**

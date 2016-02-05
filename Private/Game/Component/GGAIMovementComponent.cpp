@@ -93,6 +93,7 @@ void UGGAIMovementComponent::CalcVelocity(FVector& OutVelocity, FVector& Current
         }
     }
 }
+
 float GROUND_CHECK_DELTA = 10.f;
 void UGGAIMovementComponent::CheckForGround(FHitResult& Result, ECollisionChannel Channel, float Direction)
 {
@@ -149,7 +150,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
             SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 30.f * DeltaTime), Quat, true, ZPushResult);
             GetMinionOwner()->SetMovementBase(StepResult.GetComponent(), this);
         
-            GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground"));
+            GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground - Step channel"));
         }
         else
         {
@@ -161,7 +162,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
                 SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 30.f * DeltaTime), Quat, true, ZPushResult);
                 GetMinionOwner()->SetMovementBase(PlatformResult.GetComponent(), this);
                 
-                GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground"));
+                GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground - Platform channel"));
             }
             else
             {
@@ -170,7 +171,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
                 GetMinionOwner()->OnWalkingReachesCliff();
                 
                 Velocity = FVector::ZeroVector;
-                GEngine->AddOnScreenDebugMessage(3, DeltaTime, FColor::Cyan, TEXT("Walking: no ground"));
+                GEngine->AddOnScreenDebugMessage(3, DeltaTime, FColor::Cyan, TEXT("Walking: NO ground"));
             }
         }
     }
@@ -203,7 +204,7 @@ void UGGAIMovementComponent::TickFalling(float DeltaTime)
     if (MoveResult.bBlockingHit)
     {
         //  Check whether we are landing
-        bool bGoingDown = MoveDelta.Z;
+        bool bGoingDown = MoveDelta.Z != 0;
         Velocity = FVector::ZeroVector;
         if (bGoingDown)
         {
@@ -264,6 +265,7 @@ void UGGAIMovementComponent::GetTravelDirection()
     }
     
 }
+
 void UGGAIMovementComponent::InitializeComponent()
 {
     Super::InitializeComponent();

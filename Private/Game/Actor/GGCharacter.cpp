@@ -4,8 +4,8 @@
 #include "Game/Actor/GGCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Game/Component/GGCharacterMovementComponent.h"
-#include "PaperFlipbookComponent.h"
 #include "Game/Component/GGAnimatorComponent.h"
+#include "PaperFlipbookComponent.h"
 
 FName AGGCharacter::FlipbookComponentName(TEXT("FlipbookComponent"));
 FName AGGCharacter::AnimatorComponentName(TEXT("AnimatorComponent"));

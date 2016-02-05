@@ -3,10 +3,12 @@
 #pragma once
 
 #include "GameFramework/Character.h"
+//#include "PaperFlipbookComponent.h"
 #include "GGCharacter.generated.h"
 
-class UPaperFlipbookComponent;
+
 class UGGAnimatorComponent;
+class UPaperFlipbookComponent;
 
 UCLASS()
 class GG_API AGGCharacter : public ACharacter

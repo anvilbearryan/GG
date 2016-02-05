@@ -32,10 +32,10 @@ void AGGMinionBase::PostInitializeComponents()
     if (sensingComp.IsValidIndex(0))
     {
         Sensor = sensingComp[0];
-        Sensor->OnActivate.BindDynamic(this, &AGGMinionBase::SwitchToPatrol);
-        Sensor->OnAlert.BindDynamic(this, &AGGMinionBase::SwitchToAttackPreparation);
-        Sensor->OnUnalert.BindDynamic(this, &AGGMinionBase::SwitchToPatrol);
-        Sensor->OnDeactivate.BindDynamic(this, &AGGMinionBase::SwitchToInactive);
+        Sensor->OnActivate.BindDynamic(this, &AGGMinionBase::OnSensorActivate);
+        Sensor->OnAlert.BindDynamic(this, &AGGMinionBase::OnSensorAlert);
+        Sensor->OnUnalert.BindDynamic(this, &AGGMinionBase::OnSensorUnalert);
+        Sensor->OnDeactivate.BindDynamic(this, &AGGMinionBase::OnSensorDeactivate);
     }
     
     TInlineComponentArray<UGGAIMovementComponent*> movementComp;
@@ -81,18 +81,18 @@ void AGGMinionBase::Tick( float DeltaTime )
     
     TravelDirection = FVector::ZeroVector;
     
-    if (bIsBehaviourTickEnabled)
+    if (bIsBehaviourTickEnabled && Target)
     {
         switch(ActionState)
         {
             case EGGAIActionState::Patrol:
-                TickPatrol();
+                TickPatrol(DeltaTime);
                 break;
             case EGGAIActionState::PrepareAttack:
-                TickPrepareAttack();
+                TickPrepareAttack(DeltaTime);
                 break;
             case EGGAIActionState::Evade:
-                TickEvade();
+                TickEvade(DeltaTime);
                 break;
         }
     }
@@ -110,7 +110,7 @@ void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActo
     AActor* Loop = (NewBaseComponent ? Cast<AActor>(NewBaseComponent->GetOwner()) : NULL);
     if( Loop == this)
     {
-        UE_LOG(LogActor, Warning, TEXT(" SetBase failed! trying to set self as base."));
+        UE_LOG(GGAIError, Warning, TEXT(" SetBase failed! trying to set self as base."));
         return;
     }
     
@@ -139,13 +139,44 @@ void AGGMinionBase::TransitToActionState(TEnumAsByte<EGGAIActionState::Type> new
 {
     if (ActionState != newState)
     {
-        OnStateTransition(newState);
-        ActionState = newState;
+		TransitToActionStateInternal(newState);
     }
+}
+
+void AGGMinionBase::TransitToActionStateInternal_Implementation(EGGAIActionState::Type newState)
+{
+	OnStateTransition(newState);
+	ActionState = newState;
+
+	if (ActionState != EGGAIActionState::Inactive)
+	{
+		bIsBehaviourTickEnabled = true;
+	}
+	else
+	{
+		bIsBehaviourTickEnabled = false;
+	}
+}
+
+void AGGMinionBase::OnSensorActivate_Implementation()
+{
+}
+
+void AGGMinionBase::OnSensorAlert_Implementation()
+{
+}
+
+void AGGMinionBase::OnSensorUnalert_Implementation()
+{
+}
+
+void AGGMinionBase::OnSensorDeactivate_Implementation()
+{
 }
 
 void AGGMinionBase::PauseBehaviourTick(float Duration)
 {
+	bIsBehaviourTickEnabled = false;
     GetWorld()->GetTimerManager().SetTimer(BehaviourHandle, this, &AGGMinionBase::EnableBehaviourTick, Duration);
 }
 
@@ -159,17 +190,17 @@ void AGGMinionBase::EnableBehaviourTick()
     bIsBehaviourTickEnabled = true;
 }
 
-void AGGMinionBase::TickPatrol()
+void AGGMinionBase::TickPatrol(float DeltaSeconds)
 {
     
 }
 
-void AGGMinionBase::TickPrepareAttack()
+void AGGMinionBase::TickPrepareAttack(float DeltaSeconds)
 {
     
 }
 
-void AGGMinionBase::TickEvade()
+void AGGMinionBase::TickEvade(float DeltaSeconds)
 {
     
 }
@@ -266,3 +297,4 @@ namespace GGMovementBaseUtils
         }
     }
 }
+
