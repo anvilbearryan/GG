@@ -130,9 +130,8 @@ void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActo
     }
 }
 
-void AGGMinionBase::WalkingReachesCliff()
+void AGGMinionBase::OnReachWalkingBound()
 {
-    OnWalkingReachesCliff();
 }
 
 void AGGMinionBase::TransitToActionState(TEnumAsByte<EGGAIActionState::Type> newState)

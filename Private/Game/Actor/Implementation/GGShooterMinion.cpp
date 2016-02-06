@@ -6,6 +6,12 @@
 #include "PaperFlipbookComponent.h"
 #include "Game/Component/GGCharacterSensingComponent.h"
 
+void AGGShooterMinion::OnReachWalkingBound()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, TEXT("OnReachWalkingBound"));
+	bReachedWalkingBound = true;
+}
+
 void AGGShooterMinion::OnSensorActivate_Implementation()
 {
 	if (ActionState == EGGAIActionState::Inactive)
@@ -59,8 +65,16 @@ void AGGShooterMinion::TickPatrol(float DeltaSeconds)
 		PauseBehaviourTick(PauseDuration);
 	}
 	else
-	{
-		TravelDirection = GetPlanarForwardVector();
+	{		
+		if (!bReachedWalkingBound)
+		{
+			TravelDirection = GetPlanarForwardVector();
+		}
+		else
+		{
+			TimeWalkedContinually = 0.f; // reset timer for next cycle
+			SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.5f);
+		}
 	}
 	SyncFlipbookComponentWithTravelDirection();
 }
@@ -82,7 +96,7 @@ void AGGShooterMinion::TickPrepareAttack(float DeltaSeconds)
 		else
 		{
 			// need to do a turn to reach a shooting position
-			SequenceTurnFacingDirection();
+			SequenceTurnFacingDirection(TurnPauseAim, TurnPauseAim * 0.25f);
 		}
     }
 	else
@@ -116,8 +130,18 @@ void AGGShooterMinion::TickEvade(float DeltaSeconds)
 		else
 		{
 			// run away from target
-			TravelDirection = GetPlanarForwardVector();
-			TravelDirection.Y *= IsFacingTarget() ? -1.f : 1.f;
+			bool bFacingTarget = IsFacingTarget();
+			/*  We only set travel direction, and let SyncMovmenetToFacing do the job on flipping. 
+			*	If we already reached bounds, velocity should not be non-zero hence we won't turn unnecessarily.
+			*/
+			if (bFacingTarget)
+			{
+				TravelDirection = -GetPlanarForwardVector();
+			}
+			else
+			{
+				TravelDirection = GetPlanarForwardVector();
+			}
 		}
 	}
 	else
@@ -132,7 +156,7 @@ void AGGShooterMinion::TickEvade(float DeltaSeconds)
 			// keep an eye on target
 			if (!IsFacingTarget())
 			{
-				SequenceTurnFacingDirection();
+				SequenceTurnFacingDirection(TurnPauseEvade, TurnPauseEvade*0.5f);
 			}
 		}
 	}
@@ -161,10 +185,16 @@ bool AGGShooterMinion::IsFacingTarget() const
     return FVector::DotProduct(RelativePosition, Forward) > 0.f;
 }
 
-void AGGShooterMinion::SequenceTurnFacingDirection()
+void AGGShooterMinion::SequenceTurnFacingDirection(float TotalTimeToComplete, float FlipDelay)
 {
-	PauseBehaviourTick(TurnStagger);
-	GetWorld()->GetTimerManager().SetTimer(TurnHandle, this, &AGGShooterMinion::FlipFlipbookComponent, TurnStagger * 0.5f);
+	// avoid double turn, only execute if no existing timer on the TurnHandle set
+	FTimerManager& tm = GetWorld()->GetTimerManager();
+	float nextTurnRemaining = tm.GetTimerRemaining(TurnHandle);
+	if (nextTurnRemaining <= 0)
+	{
+		PauseBehaviourTick(TotalTimeToComplete);
+		GetWorld()->GetTimerManager().SetTimer(TurnHandle, this, &AGGShooterMinion::FlipFlipbookComponent, FlipDelay);
+	}
 }
 
 void AGGShooterMinion::FlipFlipbookComponent()
@@ -173,17 +203,20 @@ void AGGShooterMinion::FlipFlipbookComponent()
 	{
 		return;
 	}
-	FVector NewScale = FVector(FlipbookComponent->RelativeScale3D.X, 1.f,1.f);
+	// bounds condition are changed when we flip flipbook
+	bReachedWalkingBound = false;
+	FVector NewScale = FVector(-FlipbookComponent->RelativeScale3D.X, 1.f,1.f);
 	FlipbookComponent->SetRelativeScale3D(NewScale);
 }
 
 void AGGShooterMinion::SyncFlipbookComponentWithTravelDirection()
 {
 	float FacingDirection = GetPlanarForwardVector().Y;
+	float YVelocity = GetVelocity().Y;
 	// check for conflict
 	if (
-		(TravelDirection.Y > 0.f  && FacingDirection < 0.f) ||
-		(TravelDirection.Y < 0.f  && FacingDirection > 0.f)
+		(YVelocity > 0.f  && FacingDirection < 0.f) ||
+		(YVelocity  < 0.f  && FacingDirection > 0.f)
 		)
 	{
 		FlipFlipbookComponent();

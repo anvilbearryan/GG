@@ -110,7 +110,10 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
     FVector NewVelocity = Velocity;
     CalcVelocity(NewVelocity, Velocity, Acceleration, DeltaTime);
     FVector MoveDelta = (NewVelocity + Velocity) * 0.5f * DeltaTime;
-
+	if (MoveDelta.IsZero())
+	{
+		return;
+	}
     FHitResult MoveResult;
     FQuat Quat = UpdatedComponent->GetComponentQuat();
     SafeMoveUpdatedComponent(MoveDelta, Quat, true, MoveResult);
@@ -121,7 +124,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
         Velocity = NewVelocity * slid;
         // update floor
         float TraceDirection = slid > 0 ? FMath::Sign(MoveDelta.Y) : 0.f;
-        FHitResult StepResult;
+		FHitResult StepResult;
         CheckForGround(StepResult, SteppingChannel, TraceDirection);
         if (StepResult.bBlockingHit)
         {
@@ -136,6 +139,11 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
                 GetMinionOwner()->SetMovementBase(PlatformResult.GetComponent(), this);
             }
         }
+		if (slid == 0.f)
+		{
+			GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: Totla blockage"));
+			GetMinionOwner()->OnReachWalkingBound();
+		}
     }
     else
     {
@@ -143,35 +151,35 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
         // 2 possibility, flat surface or decline
         /** Strategy: move actor downwards and check distance moved, if it exceeds */
         FHitResult StepResult;
-        CheckForGround(StepResult, SteppingChannel, FMath::Sign(MoveDelta.Y));
+		CheckForGround(StepResult, SteppingChannel, 0.f); //FMath::Sign(MoveDelta.Y));
         if (StepResult.IsValidBlockingHit())
         {
             FHitResult ZPushResult;
-            SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 30.f * DeltaTime), Quat, true, ZPushResult);
+            SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 15.f * DeltaTime), Quat, true, ZPushResult);
             GetMinionOwner()->SetMovementBase(StepResult.GetComponent(), this);
         
-            GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground - Step channel"));
+            GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Step channel"));
         }
         else
         {
             FHitResult PlatformResult;
-            CheckForGround(PlatformResult, PlatformChannel, -FMath::Sign(MoveDelta.Y));
+            CheckForGround(PlatformResult, PlatformChannel, 0.f); //FMath::Sign(MoveDelta.Y));
             if (PlatformResult.bBlockingHit)
             {
                 FHitResult ZPushResult;
-                SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 30.f * DeltaTime), Quat, true, ZPushResult);
+                SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 15.f * DeltaTime), Quat, true, ZPushResult);
                 GetMinionOwner()->SetMovementBase(PlatformResult.GetComponent(), this);
                 
-                GEngine->AddOnScreenDebugMessage(2, DeltaTime, FColor::Cyan, TEXT("Walking: has ground - Platform channel"));
+                GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Platform channel"));
             }
             else
             {
                 // cliff, reverse the movement
                 SafeMoveUpdatedComponent(-MoveDelta, Quat, true, MoveResult);
-                GetMinionOwner()->OnWalkingReachesCliff();
+                GetMinionOwner()->OnReachWalkingBound();
                 
                 Velocity = FVector::ZeroVector;
-                GEngine->AddOnScreenDebugMessage(3, DeltaTime, FColor::Cyan, TEXT("Walking: NO ground"));
+                GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: NO ground"));
             }
         }
     }

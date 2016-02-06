@@ -57,13 +57,10 @@ public:
     UGGAIMovementComponent* MovementComponent;
     
     FGGBasePlatform BasePlatform;
-    
+	uint32 bReachedWalkingBound : 1;
     void SetMovementBase(UPrimitiveComponent* NewBase, UActorComponent* InMovementComponent);
     
-    virtual void WalkingReachesCliff();
-    
-    UFUNCTION(BlueprintImplementableEvent, Category="GGAI|Movement")
-    void OnWalkingReachesCliff();
+    virtual void OnReachWalkingBound();
     
     /**
      ******** AI Behaviour ********
