@@ -95,38 +95,36 @@ void UGGAnimatorComponent::ManualTick(float DeltaTime)
         }
         
         /** With appropriate state selected, update our blendspace */
-        TickCurrentBlendSpace();
-        
-        uint8 NewState = GetCompressedState();
-        if (Rep_CompressedState != NewState)
-        {
-            Rep_CompressedState = NewState;
-            ServerSetFromCompressedState(NewState);
-        }
+        TickCurrentBlendSpace();               
     }
-    
+	uint8 NewState = GetCompressedState();
+	if (Rep_CompressedState != NewState)
+	{
+		Rep_CompressedState = NewState;
+		ServerSetFromCompressedState(NewState);
+	}
 }
 
 void UGGAnimatorComponent::PerformAction(TEnumAsByte<EGGActionCategory::Type> NewAction)
 {
-    if (PrimaryStateIndex_Current != NewAction)
-    {
+    //if (PrimaryStateIndex_Current != NewAction)
+    //{
         PrimaryStateIndex_Previous = PrimaryStateIndex_Current;
         PrimaryStateIndex_Current = NewAction;
         bActionStateDirty = true;
-    }
+    //}
 }
 
 void UGGAnimatorComponent::AlterActionMode(TEnumAsByte<EGGActionMode::Type> NewActionMode)
 {
     // Cannot just cast to int32 for action mode
     int32 mode = NewActionMode;
-    if (SecondaryStateIndex_Current != mode)
-    {
+    //if (SecondaryStateIndex_Current != mode)
+    //{
         SecondaryStateIndex_Previous = SecondaryStateIndex_Current;
         SecondaryStateIndex_Current = mode;
         bActionModeStateDirty = true;
-    }
+    //}
 }
 
 uint8 UGGAnimatorComponent::GetCompressedState() const
@@ -267,13 +265,16 @@ void UGGAnimatorComponent::OnReachEndOfState_Implementation()
             PerformAction(EGGActionCategory::Locomotion);
             AlterActionMode(EGGActionMode::Mode0);
         }
+		UE_LOG(GGMessage, Log, TEXT("Animator reaches end of state"));
     }
 }
 
 void UGGAnimatorComponent::ReflectStateChanges()
 {
+	bActionStateDirty = false;
+	bActionModeStateDirty = false;
+
     AnimationState_Previous = AnimationState_Current;
-    
     ReflectIndexChanges();
     
     if (PlaybackComponent && AnimationState_Current)
@@ -285,6 +286,7 @@ void UGGAnimatorComponent::ReflectStateChanges()
         else
         {
             PlaybackComponent->SetLooping(false);
+			PlaybackComponent->PlayFromStart();
         }
     }
 }

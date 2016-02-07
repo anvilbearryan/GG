@@ -46,6 +46,20 @@ public:
 		float TurnPauseAim;
 	virtual void TickPrepareAttack(float DeltaSeconds) override;
 
+	/** Attack properties */
+	// = Duration of Evasion phase
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+	float AttackCooldown;
+	FTimerHandle AttackHandle;
+	UFUNCTION()
+		void SequenceCastAttack();
+	UFUNCTION(Category = "GGAI|Attack", BlueprintImplementableEvent)
+		void OnCastAttack();
+	UFUNCTION()
+		void CompleteAttack();
+	UFUNCTION(Category="GGAI|Attack", BlueprintImplementableEvent)
+		void OnCompleteAttack();
+
 	/** Evasion phase properties */
 	// Range to trigger evasion, should be smaller than EvadeSafeRange
 	UPROPERTY(Category = "GGAI|Evade", EditAnywhere)
@@ -56,6 +70,7 @@ public:
 	UPROPERTY(Category = "GGAI|Evade", EditAnywhere)
 		float TurnPauseEvade;
 	uint32 bIsInActiveEvasionMode : 1;
+	float TimeEvadedFor;
 	virtual void TickEvade(float DeltaSeconds) override;
 
 	bool IsTargetInSuppliedRange(const FVector2D& Range) const;

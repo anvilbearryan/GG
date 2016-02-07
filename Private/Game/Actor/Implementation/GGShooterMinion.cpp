@@ -4,7 +4,9 @@
 #include "Game/Actor/Implementation/GGShooterMinion.h"
 #include "Game/Actor/GGCharacter.h"
 #include "PaperFlipbookComponent.h"
+#include "Game/Component/GGAnimatorComponent.h"
 #include "Game/Component/GGCharacterSensingComponent.h"
+#include "Game/Utility/GGFunctionLibrary.h"
 
 void AGGShooterMinion::OnReachWalkingBound()
 {
@@ -25,11 +27,14 @@ void AGGShooterMinion::OnSensorActivate_Implementation()
 
 void AGGShooterMinion::OnSensorAlert_Implementation()
 {
-	if (ActionState != EGGAIActionState::PrepareAttack && ActionState != EGGAIActionState::Attack)
+	if (ActionState == EGGAIActionState::Patrol)
 	{
 		check(Sensor);
-		TransitToActionState(EGGAIActionState::PrepareAttack);
-		UE_LOG(GGMessage, Log, TEXT("Sensor Alert"));
+		if (IsFacingTarget())
+		{
+			TransitToActionState(EGGAIActionState::PrepareAttack);
+			UE_LOG(GGMessage, Log, TEXT("Sensor Alert"));
+		}
 	}
 }
 
@@ -90,12 +95,12 @@ void AGGShooterMinion::TickPrepareAttack(float DeltaSeconds)
         // we may need to do a turn first
         if (IsFacingTarget())
         {
-            // can attack
-			TransitToActionState(EGGAIActionState::Attack);
+            // can attack			
+			SequenceCastAttack();
 		}
 		else
 		{
-			// need to do a turn to reach a shooting position
+			// need to do a turn to reach a shooting position			
 			SequenceTurnFacingDirection(TurnPauseAim, TurnPauseAim * 0.25f);
 		}
     }
@@ -116,9 +121,42 @@ void AGGShooterMinion::TickPrepareAttack(float DeltaSeconds)
 	SyncFlipbookComponentWithTravelDirection();
 }
 
+void AGGShooterMinion::SequenceCastAttack()
+{
+	UE_LOG(GGMessage, Log, TEXT("Entity: uses attack"));
+	TransitToActionState(EGGAIActionState::Attack);
+	if (AnimatorComponent)
+	{
+		//	Animator will switch back to locomotion thereafter as should have been configured in Attack state
+		AnimatorComponent->PerformAction(EGGActionCategory::Attack);				
+	}
+	if (FlipbookComponent)
+	{
+		FlipbookComponent->OnFinishedPlaying.AddDynamic(this, &AGGShooterMinion::CompleteAttack);
+	}
+	OnCastAttack();
+}
+
+void AGGShooterMinion::CompleteAttack()
+{
+	FlipbookComponent->OnFinishedPlaying.RemoveDynamic(this, &AGGShooterMinion::CompleteAttack);
+	TransitToActionState(EGGAIActionState::Evade);
+	OnCompleteAttack();
+}
+
 void AGGShooterMinion::TickEvade(float DeltaSeconds)
 {
     Super::TickEvade(DeltaSeconds);
+	TimeEvadedFor += DeltaSeconds;
+	// escape analysis
+	if (TimeEvadedFor >= AttackCooldown)
+	{
+		TimeEvadedFor = 0.f;
+		TransitToActionState(EGGAIActionState::PrepareAttack);
+		// don't bother moving this tick, pointless
+		return;
+	}
+	// evasion instruction
 	if (bIsInActiveEvasionMode)
 	{
 		bool FarEnoughToRelax = !IsTargetInSuppliedRange(EvasionSafeRange);
@@ -195,6 +233,7 @@ void AGGShooterMinion::SequenceTurnFacingDirection(float TotalTimeToComplete, fl
 		PauseBehaviourTick(TotalTimeToComplete);
 		GetWorld()->GetTimerManager().SetTimer(TurnHandle, this, &AGGShooterMinion::FlipFlipbookComponent, FlipDelay);
 	}
+	UE_LOG(GGMessage, Log, TEXT("Entity: turns"));
 }
 
 void AGGShooterMinion::FlipFlipbookComponent()

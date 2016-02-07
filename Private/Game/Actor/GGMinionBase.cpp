@@ -147,7 +147,9 @@ void AGGMinionBase::TransitToActionStateInternal_Implementation(EGGAIActionState
 	OnStateTransition(newState);
 	ActionState = newState;
 
-	if (ActionState != EGGAIActionState::Inactive)
+	if (ActionState == EGGAIActionState::Patrol 
+		|| ActionState == EGGAIActionState::PrepareAttack 
+		|| ActionState == EGGAIActionState::Evade)
 	{
 		bIsBehaviourTickEnabled = true;
 	}

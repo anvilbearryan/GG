@@ -50,7 +50,8 @@ void UGGCharacterSensingComponent::TickComponent( float DeltaTime, ELevelTick Ti
         }
             break;
         case EGGAISensingState::Active:
-        {    AGGCharacter* character= Target.Get(false);
+        {    
+			AGGCharacter* character= Target.Get(false);
             if (character == nullptr)
             {
                 SensingState = EGGAISensingState::Inactive;
@@ -64,7 +65,7 @@ void UGGCharacterSensingComponent::TickComponent( float DeltaTime, ELevelTick Ti
                 FVector location = character->GetActorLocation();
                 float dy = FMath::Abs(MyLocation.Y - location.Y);
                 float dz = FMath::Abs(MyLocation.Z - location.Z);
-                if (dy < AlertZone.X && dz < AlertZone.Y)
+                if (dy <= AlertZone.X && dz <= AlertZone.Y)
                 {
                     SensingState = EGGAISensingState::Alert;
                     OnAlert.ExecuteIfBound();
@@ -97,8 +98,16 @@ void UGGCharacterSensingComponent::TickComponent( float DeltaTime, ELevelTick Ti
                 if (dy > AlertZone.X || dz > AlertZone.Y)
                 {
                     SensingState = EGGAISensingState::Active;
+					UE_LOG(GGAIError, Warning, TEXT("Unalert....."));
                     OnUnalert.ExecuteIfBound();
-                }
+				}
+				else
+				{
+					/*	Alert broadcast is continual. This is safe because we should check for current state before 
+					*	reacting in the owning actor class to avoid duplicate action.
+					*/
+					OnAlert.ExecuteIfBound();
+				}
             }
         }
             break;
