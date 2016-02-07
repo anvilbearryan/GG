@@ -10,7 +10,7 @@
 
 void AGGShooterMinion::OnReachWalkingBound()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, TEXT("OnReachWalkingBound"));
+	GEngine->AddOnScreenDebugMessage(3, 1.5f, FColor::Cyan, TEXT("OnReachWalkingBound"));
 	bReachedWalkingBound = true;
 }
 
@@ -115,7 +115,19 @@ void AGGShooterMinion::TickPrepareAttack(float DeltaSeconds)
 		else if (IsInAttackMinRange)
 		{
 			// move away from target
-			TravelDirection.Y = FMath::Sign(GetActorLocation().Y - Target->GetActorLocation().Y);
+			if (!bReachedWalkingBound)
+			{
+				TravelDirection.Y = FMath::Sign(GetActorLocation().Y - Target->GetActorLocation().Y);
+			}
+			else if (!IsFacingTarget())
+			{
+				SequenceTurnFacingDirection(TurnPauseAim, TurnPauseAim * 0.25f);
+			}
+			else
+			{
+				// we are forced to shoot
+				SequenceCastAttack();
+			}
 		}
 	}
 	SyncFlipbookComponentWithTravelDirection();
@@ -139,8 +151,9 @@ void AGGShooterMinion::SequenceCastAttack()
 
 void AGGShooterMinion::CompleteAttack()
 {
+	UE_LOG(GGMessage, Log, TEXT("Entity: completes attack"));
 	FlipbookComponent->OnFinishedPlaying.RemoveDynamic(this, &AGGShooterMinion::CompleteAttack);
-	TransitToActionState(EGGAIActionState::Evade);
+	TransitToActionState(EGGAIActionState::Evade);	
 	OnCompleteAttack();
 }
 
