@@ -73,30 +73,29 @@ void UGGAnimatorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> 
 
 void UGGAnimatorComponent::ManualTick(float DeltaTime)
 {
-    if (AnimationState_Current == nullptr)
-    {
-        GEngine->AddOnScreenDebugMessage(1, DeltaTime, FColor::Red, TEXT("Null state"));
+	if (AnimationState_Current == nullptr)
+	{
+		GEngine->AddOnScreenDebugMessage(1, DeltaTime, FColor::Red, TEXT("Null state"));
 
-        ReflectIndexChanges();
-    }
-    if(!AnimationState_Current->bMustPlayTillEnd)
-    {
-        // Cache blendspace index before polling for new
-        int32 loc_BlendSpaceIndex = BlendspaceIndex_Current;
-        PollBlendspaceIndex();
-        if (bActionStateDirty || bActionModeStateDirty)
-        {
-            ReflectStateChanges();
-        }
-        else if (loc_BlendSpaceIndex != BlendspaceIndex_Current)
-        {
-            // prevent unnecessary array fetching
-            ReflectIndexChanges();
-        }
-        
-        /** With appropriate state selected, update our blendspace */
-        TickCurrentBlendSpace();               
-    }
+		ReflectIndexChanges();
+	}
+
+	// Cache blendspace index before polling for new
+	int32 loc_BlendSpaceIndex = BlendspaceIndex_Current;
+	PollBlendspaceIndex();
+	if (bActionStateDirty || bActionModeStateDirty)
+	{
+		ReflectStateChanges();
+	}
+	else if (loc_BlendSpaceIndex != BlendspaceIndex_Current)
+	{
+		// prevent unnecessary array fetching
+		ReflectIndexChanges();
+	}
+
+	/** With appropriate state selected, update our blendspace */
+	TickCurrentBlendSpace();
+
 	uint8 NewState = GetCompressedState();
 	if (Rep_CompressedState != NewState)
 	{
@@ -197,7 +196,8 @@ void UGGAnimatorComponent::TickCurrentBlendSpace()
     if (PlaybackComponent && AnimationState_Current)
     {
         FGGAnimationState& ToState = *AnimationState_Current;
-        if (ToState.ShouldBlendHorizontal())
+		float Position = PlaybackComponent->GetPlaybackPosition();
+		if (ToState.ShouldBlendHorizontal())
         {
             float velocity_h = GetOwner()->GetVelocity().Y * FMath::Sign(PlaybackComponent->RelativeScale3D.X);
             if (velocity_h > BLENDSPACE_SENSATIVITY)
@@ -246,7 +246,11 @@ void UGGAnimatorComponent::TickCurrentBlendSpace()
                 PlaybackComponent->SetFlipbook(ToState.NeutralFlipbook);
             }
         }
-        PlaybackComponent->Play();
+		if (ToState.bMustPlayTillEnd)
+		{
+			PlaybackComponent->SetPlaybackPosition(Position, false);
+		}
+		PlaybackComponent->Play();
     }
 }
 

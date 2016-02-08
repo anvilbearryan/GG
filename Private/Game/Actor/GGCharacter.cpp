@@ -36,9 +36,9 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 }
 
 // Called when the game starts or when spawned
-void AGGCharacter::BeginPlay()
+void AGGCharacter::PostInitializeComponents()
 {
-	Super::BeginPlay();
+	Super::PostInitializeComponents();
     TArray<UGGAnimatorComponent*> anim;
     GetComponents(anim);
 	if (anim.Num() > 0 && FlipbookComponent)
@@ -304,14 +304,16 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     //  We changes axis values from input based on wall jump condition
 	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
 	{
+		// Cheaper to compare input axis values than setting scale every frame 
         if (LastActualMovementInput.Y * ScaleValue < 0.f)
         {
-            // turn detected
+            // turn detected (product strictly < 0 implies opposite direction)
             if (FlipbookComponent)
             {
                 FlipbookComponent->SetRelativeScale3D(FVector(FMath::Sign(ScaleValue), 1.f, 1.f));
             }
         }
+		// cache non-zero input for possible retrievle
 		LastActualMovementInput = WorldDirection * ScaleValue;
         if (CanWallJump())
         {
@@ -337,6 +339,11 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
         }
     }
     Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
+}
+
+void AGGCharacter::AddAimInput(float ScaleValue)
+{
+	AimLevel = FMath::Sign(ScaleValue);
 }
 
 FVector AGGCharacter::GetPlanarForwardVector() const

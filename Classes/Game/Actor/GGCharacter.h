@@ -21,8 +21,8 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	// PostInitializeComponents is guaranteed to be called on all clients
+	virtual void PostInitializeComponents() override;
 	
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
@@ -150,6 +150,8 @@ protected:
 	FVector LastActualMovementInput;
 	//	Override to cache actual input
 	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.f, bool bForce= false) override;
+	float AimLevel;
+	virtual void AddAimInput(float ScaleValue = 0.f);
 
 public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category="GG|View")
