@@ -7,7 +7,7 @@
 #include "GGGameState.generated.h"
 
 /**
- * 
+ *  
  */
 UCLASS(Blueprintable, ClassGroup="GG|Framework")
 class GG_API AGGGameState : public AGameState

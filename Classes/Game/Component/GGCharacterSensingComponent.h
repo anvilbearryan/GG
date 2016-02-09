@@ -8,6 +8,7 @@
 #include "GGCharacterSensingComponent.generated.h"
 /**
 * A 2-D box GGCharacter sensing component using dynamic delegates for event binding
+* TODO: Cache pointer to GameState Character array
 */
 UCLASS(Blueprintable, ClassGroup = "GG|AI", meta=(BlueprintSpawnableComponent) )
 class GG_API UGGCharacterSensingComponent : public UActorComponent
