@@ -34,7 +34,7 @@ void UGGAnimatorComponent::InitializeComponent()
         // create a copy
         TArray<FGGAnimationState> StatesCache = PrimArray.States;
         PrimArray.States.Empty();
-        for (int32 j = 0; j <= SecondaryState_MASK; j++)
+        for (int32 j = 0; j < EGGActionCategorySpecific::TYPES_COUNT; j++)
         {
             PrimArray.States.AddDefaulted();
             for (auto state : StatesCache)
@@ -50,7 +50,7 @@ void UGGAnimatorComponent::InitializeComponent()
     
     //  read from the filled AvailableStates and fill SortedStates
     SortedStates.Empty();
-    for (int32 i = 0;i <=PrimaryState_MASK; i++)
+    for (int32 i = 0;i < EGGActionCategory::TYPES_COUNT; i++)
     {
         SortedStates.AddDefaulted();
         for (FGGAnimationStateArray& PrimArray : loc_AvailableStates)
@@ -73,49 +73,57 @@ void UGGAnimatorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> 
 
 void UGGAnimatorComponent::ManualTick(float DeltaTime)
 {
-    if (AnimationState_Current == nullptr)
-    {
-        GEngine->AddOnScreenDebugMessage(1, DeltaTime, FColor::Red, TEXT("Null state"));
-        //SetComponentTickEnabled(false);
-        ReflectIndexChanges();
-    }
-    if(!AnimationState_Current->bMustPlayTillEnd)
-    {
-        // Do work every tick since we may change state anytime
-        PollStateFromOwningActor();
-    }
+	if (AnimationState_Current == nullptr)
+	{
+		GEngine->AddOnScreenDebugMessage(1, DeltaTime, FColor::Red, TEXT("Null state"));
+
+		ReflectIndexChanges();
+	}
+
+	// Cache blendspace index before polling for new
+	int32 loc_BlendSpaceIndex = BlendspaceIndex_Current;
+	PollBlendspaceIndex();
+	if (bActionStateDirty || bActionModeStateDirty)
+	{
+		ReflectStateChanges();
+	}
+	else if (loc_BlendSpaceIndex != BlendspaceIndex_Current)
+	{
+		// prevent unnecessary array fetching
+		ReflectIndexChanges();
+	}
+
+	/** With appropriate state selected, update our blendspace */
+	TickCurrentBlendSpace();
+
+	uint8 NewState = GetCompressedState();
+	if (Rep_CompressedState != NewState)
+	{
+		Rep_CompressedState = NewState;
+		ServerSetFromCompressedState(NewState);
+	}
 }
 
-void UGGAnimatorComponent::PollStateFromOwningActor_Implementation()
+void UGGAnimatorComponent::PerformAction(TEnumAsByte<EGGActionCategory::Type> NewAction)
 {
-    /** We need to ensure net owned entity's flag is not altered by authority */
-    if (!CheckOwnerForStateChange())
-    {
-        ReflectIndexChanges();
-    }
-    TickCurrentBlendSpace();
-    /** Server update animation, we can actually enclose it with the above condition in current setup, but have not due
-    *   to insignificant benefit plus this is more xeplicit (& more refined control)
-    */
-    AActor* loc_owner = GetOwner();
-    if (loc_owner && loc_owner->Role == ROLE_Authority)
-    {
-        uint8 compressedState = GetCompressedState();
-        if (compressedState != Rep_CompressedState)
-        {
-            Rep_CompressedState = compressedState;
-        }
-    }
-    //  Local owner update animation
-    else if (loc_owner && loc_owner->Role == ROLE_AutonomousProxy)
-    {
-        uint8 compressedState = GetCompressedState();
-        if (compressedState != Rep_CompressedState)
-        {
-            Rep_CompressedState = compressedState;
-            ServerSetFromCompressedState(compressedState);
-        }
-    }
+    //if (PrimaryStateIndex_Current != NewAction)
+    //{
+        PrimaryStateIndex_Previous = PrimaryStateIndex_Current;
+        PrimaryStateIndex_Current = NewAction;
+        bActionStateDirty = true;
+    //}
+}
+
+void UGGAnimatorComponent::AlterActionMode(TEnumAsByte<EGGActionMode::Type> NewActionMode)
+{
+    // Cannot just cast to int32 for action mode
+    int32 mode = NewActionMode;
+    //if (SecondaryStateIndex_Current != mode)
+    //{
+        SecondaryStateIndex_Previous = SecondaryStateIndex_Current;
+        SecondaryStateIndex_Current = mode;
+        bActionModeStateDirty = true;
+    //}
 }
 
 uint8 UGGAnimatorComponent::GetCompressedState() const
@@ -132,6 +140,7 @@ uint8 UGGAnimatorComponent::GetCompressedState() const
     }
     check(PrimaryStateIndex_Current <= PrimaryState_MASK && PrimaryStateIndex_Current >= 0);
     result |= (PrimaryStateIndex_Current << SecondaryState_BITS);
+    
     check(SecondaryStateIndex_Current <= SecondaryState_MASK && SecondaryStateIndex_Current >=0);
     result |= SecondaryStateIndex_Current;
     
@@ -159,8 +168,11 @@ void UGGAnimatorComponent::UpdateFromCompressedState()
     //  extract information to human readable local variables
     uint8 state = Rep_CompressedState;
     bool bIsFacingLeft = (state & FLIP_MASK) != 0;
-    int32 loc_PrimaryStateIndex = (state >> SecondaryState_BITS) & PrimaryState_MASK;
-    int32 loc_SecondaryStateIndex = (state & SecondaryState_MASK);
+
+    TEnumAsByte<EGGActionCategory::Type> loc_Action((uint8)((state >> SecondaryState_BITS) & PrimaryState_MASK));
+    TEnumAsByte<EGGActionMode::Type> loc_ActionMode((uint8)(state & SecondaryState_MASK));
+    PerformAction(loc_Action);
+    AlterActionMode(loc_ActionMode);
     
     //  apply the extracted information, i.e. state transition
     // TODO: Possible to smoothen experience by wait till current state finishes through Queued state (unused currently)
@@ -176,55 +188,16 @@ void UGGAnimatorComponent::UpdateFromCompressedState()
             PlaybackComponent->SetRelativeScale3D(FVector(1.f, 1.f, 1.f));
         }
     }
-    
-    /** Apply state transition */
-    // Check flags received are valid
-    if (SortedStates.IsValidIndex(loc_PrimaryStateIndex) && SortedStates[loc_PrimaryStateIndex].States.IsValidIndex(loc_SecondaryStateIndex))
-    {
-        TransitToAnimationState(SortedStates[loc_PrimaryStateIndex].States[loc_SecondaryStateIndex], loc_PrimaryStateIndex, loc_SecondaryStateIndex);
-    }
-    else
-    {
-#if WITH_EDITOR
-        GEngine->AddOnScreenDebugMessage(-1, 2.25f, FColor::Cyan, TEXT("Invalid state index"));
-#endif
-    }
 }
 
 const float BLENDSPACE_SENSATIVITY = 10.f;
-void UGGAnimatorComponent::TransitToAnimationState(FGGAnimationState& ToState, int32 ParentIndex, int32 SecondaryStateIndex)
-{
-        // save the state we are currently in
-        AnimationState_Previous = AnimationState_Current;
-        PrimaryStateIndex_Previous = PrimaryStateIndex_Current;
-        SecondaryStateIndex_Previous = SecondaryStateIndex_Current;
-        
-        AnimationState_Current = &ToState;
-        PrimaryStateIndex_Current = ParentIndex;
-        SecondaryStateIndex_Current = SecondaryStateIndex;
-        
-        SetComponentTickEnabled(!ToState.bMustPlayTillEnd);
-        
-        if (PlaybackComponent)
-        {
-            TickCurrentBlendSpace();
-            if (ToState.StateEndType == EGGAnimationStateEndType::Loop)
-            {
-                PlaybackComponent->SetLooping(true);
-            }
-            else
-            {
-                PlaybackComponent->SetLooping(false);
-            }
-        }
-}
-
 void UGGAnimatorComponent::TickCurrentBlendSpace()
 {
     if (PlaybackComponent && AnimationState_Current)
     {
         FGGAnimationState& ToState = *AnimationState_Current;
-        if (ToState.ShouldBlendHorizontal())
+		float Position = PlaybackComponent->GetPlaybackPosition();
+		if (ToState.ShouldBlendHorizontal())
         {
             float velocity_h = GetOwner()->GetVelocity().Y * FMath::Sign(PlaybackComponent->RelativeScale3D.X);
             if (velocity_h > BLENDSPACE_SENSATIVITY)
@@ -243,27 +216,41 @@ void UGGAnimatorComponent::TickCurrentBlendSpace()
         else if (ToState.PositiveFlipbook != nullptr)
         {
             // blend vertical
-            //float time = PlaybackComponent->GetPlaybackPosition();
             float velocity_v = GetOwner()->GetVelocity().Z;
             if (velocity_v > BLENDSPACE_SENSATIVITY)
             {
-                PlaybackComponent->SetFlipbook(ToState.PositiveFlipbook);
+                if (ToState.PositiveFlipbook)
+                {
+                    PlaybackComponent->SetFlipbook(ToState.PositiveFlipbook);
+                }
             }
             else if (velocity_v < -BLENDSPACE_SENSATIVITY)
             {
-                PlaybackComponent->SetFlipbook(ToState.NegativeFlipbook);
+                if(ToState.NegativeFlipbook)
+                {
+                    PlaybackComponent->SetFlipbook(ToState.NegativeFlipbook);
+                }
             }
             else
             {
-                PlaybackComponent->SetFlipbook(ToState.NeutralFlipbook);
+                if (ToState.NeutralFlipbook)
+                {
+                    PlaybackComponent->SetFlipbook(ToState.NeutralFlipbook);
+                }
             }
-            //PlaybackComponent->SetPlaybackPosition(time, false);
         }
         else
         {
-            PlaybackComponent->SetFlipbook(ToState.NeutralFlipbook);
+            if (ToState.NeutralFlipbook)
+            {
+                PlaybackComponent->SetFlipbook(ToState.NeutralFlipbook);
+            }
         }
-        PlaybackComponent->Play();
+		if (ToState.bMustPlayTillEnd)
+		{
+			PlaybackComponent->SetPlaybackPosition(Position, false);
+		}
+		PlaybackComponent->Play();
     }
 }
 
@@ -274,19 +261,44 @@ void UGGAnimatorComponent::OnReachEndOfState_Implementation()
         EGGAnimationStateEndType::Type EndType = AnimationState_Current->StateEndType;
         if (EndType == EGGAnimationStateEndType::Revert)
         {
-            TransitToAnimationState(*AnimationState_Previous, PrimaryStateIndex_Previous, SecondaryStateIndex_Previous);
-        } else if (EndType == EGGAnimationStateEndType::Exit)
+
+        }
+        else if (EndType == EGGAnimationStateEndType::Exit)
         {
-            //  replay this state while let it continue to work out whats next
-            PlaybackComponent->PlayFromStart();
+            //  exit to locomotion default mode
+            PerformAction(EGGActionCategory::Locomotion);
+            AlterActionMode(EGGActionMode::Mode0);
+        }
+		UE_LOG(GGMessage, Log, TEXT("Animator reaches end of state"));
+    }
+}
+
+void UGGAnimatorComponent::ReflectStateChanges()
+{
+	bActionStateDirty = false;
+	bActionModeStateDirty = false;
+
+    AnimationState_Previous = AnimationState_Current;
+    ReflectIndexChanges();
+    
+    if (PlaybackComponent && AnimationState_Current)
+    {
+        if (AnimationState_Current->StateEndType == EGGAnimationStateEndType::Loop)
+        {
+            PlaybackComponent->SetLooping(true);
+        }
+        else
+        {
+            PlaybackComponent->SetLooping(false);
+			PlaybackComponent->PlayFromStart();
         }
     }
 }
 
 void UGGAnimatorComponent::ReflectIndexChanges()
 {
-    check(SortedStates.IsValidIndex(PrimaryStateIndex_Current) && SortedStates[PrimaryStateIndex_Current].States.IsValidIndex(SecondaryStateIndex_Current));
-    AnimationState_Current = &SortedStates[PrimaryStateIndex_Current].States[SecondaryStateIndex_Current];
-    // Give a manual tick nudge
-    //TickCurrentBlendSpace();
+    check(SortedStates.IsValidIndex(PrimaryStateIndex_Current) && SortedStates[PrimaryStateIndex_Current].States.IsValidIndex(SecondaryStateIndex_Current * 2 + BlendspaceIndex_Current));
+    /** This should be the ONLY line in which we need to convert a ActionMode index together with blendspace index through multiplying by 2 and add blendspace index */
+    //TODO: add method converting action mode + blendspace index to array index for easier management 
+    AnimationState_Current = &SortedStates[PrimaryStateIndex_Current].States[SecondaryStateIndex_Current * 2 + BlendspaceIndex_Current];
 }

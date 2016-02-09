@@ -7,7 +7,7 @@
 #include "GGDamageReceiveComponent.generated.h"
 
 
-UCLASS( ClassGroup=("GG|Components"), meta=(BlueprintSpawnableComponent) )
+UCLASS( Blueprintable, ClassGroup=("GG|Components"), meta=(BlueprintSpawnableComponent) )
 class GG_API UGGDamageReceiveComponent : public UActorComponent
 {
 	GENERATED_BODY()

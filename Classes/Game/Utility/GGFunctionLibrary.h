@@ -81,7 +81,7 @@ struct FGGDamageInformation
 };
 
 /**
-**** Game type for animation ****
+******** BEGIN ANIMATION STATE MACHINE TYPES ********
 */
 UENUM(BlueprintType)
 namespace EGGAnimationStateEndType
@@ -116,29 +116,48 @@ namespace EGGActionCategory
 }
 
 UENUM(BlueprintType)
-namespace EGGActionCategorySpecific
+namespace EGGActionMode
 {
-    // Specific states contains enumeration for 3 possibilities with each containing 5 possible direction named in WSAD space
+    // used within Animator to represent which mode we are in, multiplied in determing the "specific category" state to be used
     enum Type
     {
-        NotSpecified = 0,   // Case for which we should have information to figure out from elsewhere, specifically reserved
-        Mode0_Horizontal = 1,
-        Mode0_Vertical = 2,
-        Mode1_Horizontal,
-        Mode1_Vertical,
-        Mode2_Horizontal,
-        Mode2_Vertical,
-        Mode3_Horizontal,
-        Mode3_Vertical,
-        Mode4_Horizontal,
-        Mode4_Vertical,
-        Mode5_Horizontal,
-        Mode5_Vertical,
-        Mode6_Horizontal,
-        Mode6_Vertical,
-        Mode7_Horizontal,
-        Mode7_Vertical,
+        Mode0 = 0,
+        Mode1 = 1,
+        Mode2 = 2,
+        Mode3 = 3,
+        Mode4 = 4,
+        Mode5 = 5,
+        Mode6 = 6,
+        Mode7 = 7,
         TYPES_COUNT
+    };
+}
+
+/** A combination of ActionMode and blend space direction, use in Editor for configuration convinience */
+UENUM(BlueprintType)
+namespace EGGActionCategorySpecific
+{
+    // Specific states contains all combination of EGGActionMode and horizontal / vertical mode
+    enum Type
+    {
+        Mode0_Horizontal = 0,
+        Mode0_Vertical = 1,
+        Mode1_Horizontal = 2,
+        Mode1_Vertical = 3,
+        Mode2_Horizontal = 4,
+        Mode2_Vertical = 5,
+        Mode3_Horizontal = 6,
+        Mode3_Vertical = 7,
+        Mode4_Horizontal = 8,
+        Mode4_Vertical = 9,
+        Mode5_Horizontal = 10,
+        Mode5_Vertical = 11,
+        Mode6_Horizontal = 12,
+        Mode6_Vertical = 13,
+        Mode7_Horizontal = 14,
+        Mode7_Vertical = 15,
+        NotSpecified = 16,   // Case for which we should have information to figure out from elsewhere, specifically reserved
+        TYPES_COUNT = 17
     };
 }
 
@@ -150,7 +169,8 @@ struct FGGAnimationState
     /** Picker enum for convinience to replicate the blend spaces through an index, also indicates blend direction */
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TEnumAsByte<EGGActionCategorySpecific::Type> SecondaryState;
-    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
+    // Used to determine whether we should blend playback position when changing inter-state
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         uint8 bMustPlayTillEnd : 1;
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TEnumAsByte<EGGAnimationStateEndType::Type> StateEndType;
@@ -164,7 +184,7 @@ struct FGGAnimationState
     
     FORCEINLINE bool ShouldBlendHorizontal()
     {
-        return (SecondaryState % 2) == 1;
+        return (SecondaryState % 2) == 0;
     }
 };
 
@@ -178,6 +198,45 @@ struct FGGAnimationStateArray
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Animation")
         TArray<FGGAnimationState> States;
 };
+/** 
+******** END ANIMATION STATE MACHINE TYPES ********
+*/
+
+/**
+******** BEGIN ENEMY AI TYPES ********
+*/
+
+/** Possible states of an enemy's player sensing behaviour */
+UENUM(BlueprintType)
+namespace EGGAISensingState
+{
+    enum Type
+    {
+        Inactive = 0,
+        Active = 1,
+        Alert = 2,
+        TYPE_COUNT
+    };
+}
+
+/** Generalized phases of AI action */
+UENUM(BlueprintType)
+namespace EGGAIActionState
+{
+    enum Type
+    {
+        Inactive = 0,
+        Patrol = 1,
+        PrepareAttack = 2,
+        Attack = 3,
+        Evade = 4,
+        TYPE_COUNT
+    };
+}
+
+/**
+******** END ENEMY AI TYPES ********
+*/
 
 UCLASS()
 class GG_API UGGFunctionLibrary: public UObject

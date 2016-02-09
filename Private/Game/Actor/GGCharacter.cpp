@@ -4,8 +4,8 @@
 #include "Game/Actor/GGCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Game/Component/GGCharacterMovementComponent.h"
-#include "PaperFlipbookComponent.h"
 #include "Game/Component/GGAnimatorComponent.h"
+#include "PaperFlipbookComponent.h"
 
 FName AGGCharacter::FlipbookComponentName(TEXT("FlipbookComponent"));
 FName AGGCharacter::AnimatorComponentName(TEXT("AnimatorComponent"));
@@ -25,8 +25,7 @@ AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
     {
         FlipbookComponent->AttachTo(RootComponent);
     }
-    
-    //AnimatorComponent = CreateDefaultSubobject<UGGAnimatorComponent>(AGGCharacter::AnimatorComponentName);
+
 }
 
 void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -37,9 +36,9 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 }
 
 // Called when the game starts or when spawned
-void AGGCharacter::BeginPlay()
+void AGGCharacter::PostInitializeComponents()
 {
-	Super::BeginPlay();
+	Super::PostInitializeComponents();
     TArray<UGGAnimatorComponent*> anim;
     GetComponents(anim);
 	if (anim.Num() > 0 && FlipbookComponent)
@@ -305,14 +304,16 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     //  We changes axis values from input based on wall jump condition
 	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
 	{
+		// Cheaper to compare input axis values than setting scale every frame 
         if (LastActualMovementInput.Y * ScaleValue < 0.f)
         {
-            // turn detected
+            // turn detected (product strictly < 0 implies opposite direction)
             if (FlipbookComponent)
             {
                 FlipbookComponent->SetRelativeScale3D(FVector(FMath::Sign(ScaleValue), 1.f, 1.f));
             }
         }
+		// cache non-zero input for possible retrievle
 		LastActualMovementInput = WorldDirection * ScaleValue;
         if (CanWallJump())
         {
@@ -340,11 +341,16 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
 }
 
-FVector AGGCharacter::GetPlanarForwardVector()
+void AGGCharacter::AddAimInput(float ScaleValue)
+{
+	AimLevel = FMath::Sign(ScaleValue);
+}
+
+FVector AGGCharacter::GetPlanarForwardVector() const
 {
     if (FlipbookComponent)
     {
-        return FlipbookComponent->RelativeScale3D.Y < 0.f ? Left : Right;
+        return FlipbookComponent->RelativeScale3D.X < 0.f ? Left : Right;
     }
     return Right;
 }
