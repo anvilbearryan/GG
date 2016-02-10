@@ -39,5 +39,5 @@ public:
 
 namespace Geometry2DUtils{
 /** Utility method for working out the additional displacement required when doing room transitions */
-GG_API FVector2D GetMinDisplacementFromBounds(FGGBox2D &InPoint, TArray<FGGBox2D> &InAreaBounds) const;
+GG_API FVector2D GetMinDisplacementFromBounds(FGGBox2D &InPoint, TArray<FGGBox2D> &InAreaBounds);
 }

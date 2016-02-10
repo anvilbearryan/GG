@@ -187,8 +187,9 @@ void AGGCameraman::InitiateFollow()
 	// apply result above
 */
 	
-	FVector2D RequiredAdjustment = Geometry2DUtils::GetMinDisplacementFromBounds(ProposedSetting, AreaBounds);
-	SetActorLocation(ProposedSetting.Centre + RequiredAdjustment, false, nullptr);
+	ProposedSetting.Centre = ProposedSetting.Centre + Geometry2DUtils::GetMinDisplacementFromBounds(ProposedSetting, AreaBounds);
+	FVector ActorLoc = FVector(0.f, ProposedSetting.Centre.X, ProposedSetting.Centre.Y);
+	SetActorLocation(ActorLoc, false, nullptr);
 	bInFollowMode = true;
 }
 
@@ -210,9 +211,12 @@ void AGGCameraman::Tick( float DeltaTime )
 }
 
 namespace Geometry2DUtils {
-	FVector2D GetMinDisplacementFromBounds(FGGBox2D &InBox, TArray<FGGBox2D> &InAreaBounds) const
+	FVector2D GetMinDisplacementFromBounds(FGGBox2D &InBox, TArray<FGGBox2D> &InAreaBounds) 
 	{
-		bool TopLeftContained, TopRightContained, BotLeftContained, BotRightContained;
+		bool TopLeftContained = false;
+		bool TopRightContained = false;
+		bool BotLeftContained = false; 
+		bool BotRightContained = false;
 		int32 TLIndex = -1;
 		int32 TRIndex = -1;
 		int32 BLIndex = -1;
@@ -250,8 +254,30 @@ namespace Geometry2DUtils {
 		}
 		// represent information above in form of Manhattan "nudge direction"
 		FVector2D NudgeDirection = FVector2D();
-		NudgeDirection.X = (!TopRightContained || !BotRightContained) ? -1.f : ((!TopLeftContained || !BotLeftContained) : 1.f : 0.f);
-		NudgeDirection.X = (!TopRightContained || !TopLeftContained) ? -1.f : ((!BotLeftContained || !BotRightContained) : 1.f : 0.f);
+		if (!TopRightContained || !BotRightContained)
+		{
+			NudgeDirection.X = -1.f;
+		}
+		else if ((!TopLeftContained || !BotLeftContained)) {
+			NudgeDirection.X = 1.f;
+		}
+		else
+		{
+			NudgeDirection.X = 0.f;
+		}
+		if (!TopRightContained || !TopLeftContained)
+		{
+			NudgeDirection.Y = -1.f;
+		}
+		else if ((!BotLeftContained || !BotRightContained))
+		{
+			NudgeDirection.Y = 1.f;
+		}
+		else
+		{
+			NudgeDirection.Y = 0.f;
+		}
+		  
 		if (NudgeDirection.IsZero())
 		{
 			UE_LOG(GGMessage, Warning, TEXT("Camera trying to focus on a target that is totally outside the level, abort"));
@@ -296,7 +322,7 @@ namespace Geometry2DUtils {
 			}
 			else
 			{
-				RequiredAdjustment.X = FMath::Abs(botRightAdj.X) * NudgeDirection.X;
+				RequiredAdjustment.X = FMath::Abs(botLeftAdj.X) * NudgeDirection.X;
 			}
 			if (RequiredAdjustment.Y != 0.f)
 			{
@@ -304,7 +330,7 @@ namespace Geometry2DUtils {
 			}
 			else
 			{
-				RequiredAdjustment.Y = FMath::Abs(botRightAdj.Y) * NudgeDirection.Y;
+				RequiredAdjustment.Y = FMath::Abs(botLeftAdj.Y) * NudgeDirection.Y;
 			}
 		}
 		if (BRIndex != -1)
@@ -318,7 +344,7 @@ namespace Geometry2DUtils {
 			}
 			else
 			{
-				RequiredAdjustment.X = FMath::Abs(botRightAdj.X) * NudgeDirection.X;
+				RequiredAdjustment.X = FMath::Abs(topLeftAdj.X) * NudgeDirection.X;
 			}
 			if (RequiredAdjustment.Y != 0.f)
 			{
@@ -326,7 +352,7 @@ namespace Geometry2DUtils {
 			}
 			else
 			{
-				RequiredAdjustment.Y = FMath::Abs(botRightAdj.Y) * NudgeDirection.Y;
+				RequiredAdjustment.Y = FMath::Abs(topLeftAdj.Y) * NudgeDirection.Y;
 			}
 		}
 		if (BLIndex != -1)
@@ -340,7 +366,7 @@ namespace Geometry2DUtils {
 			}
 			else
 			{
-				RequiredAdjustment.X = FMath::Abs(botRightAdj.X) * NudgeDirection.X;
+				RequiredAdjustment.X = FMath::Abs(topRightAdj.X) * NudgeDirection.X;
 			}
 			if (RequiredAdjustment.Y != 0.f)
 			{
@@ -348,11 +374,11 @@ namespace Geometry2DUtils {
 			}
 			else
 			{
-				RequiredAdjustment.Y = FMath::Abs(botRightAdj.Y) * NudgeDirection.Y;
+				RequiredAdjustment.Y = FMath::Abs(topRightAdj.Y) * NudgeDirection.Y;
 			}
 		}
-		UE_LOG(GGMessage, Log, TEXT("RequiredAdjustment =");
-		UE_LOG(GGMessage, Log, RequiredAdjustment.ToString());
+		
+		//UE_LOG(LogTemp, Warning, TEXT("RequiredAdjustment is: %s"), FVector(0.f, RequiredAdjustment.X, RequiredAdjustment.Y).ToString());
 		return RequiredAdjustment;
 	}
 }

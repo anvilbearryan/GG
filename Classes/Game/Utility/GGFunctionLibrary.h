@@ -245,9 +245,11 @@ namespace EGGAIActionState
 USTRUCT(BlueprintType)
 struct FGGBox2D
 {
+	GENERATED_BODY()
 	FVector2D Centre;
 	FVector2D HalfExtent;
 
+	FGGBox2D(){}
 	FGGBox2D(const FVector2D &InCentre, const FVector2D &InHalfExtent)
 	{
 		Centre = InCentre;
@@ -274,10 +276,10 @@ struct FGGBox2D
 	FORCEINLINE bool ContainsPoint(const FVector2D &InPoint) const
 	{
 		/** explicitly separated into 4 AND conditions allows early termination, tiny immature optimisation ftw */
-		return 
+		return
 			InPoint.X <= Centre.X + HalfExtent.X && InPoint.X >= Centre.X - HalfExtent.X
 			&&
-			InPoint.Y <= Centre.Y + HalfExtent.Y && InPoint.Y >= Centre.Y - HalfExtent.Y		
+			InPoint.Y <= Centre.Y + HalfExtent.Y && InPoint.Y >= Centre.Y - HalfExtent.Y;
 	}
 
 	FORCEINLINE bool ContainsBox(const FGGBox2D &InBox) const
