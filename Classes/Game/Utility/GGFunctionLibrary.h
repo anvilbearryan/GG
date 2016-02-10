@@ -238,6 +238,65 @@ namespace EGGAIActionState
 ******** END ENEMY AI TYPES ********
 */
 
+/**
+******** BEGIN 2D GEOMETRY TYPES ********
+*/
+
+USTRUCT(BlueprintType)
+struct FGGBox2D
+{
+	FVector2D Centre;
+	FVector2D HalfExtent;
+
+	FGGBox2D(const FVector2D &InCentre, const FVector2D &InHalfExtent)
+	{
+		Centre = InCentre;
+		HalfExtent = InHalfExtent;
+	}
+
+	FORCEINLINE FVector2D GetTopLeft() const
+	{
+		return FVector2D(Centre.X - HalfExtent.X, Centre.Y + HalfExtent.Y);
+	}
+	FORCEINLINE FVector2D GetTopRight() const
+	{
+		return FVector2D(Centre.X + HalfExtent.X, Centre.Y + HalfExtent.Y);
+	}
+	FORCEINLINE FVector2D GetBotLeft() const
+	{
+		return FVector2D(Centre.X - HalfExtent.X, Centre.Y - HalfExtent.Y);
+	}
+	FORCEINLINE FVector2D GetBotRight() const
+	{
+		return FVector2D(Centre.X + HalfExtent.X, Centre.Y - HalfExtent.Y);
+	}
+
+	FORCEINLINE bool ContainsPoint(const FVector2D &InPoint) const
+	{
+		/** explicitly separated into 4 AND conditions allows early termination, tiny immature optimisation ftw */
+		return 
+			InPoint.X <= Centre.X + HalfExtent.X && InPoint.X >= Centre.X - HalfExtent.X
+			&&
+			InPoint.Y <= Centre.Y + HalfExtent.Y && InPoint.Y >= Centre.Y - HalfExtent.Y		
+	}
+
+	FORCEINLINE bool ContainsBox(const FGGBox2D &InBox) const
+	{
+		return ContainsPoint(InBox.GetBotLeft()) && ContainsPoint(InBox.GetTopRight());
+	}
+
+	FORCEINLINE bool IsDisjoint(const FGGBox2D &InBox) const
+	{
+		return HalfExtent.X + InBox.HalfExtent.X < FMath::Abs(Centre.X - InBox.Centre.X)
+			&&
+			HalfExtent.Y + InBox.HalfExtent.Y < FMath::Abs(Centre.Y - InBox.Centre.Y);
+	}
+};
+
+/**
+******** END 2D GEOMETRY TYPES ********
+*/
+
 UCLASS()
 class GG_API UGGFunctionLibrary: public UObject
 {
