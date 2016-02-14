@@ -3,7 +3,8 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include "Game/Utility/GGFunctionLibrary.h"
+//#include "Game/Utility/GGFunctionLibrary.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGDamageReceiveComponent.generated.h"
 
 

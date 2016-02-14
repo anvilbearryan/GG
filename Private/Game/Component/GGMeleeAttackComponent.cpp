@@ -2,6 +2,7 @@
 
 #include "GG.h"
 #include "Game/Component/GGMeleeAttackComponent.h"
+#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Actor/GGCharacter.h"
 
 UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
@@ -37,7 +38,7 @@ void UGGMeleeAttackComponent::BeginPlay()
 	HitboxOffsetMultiplier.Z = 1.f;
 }
 
-void UGGMeleeAttackComponent::LocalInitiateAttack()
+void UGGMeleeAttackComponent::LocalInitiateAttack(uint8 Index)
 {	
 	if (!bIsReadyToBeUsed)
 	{
@@ -55,53 +56,54 @@ void UGGMeleeAttackComponent::LocalInitiateAttack()
 	{
 		HitboxOffsetMultiplier.Y = 1.f;
 	}
+
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{		
-		InitiateAttack();
+		InitiateAttack(Index);
 	}
-	ServerInitiateAttack();
+	ServerInitiateAttack(Index);
 }
 
-bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate()
+bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate(uint8 Index)
 {
 	return true;
 }
 
-void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation()
+void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation(uint8 Index)
 {
-	InitiateAttack();
-	MulticastInitiateAttack();
+	InitiateAttack(Index);
+	MulticastInitiateAttack(Index);
 }
 
-void UGGMeleeAttackComponent::MulticastInitiateAttack_Implementation()
+void UGGMeleeAttackComponent::MulticastInitiateAttack_Implementation(uint8 Index)
 {
 	if (GetOwnerRole() == ROLE_SimulatedProxy)
 	{
-		InitiateAttack();
+		InitiateAttack(Index);
 	}	
 }
 
-void UGGMeleeAttackComponent::LocalHitTarget(AActor* target)
+void UGGMeleeAttackComponent::LocalHitTarget(AActor* target, uint8 Index)
 {
 	HitTarget(target);
 	if (target && GetOwnerRole() != ROLE_Authority)
 	{
 		//	If we are not server, also needs server to update to display effects 
-		ServerHitTarget(target);
+		ServerHitTarget(target, Index);
 	}
 }
 
-bool UGGMeleeAttackComponent::ServerHitTarget_Validate(AActor * target)
+bool UGGMeleeAttackComponent::ServerHitTarget_Validate(AActor * target, uint8 Index)
 {
 	return true;
 }
 
-void UGGMeleeAttackComponent::ServerHitTarget_Implementation(AActor * target)
+void UGGMeleeAttackComponent::ServerHitTarget_Implementation(AActor * target, uint8 Index)
 {
-	HitTarget(target);
+	HitTarget(target, Index);
 }
 
-void UGGMeleeAttackComponent::InitiateAttack()
+void UGGMeleeAttackComponent::InitiateAttack(uint8 Index)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("InitiateAttack"));
 	TimeLapsed = 0.f;
@@ -109,13 +111,13 @@ void UGGMeleeAttackComponent::InitiateAttack()
 	// Not really checked outside local player, but doesn't hurt to set it	
 	bIsReadyToBeUsed = false;
 
-	AffectedEntities.Reset(AffectedEntities.Num());
+	AffectedEntities.Reset(MaxNumTargetsPerHit);
 
 	SetComponentTickEnabled(true);
 	OnInitiateAttack.Broadcast();
 }
 
-void UGGMeleeAttackComponent::FinalizeAttack()
+void UGGMeleeAttackComponent::FinalizeAttack(uint8 Index)
 {
 	bIsReadyToBeUsed = true;	
 	OnFinalizeAttack.Broadcast();
@@ -160,11 +162,6 @@ void UGGMeleeAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}		
 }
 
-void UGGMeleeAttackComponent::HitTarget(AActor* target)
+void UGGMeleeAttackComponent::HitTarget(AActor* target, uint8 Index)
 {
-	//	Attack landing logic
-	if (target)
-	{
-
-	}
 }

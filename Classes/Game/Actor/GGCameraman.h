@@ -3,7 +3,8 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "Game/Utility/GGFunctionLibrary.h"
+//#include "Game/Utility/GGFunctionLibrary.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGCameraman.generated.h"
 
 UCLASS()

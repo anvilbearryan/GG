@@ -6,6 +6,7 @@
 
 //General Log
 DECLARE_LOG_CATEGORY_EXTERN(GGMessage, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(GGWarning, Log, All);
 
 //Logging during game startup
 DECLARE_LOG_CATEGORY_EXTERN(GGAIError, Log, All);

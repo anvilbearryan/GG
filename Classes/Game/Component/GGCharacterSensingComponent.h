@@ -4,7 +4,8 @@
 
 #include "Components/ActorComponent.h"
 #include "Game/Actor/GGCharacter.h"
-#include "Game/Utility/GGFunctionLibrary.h"
+//#include "Game/Utility/GGFunctionLibrary.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGCharacterSensingComponent.generated.h"
 /**
 * A 2-D box GGCharacter sensing component using dynamic delegates for event binding

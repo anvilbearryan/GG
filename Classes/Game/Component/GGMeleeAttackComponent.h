@@ -3,7 +3,8 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include "Game/Utility/GGFunctionLibrary.h"
+//#include "Game/Utility/GGFunctionLibrary.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGMeleeAttackComponent.generated.h"
 
 /**
@@ -21,7 +22,6 @@
  * that has input enabled to reach this method.
  */
 class AActor;
-
 UCLASS(Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
 class GG_API UGGMeleeAttackComponent : public UActorComponent
 {
@@ -39,32 +39,32 @@ public:
 
 	/** Local entry point for starting an attack, calls ServerMethod for replication */
 	UFUNCTION(BlueprintCallable, Category ="GGAttack|Input")
-		void LocalInitiateAttack();
+		void LocalInitiateAttack(uint8 Index);
 
 	/**	Server receives attack instruction from client, calls MulticastInitiateAttack for remote replication */
 	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
-		void ServerInitiateAttack();
-	bool ServerInitiateAttack_Validate();
-	void ServerInitiateAttack_Implementation();
+		void ServerInitiateAttack(uint8 Index);
+	bool ServerInitiateAttack_Validate(uint8 Index);
+	void ServerInitiateAttack_Implementation(uint8 Index);
 
 	/**
 	* Replicates instruction to remote simulated proxies, unfortunately there is no "except owning client type"
 	* RPC so its done in the body manually
 	*/
 	UFUNCTION(NetMulticast, Reliable, Category = "GGAttack|Replication")
-		void MulticastInitiateAttack();
-	void MulticastInitiateAttack_Implementation();
+		void MulticastInitiateAttack(uint8 Index);
+	void MulticastInitiateAttack_Implementation(uint8 Index);
 	/**
 	* Hit detection is done in owning client for co-op smooth experience and reports to the server to handle
 	* neccesary change in target state.
 	*/
 	UFUNCTION()
-		void LocalHitTarget(AActor* target);
+		void LocalHitTarget(AActor* target, uint8 Index);
 	//	TODO: Change parameter type to enemy base class
 	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
-		void ServerHitTarget(AActor* target);
-	bool ServerHitTarget_Validate(AActor* target);
-	void ServerHitTarget_Implementation(AActor* target);
+		void ServerHitTarget(AActor* target, uint8 Index);
+	bool ServerHitTarget_Validate(AActor* target, uint8 Index);
+	void ServerHitTarget_Implementation(AActor* target, uint8 Index);
 
 	//	Specification
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
@@ -92,14 +92,15 @@ public:
 	FVector HitboxOffsetMultiplier;
 	FTimerHandle StateTimerHandle;
 
-	TArray<AActor*> AffectedEntities;
+	const int32 MaxNumTargetsPerHit = 8;
+	TArray<AActor*, TInlineAllocator<8>> AffectedEntities;
 
 protected:
 	/** Actual method that processes an attack instruction, should not be called directly from owning actor */
 	UFUNCTION()
-		virtual void InitiateAttack();
+		virtual void InitiateAttack(uint8 Index);
 	UFUNCTION()
-		virtual void FinalizeAttack();
+		virtual void FinalizeAttack(uint8 Index);
 
 public:
 	//	Sub-classes / Owning actors should bind to this delegate for functionality
@@ -113,5 +114,5 @@ public:
 
 protected:
 	UFUNCTION(BlueprintCallable, Category ="GGAttack")
-		virtual void HitTarget(AActor* target);
+		virtual void HitTarget(AActor* target, uint8 Index);
 };

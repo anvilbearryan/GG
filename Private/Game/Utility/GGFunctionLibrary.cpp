@@ -1,7 +1,8 @@
 #include "GG.h"
 #include "Game/Utility/GGFunctionLibrary.h"
-
-bool UGGFunctionLibrary::WorldOverlapMultiActorByChannel(UWorld* World, const FVector & Pos, ECollisionChannel TraceChannel, const FCollisionShape & CollisionShape, TArray<AActor*>& OutOverlaps)
+/*
+template<typename AllocatorType>
+bool UGGFunctionLibrary::WorldOverlapMultiActorByChannel(UWorld* World, const FVector & Pos, ECollisionChannel TraceChannel, const FCollisionShape & CollisionShape, TArray<AActor*, AllocatorType>& OutOverlaps)
 {
 	if (World == nullptr)
 	{
@@ -49,4 +50,4 @@ bool UGGFunctionLibrary::WorldOverlapMultiActorByChannel(UWorld* World, const FV
 	{
 		return false;
 	}
-}
+}*/

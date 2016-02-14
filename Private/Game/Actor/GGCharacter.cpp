@@ -341,9 +341,22 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
 }
 
+
 void AGGCharacter::AddAimInput(float ScaleValue)
 {
-	AimLevel = FMath::Sign(ScaleValue);
+	const float AIM_DEADZONE = 0.1f;
+	if (ScaleValue > AIM_DEADZONE)
+	{
+		AimLevel = 1.f;
+	}
+	else if (ScaleValue < -AIM_DEADZONE)
+	{
+		AimLevel = -1.f;
+	}
+	else
+	{
+		AimLevel = 0.f;
+	}	
 }
 
 FVector AGGCharacter::GetPlanarForwardVector() const
@@ -378,10 +391,10 @@ void AGGCharacter::NetMulticastReceiveDamage_Implementation(int32 DamageData)
 }
 
 void AGGCharacter::ReceiveDamage(int32 DamageData)
-{
-    // TODO: ask the damage receiving component to do the work
+{    
     if (IsLocallyControlled())
     {
         ServerReceiveDamage(DamageData);
     }
+	// Subclasses from here handles how to actually receive damage data
 }

@@ -3,6 +3,18 @@
 #include "GG.h"
 #include "Game/Framework/GGGameState.h"
 
+AGGGameState::AGGGameState(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{	
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+void AGGGameState::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// search actor list for manager objects
+}
+
 TArray<AGGCharacter*>& AGGGameState::GetCharacterList()
 {
     return CharacterList;
