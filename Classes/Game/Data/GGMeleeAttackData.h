@@ -51,6 +51,8 @@ private:
 		float HardCooldown;	
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
 		float SoftCooldown;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+		uint8 bRootsOnUse : 1;	
 	/** Private caches for state calculation through TimeStamp arguement */
 	float SumActiveDuration;
 	float TimeMark_EndStartup;
@@ -59,14 +61,74 @@ private:
 	/** The move's duration if a combo is pending */
 	float TimeMark_MinDuration;
 	float TimeMark_BeginComboable;
-	float TimeMark_EndCComboable;
+	float TimeMark_EndComboable;
 	
 
 public:
 	virtual void PostInitProperties() override;
 
-	FORCEINLINE bool IsInComboWindow(const float InTimeStamp) const
+	FORCEINLINE bool IsRootingMove() const
 	{
-		return InTimeStamp <= TimeMark_EndCancellable && InTimeStamp >= TimeMark_BeginCancellable;
+		return bRootsOnUse;
+	}
+
+	FORCEINLINE bool IsInActivePhase(float InTimeStamp)const
+	{
+		return InTimeStamp >= TimeMark_EndStartup && InTimeStamp < TimeMark_EndActive;
+	}
+	
+	FORCEINLINE const FGGMeleeHitDefinition* GetActiveDefinition(float InTimeStamp) const
+	{
+		InTimeStamp -= TimeMark_EndStartup;
+		int32 ItrLength = ActiveDefinitions.Num();
+		for (int32 i = 0; i < ItrLength; i++)
+		{
+			InTimeStamp -= ActiveDefinitions[i].Duration;
+			if (InTimeStamp <= 0.f)
+			{
+				return &ActiveDefinitions[i];
+			}
+		}
+		return nullptr;
+	}
+
+	FORCEINLINE bool ChangesAttackDefinition(float InCurrentTime, float DeltaTime) const
+	{
+		// we don't check for abnormal arguements, assume InCurrentTime > TimeMark_EndStartUp < TimeMark_EndActive
+		InCurrentTime -= TimeMark_EndStartup;
+		int32 ItrLength = ActiveDefinitions.Num();
+		for (int32 i = 0; i < ItrLength; i++)
+		{
+			float Duration = ActiveDefinitions[i].Duration;
+			if (InCurrentTime >= Duration)
+			{
+				InCurrentTime -= Duration;
+			}
+			else
+			{
+				return InCurrentTime + DeltaTime > Duration;
+			}
+		}
+		return false;
+	}
+
+	FORCEINLINE bool IsInComboWindow(float InTimeStamp) const
+	{
+		return InTimeStamp < TimeMark_EndComboable && InTimeStamp >= TimeMark_BeginComboable;
+	}
+
+	FORCEINLINE bool HasPastHardCooldown(float InTimeStamp) const
+	{
+		return InTimeStamp >= TimeMark_MinDuration;
+	}
+
+	FORCEINLINE bool HasPastSoftCooldown(float InTimeStamp) const
+	{
+		return InTimeStamp >= TimeMark_FullDuration;
+	}
+
+	FORCEINLINE float TimeToLaunchCombo(float InTimeStamp) const
+	{
+		return TimeMark_MinDuration - InTimeStamp;
 	}
 };

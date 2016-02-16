@@ -49,11 +49,11 @@ public:
 	*/
 	//	Flags indicating wall jump direction
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-        uint32 bPressedWallJumpRight : 1;
+        uint8 bPressedWallJumpRight : 1;
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-        uint32 bPressedWallJumpLeft : 1;
+        uint8 bPressedWallJumpLeft : 1;
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-        uint32 bModeWallJump : 1;
+        uint8 bModeWallJump : 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
 		float WallJumpMaxHoldTimeVertical;
 	/**
@@ -100,9 +100,9 @@ public:
 	*/
 
 	/** Input flag */
-	uint32 bIsDashKeyDown : 1;
+	uint8 bIsDashKeyDown : 1;
 	/**	Replicated flag */
-	uint32 bPerformDashedAction : 1;
+	uint8 bPerformDashedAction : 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
 		float DashMaxDuration;
 	float TimeDashedFor;
@@ -141,7 +141,7 @@ private:	// Handy for directional wall check by CharacterMovementComponent etc
 	FVector Right;
 	FVector Left;
 protected:
-
+	
 	/**
 	* Local field, we save the last non-zero player input direction so that we can tell where the 
 	* Character wants to face.

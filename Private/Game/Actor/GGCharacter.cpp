@@ -58,6 +58,15 @@ void AGGCharacter::Tick( float DeltaTime )
     {
         AnimatorComponent->ManualTick(DeltaTime);
     }
+	if (FlipbookComponent)
+	{
+		// turning sync
+		float YVel = GetVelocity().Y;
+		if (FlipbookComponent->RelativeScale3D.Y * YVel < -50.f)
+		{
+			FlipbookComponent->SetRelativeScale3D(FVector(FMath::Sign(YVel), 1.f, 1.f));
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -304,6 +313,7 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     //  We changes axis values from input based on wall jump condition
 	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
 	{
+		/*
 		// Cheaper to compare input axis values than setting scale every frame 
         if (LastActualMovementInput.Y * ScaleValue < 0.f)
         {
@@ -313,6 +323,7 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
                 FlipbookComponent->SetRelativeScale3D(FVector(FMath::Sign(ScaleValue), 1.f, 1.f));
             }
         }
+		*/
 		// cache non-zero input for possible retrievle
 		LastActualMovementInput = WorldDirection * ScaleValue;
         if (CanWallJump())
@@ -340,7 +351,6 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     }
     Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
 }
-
 
 void AGGCharacter::AddAimInput(float ScaleValue)
 {

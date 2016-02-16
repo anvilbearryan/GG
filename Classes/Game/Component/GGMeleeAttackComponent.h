@@ -32,39 +32,38 @@ class GG_API UGGMeleeAttackComponent : public UActorComponent
 public:
 	UGGMeleeAttackComponent();
 
-	virtual void BeginPlay() override;
 	//============
 	// Netwokring interface
 	//============
 
 	/** Local entry point for starting an attack, calls ServerMethod for replication */
 	UFUNCTION(BlueprintCallable, Category ="GGAttack|Input")
-		void LocalInitiateAttack(uint8 Index);
+		void LocalInitiateAttack(uint8 Identifier);
 
 	/**	Server receives attack instruction from client, calls MulticastInitiateAttack for remote replication */
 	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
-		void ServerInitiateAttack(uint8 Index);
-	bool ServerInitiateAttack_Validate(uint8 Index);
-	void ServerInitiateAttack_Implementation(uint8 Index);
+		void ServerInitiateAttack(uint8 Identifier);
+	bool ServerInitiateAttack_Validate(uint8 Identifier);
+	void ServerInitiateAttack_Implementation(uint8 Identifier);
 
 	/**
 	* Replicates instruction to remote simulated proxies, unfortunately there is no "except owning client type"
 	* RPC so its done in the body manually
 	*/
 	UFUNCTION(NetMulticast, Reliable, Category = "GGAttack|Replication")
-		void MulticastInitiateAttack(uint8 Index);
-	void MulticastInitiateAttack_Implementation(uint8 Index);
+		void MulticastInitiateAttack(uint8 Identifier);
+	void MulticastInitiateAttack_Implementation(uint8 Identifier);
 	/**
 	* Hit detection is done in owning client for co-op smooth experience and reports to the server to handle
 	* neccesary change in target state.
 	*/
 	UFUNCTION()
-		void LocalHitTarget(AActor* target, uint8 Index);
+		void LocalHitTarget(AActor* target, uint8 Identifier);
 	//	TODO: Change parameter type to enemy base class
 	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
-		void ServerHitTarget(AActor* target, uint8 Index);
-	bool ServerHitTarget_Validate(AActor* target, uint8 Index);
-	void ServerHitTarget_Implementation(AActor* target, uint8 Index);
+		void ServerHitTarget(AActor* target, uint8 Identifier);
+	bool ServerHitTarget_Validate(AActor* target, uint8 Identifier);
+	void ServerHitTarget_Implementation(AActor* target, uint8 Identifier);
 
 	//	Specification
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
@@ -73,8 +72,10 @@ public:
 		TEnumAsByte<EGGShape::Type> HitboxShape;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		FVector HitboxHalfExtent;
+	
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		TEnumAsByte<ECollisionChannel> HitChannel;
+		TEnumAsByte<ECollisionChannel> DamageChannel;
+	
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		float StartUp;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
@@ -86,8 +87,10 @@ public:
 	FCollisionShape Hitbox;
 
 	//	States
-	uint32 bIsReadyToBeUsed : 1;
-	uint32 bIsLocalInstruction : 1;
+	uint8 bIsReadyToBeUsed : 1;
+	
+	uint8 bIsLocalInstruction : 1;
+	
 	float TimeLapsed;
 	FVector HitboxOffsetMultiplier;
 	FTimerHandle StateTimerHandle;
@@ -96,11 +99,12 @@ public:
 	TArray<AActor*, TInlineAllocator<8>> AffectedEntities;
 
 protected:
-	/** Actual method that processes an attack instruction, should not be called directly from owning actor */
+	/** Actual method that processes an attack instruction */
 	UFUNCTION()
-		virtual void InitiateAttack(uint8 Index);
+		virtual void InitiateAttack(uint8 Identifier);
+	/** No arguements, any information necessary should be cached from InitiateAttack to allow retrievle */
 	UFUNCTION()
-		virtual void FinalizeAttack(uint8 Index);
+		virtual void FinalizeAttack();
 
 public:
 	//	Sub-classes / Owning actors should bind to this delegate for functionality
@@ -114,5 +118,12 @@ public:
 
 protected:
 	UFUNCTION(BlueprintCallable, Category ="GGAttack")
-		virtual void HitTarget(AActor* target, uint8 Index);
+		virtual void HitTarget(AActor* target, uint8 Identifier);
+
+protected:
+	UFUNCTION()
+		void SetControllerIgnoreMoveInput();
+	/** UFUNCTION so that timers can be used*/
+	UFUNCTION()
+		void SetControllerReceiveMoveInput();
 };
