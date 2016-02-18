@@ -2,8 +2,28 @@
 
 #include "GG.h"
 #include "Game/Component/Implementation/GGSlashAttackComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Game/Actor/GGCharacter.h"
 #include "Game/Utility/GGFunctionLibrary.h"
+
+void UGGSlashAttackComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+	for (auto a : GroundNormalAttacks)
+	{
+		if (a) a->RecalculateCaches();		
+	}
+	for (auto a : GroundMovingAttacks)
+	{
+		if (a) a->RecalculateCaches();
+	}
+	if (GroundChargedAttack) GroundChargedAttack->RecalculateCaches();
+	for (auto a : AirNormalAttacks)
+	{
+		if (a) a->RecalculateCaches();
+	}
+	if (AirChargedAttack) AirChargedAttack->RecalculateCaches();
+}
 
 void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsOnGround, bool InIsCharged, bool InIsMoving)
 {
@@ -32,9 +52,9 @@ void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsOnGround, bool InIsCh
 					{	// set queue
 						LocalQueuedAttackIdentifier = GetIndexFromAttackInformation(InIsOnGround, InIsCharged, InIsMoving);
 						bQueuedAttack = true;
+						float timeTilAttemp = loc_LastInitiatedAttack->TimeToLaunchCombo(CurrentTimeStamp);
 						GetWorld()->GetTimerManager().SetTimer(
-							AttackQueueHandle, this, &UGGSlashAttackComponent::UseQueuedAttack,
-							loc_LastInitiatedAttack->TimeToLaunchCombo(CurrentTimeStamp));
+							AttackQueueHandle, this, &UGGSlashAttackComponent::UseQueuedAttack, timeTilAttemp);							
 					}
 					else
 					{
@@ -47,9 +67,9 @@ void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsOnGround, bool InIsCh
 			// no else, do nothing if we can't chain
 		} 		
 	}
-	else
+	else if (!LastInitiatedAttack.IsValid())
 	{
-		// charged or first attack in combo
+		// use charged or is a first attack in combo if LastInitiatedAttack is null (meaning it has been finalized in tick)
 		LocalInitiateAttack(GetIndexFromAttackInformation(InIsOnGround, InIsCharged, InIsMoving));
 	}	
 }
@@ -76,6 +96,7 @@ const int32 BIT_MOVING = 64;
 
 void UGGSlashAttackComponent::InitiateAttack(uint8 Identifier)
 {
+	/** This function is replicated and called through a multicast for SimulatedProxies */
 	LastInitiatedAttack = GetAttackDataFromIndex(Identifier);
 	
 	if ( (Identifier & BIT_CHARGED) == 0)
@@ -105,6 +126,7 @@ void UGGSlashAttackComponent::InitiateAttack(uint8 Identifier)
 	UGGMeleeAttackData* AttackData = LastInitiatedAttack.Get();
 	if (AttackData)
 	{
+		AffectedEntities.Reset();
 		// initialize state for attack
 		CurrentTimeStamp = 0.f;
 		SetActive(true);
@@ -114,6 +136,8 @@ void UGGSlashAttackComponent::InitiateAttack(uint8 Identifier)
 			SetControllerIgnoreMoveInput();
 		}
 	}
+	// broadcasts delegates
+	Super::InitiateAttack(Identifier);
 }
 
 void UGGSlashAttackComponent::FinalizeAttack()
@@ -125,6 +149,8 @@ void UGGSlashAttackComponent::FinalizeAttack()
 		PendingAttackIndex = 0;		
 	}
 	SetActive(false);
+	// broadcasts delegates
+	Super::FinalizeAttack();
 }
 
 void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
@@ -136,24 +162,27 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		float loc_NextTimeStamp = CurrentTimeStamp + DeltaTime;
 		// separate into stages of an attack
-		if (UpdatedAttack->IsInActivePhase(CurrentTimeStamp) || UpdatedAttack->IsInActivePhase(DeltaTime))
+		if (UpdatedAttack->IsInActivePhase(CurrentTimeStamp))
 		{
 			// do hit checks, also counts cases where we lagged long so as to not skip the hit checks
 			int32 Length = AffectedEntities.Num();
 			// obtain required data to do our hit box query
-			const FGGMeleeHitDefinition& loc_Definition = *(UpdatedAttack->GetActiveDefinition(CurrentTimeStamp));
-			AGGCharacter* loc_Character = static_cast<AGGCharacter*>(GetOwner());			
-			FVector loc_Direction = FVector(1.f, loc_Character ? loc_Character->GetPlanarForwardVector().Y : 1.f, 1.f);
-			FVector loc_TraceCentre = GetOwner()->GetActorLocation() + loc_Definition.HitboxCentre * loc_Direction;
-			
-			if (UGGFunctionLibrary::WorldOverlapMultiActorByChannel(
-				GetWorld(), loc_TraceCentre,
-				DamageChannel, loc_Definition.AttackShapeInternal, AffectedEntities))
+			const FGGMeleeHitDefinition* loc_Definition = (UpdatedAttack->GetActiveDefinition(CurrentTimeStamp));
+			if (loc_Definition)
 			{
-				int32 NewLength = AffectedEntities.Num();
-				for (int32 i = Length; i < NewLength; i++)
+				AGGCharacter* loc_Character = static_cast<AGGCharacter*>(GetOwner());
+				FVector loc_Direction = FVector(1.f, loc_Character ? loc_Character->GetPlanarForwardVector().Y : 1.f, 1.f);
+				FVector loc_TraceCentre = GetOwner()->GetActorLocation() + loc_Definition->HitboxCentre * loc_Direction;
+
+				if (UGGFunctionLibrary::WorldOverlapMultiActorByChannel(
+					GetWorld(), loc_TraceCentre,
+					DamageChannel, loc_Definition->AttackShapeInternal, AffectedEntities))
 				{
-					LocalHitTarget(AffectedEntities[i], CachedAttackIdentifier);
+					int32 NewLength = AffectedEntities.Num();
+					for (int32 i = Length; i < NewLength; i++)
+					{
+						LocalHitTarget(AffectedEntities[i], CachedAttackIdentifier);
+					}
 				}
 			}
 			// check if we are about to change specific attack phase, if so resets caches
@@ -261,3 +290,53 @@ const TArray<UGGMeleeAttackData*>* UGGSlashAttackComponent::GetAttacksArrayFromI
 	}
 }
 
+bool UGGSlashAttackComponent::ShouldRemainInState() const
+{
+	if (GetOwner() == nullptr)
+	{
+		UE_LOG(GGMessage, Log, TEXT("Should not remain in attack state"));
+		return false;
+	}
+	
+	if (bUsingMovingAttack)
+	{
+		FVector loc_Velocity = GetOwner()->GetVelocity();
+		if (FMath::Abs(loc_Velocity.Y) < 50.f)
+		{
+			UE_LOG(GGMessage, Log, TEXT("Should not remain in attack state"));
+			return false;
+		}
+	}
+	if (bUsingAirAttack)
+	{
+		AGGCharacter* loc_Character = static_cast<AGGCharacter*>(GetOwner());
+		bool loc_onGround = loc_Character && loc_Character->GetCharacterMovement() && loc_Character->GetCharacterMovement()->IsMovingOnGround();
+		if (loc_onGround)
+		{
+			UE_LOG(GGMessage, Log, TEXT("Should not remain in attack state"));
+			return false;
+		}
+	}
+	return true;
+}
+
+UPaperFlipbook* UGGSlashAttackComponent::GetCurrentAnimation() const
+{
+	UGGMeleeAttackData* AttackData = LastInitiatedAttack.Get();
+	if (AttackData)
+	{
+		return AttackData->GetAttackAnimation();
+	}
+	return nullptr;
+}
+
+
+UPaperFlipbook* UGGSlashAttackComponent::GetEffectAnimation() const
+{
+	UGGMeleeAttackData* AttackData = LastInitiatedAttack.Get();
+	if (AttackData)
+	{
+		return AttackData->GetEffectAnimation();
+	}
+	return nullptr;
+}

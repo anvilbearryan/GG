@@ -27,41 +27,27 @@ void AGGMinionBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
     /** Bind pawn sensing delegates */
-    TInlineComponentArray<UGGCharacterSensingComponent*> sensingComp;
-    GetComponents(sensingComp);
-    if (sensingComp.IsValidIndex(0))
-    {
-        Sensor = sensingComp[0];
+	Sensor = FindComponentByClass<UGGCharacterSensingComponent>();
+    if (Sensor)
+    {        
         Sensor->OnActivate.BindDynamic(this, &AGGMinionBase::OnSensorActivate);
         Sensor->OnAlert.BindDynamic(this, &AGGMinionBase::OnSensorAlert);
         Sensor->OnUnalert.BindDynamic(this, &AGGMinionBase::OnSensorUnalert);
         Sensor->OnDeactivate.BindDynamic(this, &AGGMinionBase::OnSensorDeactivate);
     }
+	MovementComponent = FindComponentByClass<UGGAIMovementComponent>();
+	if (MovementComponent)
+	{
+		MovementComponent->SetUpdatedComponent(MovementCapsule);
+		MovementComponent->MinionOwner = this;
+	}
+
+	FlipbookComponent = FindComponentByClass<UPaperFlipbookComponent>();
     
-    TInlineComponentArray<UGGAIMovementComponent*> movementComp;
-    GetComponents(movementComp);
-    if (movementComp.IsValidIndex(0))
-    {
-        MovementComponent = movementComp[0];
-        if (MovementComponent)
-        {
-            MovementComponent->SetUpdatedComponent(MovementCapsule);
-            MovementComponent->MinionOwner = this;
-        }
-    }
+	AnimatorComponent = FindComponentByClass<UGGAnimatorComponent>();
     
-    TInlineComponentArray<UPaperFlipbookComponent*> flipbook;
-    GetComponents(flipbook);
-    if (flipbook.IsValidIndex(0))
+    if (AnimatorComponent  && FlipbookComponent)
     {
-        FlipbookComponent = flipbook[0];
-    }
-    
-    TInlineComponentArray<UGGAnimatorComponent*> anim;
-    GetComponents(anim);
-    if (anim.Num() > 0 && anim[0] && FlipbookComponent)
-    {
-        AnimatorComponent = anim[0];
         AnimatorComponent->PlaybackComponent = FlipbookComponent;
         AnimatorComponent->TickCurrentBlendSpace();
         FlipbookComponent->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);

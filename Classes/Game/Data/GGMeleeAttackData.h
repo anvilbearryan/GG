@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
-//#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Data/GGGameTypes.h"
 #include "GGMeleeAttackData.generated.h"
 
@@ -27,7 +26,7 @@ struct FGGMeleeHitDefinition
 	FGGMeleeHitDefinition() {}
 };
 
-UCLASS()
+UCLASS(Blueprintable, BlueprintType, ClassGroup=GGAttack)
 class GG_API UGGMeleeAttackData : public UDataAsset
 {
 	GENERATED_BODY()
@@ -53,6 +52,11 @@ private:
 		float SoftCooldown;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
 		uint8 bRootsOnUse : 1;	
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+		UPaperFlipbook* AttackAnimation;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+		UPaperFlipbook* EffectAnimation;
+	
 	/** Private caches for state calculation through TimeStamp arguement */
 	float SumActiveDuration;
 	float TimeMark_EndStartup;
@@ -63,9 +67,8 @@ private:
 	float TimeMark_BeginComboable;
 	float TimeMark_EndComboable;
 	
-
 public:
-	virtual void PostInitProperties() override;
+	void RecalculateCaches();
 
 	FORCEINLINE bool IsRootingMove() const
 	{
@@ -130,5 +133,21 @@ public:
 	FORCEINLINE float TimeToLaunchCombo(float InTimeStamp) const
 	{
 		return TimeMark_MinDuration - InTimeStamp;
+	}
+
+	/** For determining the flipbook's playrate */
+	FORCEINLINE float GetStateDuration() const
+	{
+		return TimeMark_FullDuration;
+	}
+
+	FORCEINLINE UPaperFlipbook* GetAttackAnimation() const
+	{
+		return AttackAnimation;
+	}
+
+	FORCEINLINE UPaperFlipbook* GetEffectAnimation() const
+	{
+		return EffectAnimation;
 	}
 };

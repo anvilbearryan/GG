@@ -3,9 +3,9 @@
 #include "GG.h"
 #include "Game/Data/GGMeleeAttackData.h"
 
-void UGGMeleeAttackData::PostInitProperties()
+void UGGMeleeAttackData::RecalculateCaches()
 {
-	Super::PostInitProperties();
+	UE_LOG(GGMessage, Log, TEXT("CalculateCaches"));
 	TimeMark_EndStartup = Startup;
 	SumActiveDuration = 0.f;
 	for (auto &Definition : ActiveDefinitions)

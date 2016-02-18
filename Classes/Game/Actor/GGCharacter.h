@@ -5,7 +5,7 @@
 #include "GameFramework/Character.h"
 #include "GGCharacter.generated.h"
 
-
+/** TODO: create interface for clients to set server data from game save */
 class UGGAnimatorComponent;
 class UPaperFlipbookComponent;
 
@@ -28,6 +28,9 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+
+private:
+	void MoveRight(float AxisValue);
 
 	/**	=================================
 	* 
@@ -172,15 +175,15 @@ public:
     
     //  Multicast function. called by server to let simulated proxies know this client has take damage
     UFUNCTION(unreliable, NetMulticast, Category="GG|GGDamage")
-        void NetMulticastReceiveDamage(int32 DamageData);
-    void NetMulticastReceiveDamage_Implementation(int32 DamageData);
+        void MulticastReceiveDamage(int32 DamageData);
+    void MulticastReceiveDamage_Implementation(int32 DamageData);
     
     virtual void ReceiveDamage(int32 DamageData);
     
-    static FName FlipbookComponentName;
+    static FName BodyFlipbookComponentName;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
-        UPaperFlipbookComponent* FlipbookComponent;
+        UPaperFlipbookComponent* BodyFlipbookComponent;
     static FName AnimatorComponentName;
     
-    UGGAnimatorComponent* AnimatorComponent;
+    //UGGAnimatorComponent* AnimatorComponent;
 };

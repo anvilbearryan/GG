@@ -45,7 +45,7 @@ void UGGMeleeAttackComponent::MulticastInitiateAttack_Implementation(uint8 Index
 void UGGMeleeAttackComponent::LocalHitTarget(AActor* target, uint8 Index)
 {
 	HitTarget(target, Index);
-	if (target && GetOwnerRole() != ROLE_Authority)
+	if (target && GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		//	If we are not server, also needs server to update to display effects 
 		ServerHitTarget(target, Index);
@@ -64,61 +64,13 @@ void UGGMeleeAttackComponent::ServerHitTarget_Implementation(AActor * target, ui
 
 void UGGMeleeAttackComponent::InitiateAttack(uint8 Index)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("InitiateAttack"));
-	TimeLapsed = 0.f;
-
-	// Not really checked outside local player, but doesn't hurt to set it	
-	bIsReadyToBeUsed = false;
-
-	AffectedEntities.Reset(MaxNumTargetsPerHit);
-
-	SetComponentTickEnabled(true);
 	OnInitiateAttack.Broadcast();
 }
 
 void UGGMeleeAttackComponent::FinalizeAttack()
 {
-	bIsReadyToBeUsed = true;	
+	bIsLocalInstruction = false;
 	OnFinalizeAttack.Broadcast();
-}
-
-void UGGMeleeAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	check(TimeLapsed >= 0.f);
-	
-	// increment timestamp
-	TimeLapsed += DeltaTime;
-
-	if (TimeLapsed < StartUp)
-	{
-		// Startup phase
-	}
-	else if (TimeLapsed < StartUp + Active)
-	{
-		// Active phase., look for targets in local version of this component
-		if (bIsLocalInstruction)
-		{
-			// Check for hit target
-			int32 Length = AffectedEntities.Num();
-			if (UGGFunctionLibrary::WorldOverlapMultiActorByChannel(
-				GetWorld(), GetOwner()->GetActorLocation() + HitboxCentre * HitboxOffsetMultiplier, 
-				DamageChannel, Hitbox, AffectedEntities))
-			{
-				int32 NewLength = AffectedEntities.Num();
-				for (int32 i = Length; i < NewLength; i++)
-				{
-					//LocalHitTarget(AffectedEntities[i]);
-				}			
-			}
-		}
-	}
-	else
-	{
-		SetComponentTickEnabled(false);
-		//GetWorld()->GetTimerManager().SetTimer(
-		//	StateTimerHandle, this, &UGGMeleeAttackComponent::FinalizeAttack, Cooldown);
-	}		
 }
 
 void UGGMeleeAttackComponent::HitTarget(AActor* target, uint8 Index)

@@ -9,10 +9,7 @@ UGGDamageReceiveComponent::UGGDamageReceiveComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	bWantsBeginPlay = true;
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 void UGGDamageReceiveComponent::InitializeHpState()
@@ -20,19 +17,7 @@ void UGGDamageReceiveComponent::InitializeHpState()
     Hp_Current = Hp_Max;
     Hp_CurrentEstimate = Hp_Current;
     Hp_Recoverable = Hp_Max;
-}
-
-// Called when the game starts
-void UGGDamageReceiveComponent::BeginPlay()
-{
-	Super::BeginPlay();
-    check (Hp_Current <= Hp_Max);
-    if (Hp_Current == Hp_Max)
-    {
-        SetComponentTickEnabled(false);
-    }
-	// ...
-	
+	SetActive(false);
 }
 
 // Called every frame
@@ -88,6 +73,6 @@ void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageInformation& inf
     if (Hp_Current < Hp_Recoverable)
     {
         //  enable regen through tick
-        SetComponentTickEnabled(true);
+		SetActive(true);
     }
 }

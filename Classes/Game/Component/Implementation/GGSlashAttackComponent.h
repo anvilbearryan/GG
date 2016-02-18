@@ -40,8 +40,11 @@ private:
 	uint8 bUsingMovingAttack : 1;
 	uint8 bUsingAirAttack : 1;
 	
+	virtual void PostInitProperties() override;
+
 	/* ******** Input handling interface ******** */
 public:
+	/** returns the time until the attempt is processed, -1 if denied */
 	void LocalAttemptsAttack(bool InIsOnGround, bool InIsCharged, bool InIsMoving);
 protected:
 	/** For setting chain timed attack */
@@ -65,4 +68,8 @@ protected:
 	uint8 GetIndexFromAttackInformation(bool InIsOnGround, bool InIsCharged, bool InIsMoving) const;
 	UGGMeleeAttackData* GetAttackDataFromIndex(uint8 Identifier) const;
 	const TArray<UGGMeleeAttackData*>* GetAttacksArrayFromIndex(uint8 Identifier) const;
+public:
+	bool ShouldRemainInState() const;
+	virtual UPaperFlipbook* GetCurrentAnimation() const;
+	virtual UPaperFlipbook* GetEffectAnimation() const;
 };

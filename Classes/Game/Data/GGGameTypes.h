@@ -198,7 +198,7 @@ struct FGGAnimationState
 {
 	GENERATED_BODY()
 		/** Picker enum for convinience to replicate the blend spaces through an index, also indicates blend direction */
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		TEnumAsByte<EGGActionCategorySpecific::Type> SecondaryState;
 	// Used to determine whether we should blend playback position when changing inter-state
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")

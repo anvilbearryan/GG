@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-//#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Data/GGGameTypes.h"
 #include "GGDamageReceiveComponent.generated.h"
 
@@ -41,9 +40,6 @@ public:
 
     UFUNCTION(BlueprintCallable, Category ="GG|Damage")
     void InitializeHpState();
-    
-    // Called when the game starts
-	virtual void BeginPlay() override;
 	
 	// Called every frame
 	virtual void TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction ) override;

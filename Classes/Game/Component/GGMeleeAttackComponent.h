@@ -67,35 +67,10 @@ public:
 
 	//	Specification
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		FVector HitboxCentre;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		TEnumAsByte<EGGShape::Type> HitboxShape;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		FVector HitboxHalfExtent;
-	
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		TEnumAsByte<ECollisionChannel> DamageChannel;
-	
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		float StartUp;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		float Active;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		float Cooldown;
-
-	//	Not exposed to blueprint
-	FCollisionShape Hitbox;
 
 	//	States
-	uint8 bIsReadyToBeUsed : 1;
-	
 	uint8 bIsLocalInstruction : 1;
-	
-	float TimeLapsed;
-	FVector HitboxOffsetMultiplier;
-	FTimerHandle StateTimerHandle;
-
-	const int32 MaxNumTargetsPerHit = 8;
 	TArray<AActor*, TInlineAllocator<8>> AffectedEntities;
 
 protected:
@@ -107,14 +82,11 @@ protected:
 		virtual void FinalizeAttack();
 
 public:
-	//	Sub-classes / Owning actors should bind to this delegate for functionality
+	//	for actual functionality , BPs should bind to this delegate while C++ subclasses should override the base methods
 	UPROPERTY(BlueprintAssignable, Category ="GGAttack")
 		FStatusUpdateEventSignature OnInitiateAttack;
 	UPROPERTY(BlueprintAssignable, Category ="GGAttack")
 		FStatusUpdateEventSignature OnFinalizeAttack;
-	/** Where all updates are handled, consider moving the StartUp -> Active part via timer */
-	virtual void TickComponent(
-		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
 	UFUNCTION(BlueprintCallable, Category ="GGAttack")
