@@ -78,6 +78,7 @@ void AGGAssaultCharacter::Tick(float DeltaSeconds)
 			else
 			{
 				ActionState = EGGActionCategory::Locomotion;
+				BodyFlipbookComponent->SetLooping(true);
 				UGGLocomotionAnimComponent* loc_LocomotionAnimComponent = LocomotionAnimComponent.Get();
 				BodyFlipbookComponent->SetFlipbook(loc_LocomotionAnimComponent->GetCurrentAnimation());
 			}
@@ -139,6 +140,6 @@ void AGGAssaultCharacter::OnPressedAttack()
 	UGGSlashAttackComponent* loc_AttackComponent = NormalSlashAttackComponent.Get();
 	if (loc_AttackComponent && GetCharacterMovement())
 	{
-		loc_AttackComponent->LocalAttemptsAttack(GetCharacterMovement()->IsMovingOnGround(), false, GetLastMovementInputVector().Y != 0.f);
+		loc_AttackComponent->LocalAttemptsAttack(GetCharacterMovement()->IsMovingOnGround(), false, GetVelocity().Y != 0.f);
 	}
 }

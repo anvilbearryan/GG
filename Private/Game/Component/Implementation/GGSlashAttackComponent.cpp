@@ -162,7 +162,7 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		float loc_NextTimeStamp = CurrentTimeStamp + DeltaTime;
 		// separate into stages of an attack
-		if (UpdatedAttack->IsInActivePhase(CurrentTimeStamp))
+		if (bIsLocalInstruction && UpdatedAttack->IsInActivePhase(CurrentTimeStamp))
 		{
 			// do hit checks, also counts cases where we lagged long so as to not skip the hit checks
 			int32 Length = AffectedEntities.Num();

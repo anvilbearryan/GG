@@ -10,6 +10,7 @@ class GG_API UGGFunctionLibrary: public UObject
 
 public:
 	/** Query UWorld for overlap and add any new result to the supplied array */
+	static TArray<FOverlapResult> OverlapResults;
 	template<typename AllocatorType>
 	static FORCEINLINE bool WorldOverlapMultiActorByChannel(
 		UWorld* World,
@@ -24,9 +25,10 @@ public:
 			return false;
 		}
 
-		TArray<FOverlapResult> OutHits;
-		const FQuat IdentityQuat;
+		OverlapResults.Reserve(24);
+		OverlapResults.Reset();
 
+		const FQuat IdentityQuat;
 #if WITH_EDITOR
 		switch (CollisionShape.ShapeType)
 		{
@@ -47,10 +49,10 @@ public:
 		}
 #endif
 
-		if (World->OverlapMultiByChannel(OutHits, Pos, IdentityQuat, TraceChannel, CollisionShape))
+		if (World->OverlapMultiByChannel(OverlapResults, Pos, IdentityQuat, TraceChannel, CollisionShape))
 		{
 			bool bHasNewEntity = false;
-			for (FOverlapResult& result : OutHits)
+			for (FOverlapResult& result : OverlapResults)
 			{
 				AActor* OverlapActor = result.GetActor();
 				if (OverlapActor && !OutOverlaps.Contains(OverlapActor))
