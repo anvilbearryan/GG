@@ -28,6 +28,7 @@ class UActorComponent;
 class UGGAnimatorComponent;
 class UGGAIMovementComponent;
 class UPaperFlipbookComponent;
+class UGGDamageReceiveComponent;
 
 UCLASS()
 class GG_API AGGMinionBase : public AActor
@@ -119,6 +120,12 @@ public:
     UPaperFlipbookComponent* FlipbookComponent;
     UGGAnimatorComponent* AnimatorComponent;
     
+	/**
+	******** Replicated damage ********
+	*/
+	UGGDamageReceiveComponent* HealthComponent;
+	UFUNCTION()
+		virtual void ReceiveDamage(FGGDamageInformation& DamageInfo);
     /**
      ******** Utility helpers ********
      */
@@ -131,7 +138,7 @@ public:
     static FVector Right;
     static FVector Left;
     UFUNCTION()
-    FVector GetPlanarForwardVector() const;
+		FVector GetPlanarForwardVector() const;
 };
 
 namespace GGMovementBaseUtils

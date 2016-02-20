@@ -28,7 +28,7 @@ public:
 		OverlapResults.Reserve(24);
 		OverlapResults.Reset();
 
-		const FQuat IdentityQuat;
+		const FQuat IdentityQuat = FQuat::Identity;
 #if WITH_EDITOR
 		switch (CollisionShape.ShapeType)
 		{
@@ -61,10 +61,15 @@ public:
 					OutOverlaps.Add(OverlapActor);
 				}
 			}
+			if (bHasNewEntity)
+			{
+				UE_LOG(GGMessage, Log, TEXT("Has overlap result with new entities"));
+			}
 			return bHasNewEntity;
 		}
 		else
 		{
+			//UE_LOG(GGMessage, Warning, TEXT("No overlap result"));
 			return false;
 		}
 	}

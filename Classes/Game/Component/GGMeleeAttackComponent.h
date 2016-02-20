@@ -41,7 +41,7 @@ public:
 		void LocalInitiateAttack(uint8 Identifier);
 
 	/**	Server receives attack instruction from client, calls MulticastInitiateAttack for remote replication */
-	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
+	UFUNCTION(Server, Unreliable, WithValidation, Category = "GGAttack|Replication")
 		void ServerInitiateAttack(uint8 Identifier);
 	bool ServerInitiateAttack_Validate(uint8 Identifier);
 	void ServerInitiateAttack_Implementation(uint8 Identifier);
@@ -50,7 +50,7 @@ public:
 	* Replicates instruction to remote simulated proxies, unfortunately there is no "except owning client type"
 	* RPC so its done in the body manually
 	*/
-	UFUNCTION(NetMulticast, Reliable, Category = "GGAttack|Replication")
+	UFUNCTION(NetMulticast, Unreliable, Category = "GGAttack|Replication")
 		void MulticastInitiateAttack(uint8 Identifier);
 	void MulticastInitiateAttack_Implementation(uint8 Identifier);
 	/**

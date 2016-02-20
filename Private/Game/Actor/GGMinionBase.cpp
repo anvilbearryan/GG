@@ -6,6 +6,7 @@
 #include "Game/Component/GGAIMovementComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "Game/Component/GGAnimatorComponent.h"
+#include "Game/Component/GGDamageReceiveComponent.h"
 #include "Game/Utility/GGFunctionLibrary.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
@@ -54,6 +55,12 @@ void AGGMinionBase::PostInitializeComponents()
     }
     
     bIsBehaviourTickEnabled = true;
+
+	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
+	if (HealthComponent)
+	{
+		HealthComponent->InitializeHpState();
+	}
 }
 
 // Called every frame
@@ -67,7 +74,7 @@ void AGGMinionBase::Tick( float DeltaTime )
     
     TravelDirection = FVector::ZeroVector;
     
-    if (bIsBehaviourTickEnabled && Target)
+    if (bIsBehaviourTickEnabled && Target && Role == ROLE_Authority)
     {
         switch(ActionState)
         {
@@ -190,6 +197,14 @@ void AGGMinionBase::TickPrepareAttack(float DeltaSeconds)
 void AGGMinionBase::TickEvade(float DeltaSeconds)
 {
     
+}
+
+void AGGMinionBase::ReceiveDamage(FGGDamageInformation& DamageInfo)
+{
+	if (HealthComponent)
+	{
+		HealthComponent->ApplyDamageInformation(DamageInfo);
+	}
 }
 
 FVector AGGMinionBase::GGGetTargetLocation() const

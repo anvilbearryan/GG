@@ -65,16 +65,18 @@ USTRUCT(BlueprintType)
 struct FGGDamageInformation
 {
 	GENERATED_BODY()
-
-		// Direct damage = the amount of red to red decrease in between taking damage
-		UPROPERTY()
+	// make it 10 with member0 == member5 so that they corresponds to numpad values and make sense
+	static const FVector2D Directions[10];
+	static const float HitMargin;
+	// Direct damage = the amount of red to red decrease in between taking damage
+	UPROPERTY(EditAnywhere)
 		int32 DirectValue;
 	// Indirect damage = the amount of red to green decrease in between taking damage
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 		int32 IndirectValue;
 	UPROPERTY()
 		uint8 ImpactDirection;
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 		TEnumAsByte<EGGDamageType::Type> Type;
 
 	FGGDamageInformation() {}
@@ -96,7 +98,47 @@ struct FGGDamageInformation
 
 		return info;
 	}
-
+	static uint8 ConvertDeltaPosition(const FVector& InDeltaPosition)
+	{
+		uint8 Out = 0;
+		if (InDeltaPosition.Z > FGGDamageInformation::HitMargin)
+		{
+			// case 123
+			Out = 7;
+		}
+		else if (InDeltaPosition.Z < -FGGDamageInformation::HitMargin)
+		{
+			// case 789
+			Out = 4;
+		}
+		else
+		{
+			// case 456
+			Out = 1;
+		}
+		if (InDeltaPosition.Y > FGGDamageInformation::HitMargin)
+		{
+			return Out;
+		}
+		else if (InDeltaPosition.Y < -FGGDamageInformation::HitMargin)
+		{
+			Out += 2;
+		}
+		else
+		{
+			Out += 1;
+		}
+		return Out;
+	}
+	FVector2D GetImpactDirection()
+	{
+		if (ImpactDirection < 10)
+		{
+			return FGGDamageInformation::Directions[ImpactDirection];
+		}
+		UE_LOG(GGWarning, Warning, TEXT("Invalid direction contained in DamageData struct! Array out of bounds!"));
+		return FVector2D();
+	}
 	int32 GetCompressedData()
 	{
 		int32 result = 0;

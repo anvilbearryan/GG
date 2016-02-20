@@ -13,56 +13,56 @@ UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 	bIsLocalInstruction = false;
 }
 
-void UGGMeleeAttackComponent::LocalInitiateAttack(uint8 Index)
+void UGGMeleeAttackComponent::LocalInitiateAttack(uint8 Identifier)
 {	
 	bIsLocalInstruction = true;	
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{		
-		InitiateAttack(Index);
+		InitiateAttack(Identifier);
 	}
-	ServerInitiateAttack(Index);
+	ServerInitiateAttack(Identifier);
 }
 
-bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate(uint8 Index)
+bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate(uint8 Identifier)
 {
 	return true;
 }
 
-void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation(uint8 Index)
+void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation(uint8 Identifier)
 {
-	InitiateAttack(Index);
-	MulticastInitiateAttack(Index);
+	InitiateAttack(Identifier);
+	MulticastInitiateAttack(Identifier);
 }
 
-void UGGMeleeAttackComponent::MulticastInitiateAttack_Implementation(uint8 Index)
+void UGGMeleeAttackComponent::MulticastInitiateAttack_Implementation(uint8 Identifier)
 {
 	if (GetOwnerRole() == ROLE_SimulatedProxy)
 	{
-		InitiateAttack(Index);
+		InitiateAttack(Identifier);
 	}	
 }
 
-void UGGMeleeAttackComponent::LocalHitTarget(AActor* target, uint8 Index)
+void UGGMeleeAttackComponent::LocalHitTarget(AActor* target, uint8 Identifier)
 {
-	HitTarget(target, Index);
+	HitTarget(target, Identifier);
 	if (target && GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		//	If we are not server, also needs server to update to display effects 
-		ServerHitTarget(target, Index);
+		ServerHitTarget(target, Identifier);
 	}
 }
 
-bool UGGMeleeAttackComponent::ServerHitTarget_Validate(AActor * target, uint8 Index)
+bool UGGMeleeAttackComponent::ServerHitTarget_Validate(AActor * target, uint8 Identifier)
 {
 	return true;
 }
 
-void UGGMeleeAttackComponent::ServerHitTarget_Implementation(AActor * target, uint8 Index)
+void UGGMeleeAttackComponent::ServerHitTarget_Implementation(AActor * target, uint8 Identifier)
 {
-	HitTarget(target, Index);
+	HitTarget(target, Identifier);
 }
 
-void UGGMeleeAttackComponent::InitiateAttack(uint8 Index)
+void UGGMeleeAttackComponent::InitiateAttack(uint8 Identifier)
 {
 	OnInitiateAttack.Broadcast();
 }
@@ -73,7 +73,7 @@ void UGGMeleeAttackComponent::FinalizeAttack()
 	OnFinalizeAttack.Broadcast();
 }
 
-void UGGMeleeAttackComponent::HitTarget(AActor* target, uint8 Index)
+void UGGMeleeAttackComponent::HitTarget(AActor* target, uint8 Identifier)
 {
 }
 

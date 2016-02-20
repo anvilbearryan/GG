@@ -55,6 +55,7 @@ void AGGAssaultCharacter::PostInitializeComponents()
 void AGGAssaultCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	// Animation tick, everyone is interested in
 	if (BodyFlipbookComponent)
 	{
 		switch (ActionState)
@@ -92,6 +93,12 @@ void AGGAssaultCharacter::ReceiveDamage(int32 DamageData)
 {
 	Super::ReceiveDamage(DamageData);
 	// ask damage receiving component to handle it
+	UGGDamageReceiveComponent* loc_Hp = HealthComponent.Get();
+	if (loc_Hp)
+	{
+		loc_Hp->HandleDamageData(DamageData);
+	}
+	// should flash flipbook component
 }
 
 void AGGAssaultCharacter::OnUseSlashAttack()

@@ -274,3 +274,15 @@ void AGGShooterMinion::SyncFlipbookComponentWithTravelDirection()
 		FlipFlipbookComponent();
 	}
 }
+
+void AGGShooterMinion::ReceiveDamage(FGGDamageInformation & DamageInfo)
+{
+	Super::ReceiveDamage(DamageInfo);
+	// play damage taking event
+	FVector2D impactDirection = DamageInfo.GetImpactDirection();
+	float forwardY = GetPlanarForwardVector().Y;
+	if (impactDirection.Y * forwardY > 0.f)
+	{
+		FlipFlipbookComponent();
+	}
+}

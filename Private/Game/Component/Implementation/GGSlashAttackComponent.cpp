@@ -4,6 +4,7 @@
 #include "Game/Component/Implementation/GGSlashAttackComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Game/Actor/GGMinionBase.h"
 #include "Game/Utility/GGFunctionLibrary.h"
 
 void UGGSlashAttackComponent::PostInitProperties()
@@ -183,7 +184,7 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 					{
 						LocalHitTarget(AffectedEntities[i], CachedAttackIdentifier);
 					}
-				}
+				}				
 			}
 			// check if we are about to change specific attack phase, if so resets caches
 			if (UpdatedAttack->ChangesAttackDefinition(CurrentTimeStamp, DeltaTime))
@@ -213,9 +214,21 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 }
 
+const float MARGIN = 25.f;
 void UGGSlashAttackComponent::HitTarget(AActor * target, uint8 Identifier)
 {
-
+	UGGMeleeAttackData* loc_AtkData = GetAttackDataFromIndex(Identifier);
+	if (GetOwner() && target && loc_AtkData) 
+	{
+		// a copy is used to give us chance to modify damage info based on stats etc
+		FGGDamageInformation loc_DamageData;
+		loc_AtkData->GetDamageInformation(loc_DamageData);
+		AGGMinionBase* loc_targetMinion = static_cast<AGGMinionBase*>(target);
+		// InDeltaPosition is supplied from this component so it retains the responsibiltiy to determine the impact direction
+		loc_DamageData.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(target->GetActorLocation() - GetOwner()->GetActorLocation());		
+		UE_LOG(GGMessage, Log, TEXT("calling receive damage to target"));
+		loc_targetMinion->ReceiveDamage(loc_DamageData);
+	}
 }
 
 uint8 UGGSlashAttackComponent::GetIndexFromAttackInformation(bool InIsOnGround, bool InIsCharged, bool InIsMoving) const
@@ -329,7 +342,6 @@ UPaperFlipbook* UGGSlashAttackComponent::GetCurrentAnimation() const
 	}
 	return nullptr;
 }
-
 
 UPaperFlipbook* UGGSlashAttackComponent::GetEffectAnimation() const
 {

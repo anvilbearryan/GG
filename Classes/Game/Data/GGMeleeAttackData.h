@@ -56,7 +56,8 @@ private:
 		UPaperFlipbook* AttackAnimation;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
 		UPaperFlipbook* EffectAnimation;
-	
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
+		FGGDamageInformation DamageData;
 	/** Private caches for state calculation through TimeStamp arguement */
 	float SumActiveDuration;
 	float TimeMark_EndStartup;
@@ -149,5 +150,13 @@ public:
 	FORCEINLINE UPaperFlipbook* GetEffectAnimation() const
 	{
 		return EffectAnimation;
+	}
+
+	/** Copy this DataAsset's damage information to the supplied reference */
+	FORCEINLINE void GetDamageInformation(FGGDamageInformation& OutDamageInformation) const
+	{
+		OutDamageInformation.IndirectValue = DamageData.IndirectValue;
+		OutDamageInformation.Type = DamageData.Type;
+		OutDamageInformation.DirectValue = DamageData.DirectValue;
 	}
 };

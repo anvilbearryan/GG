@@ -83,4 +83,6 @@ public:
 		void FlipFlipbookComponent();
 
 	void SyncFlipbookComponentWithTravelDirection();
+
+	virtual void ReceiveDamage(FGGDamageInformation& DamageInfo) override;
 };
