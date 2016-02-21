@@ -85,4 +85,6 @@ public:
 	void SyncFlipbookComponentWithTravelDirection();
 
 	virtual void ReceiveDamage(FGGDamageInformation& DamageInfo) override;
+
+	virtual void PlayDeathSequence() override;
 };

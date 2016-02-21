@@ -2,8 +2,8 @@
 
 #include "GG.h"
 #include "Game/Component/GGMeleeAttackComponent.h"
-#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Net/UnrealNetwork.h"
 
 UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 {
@@ -11,6 +11,16 @@ UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 	bWantsBeginPlay = true;
 	PrimaryComponentTick.bCanEverTick = true;
 	bIsLocalInstruction = false;
+}
+
+void UGGMeleeAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UGGMeleeAttackComponent, MeleeHitNotify, COND_SkipOwner);
+}
+
+void UGGMeleeAttackComponent::OnRep_MeleeHitNotify()
+{
 }
 
 void UGGMeleeAttackComponent::LocalInitiateAttack(uint8 Identifier)

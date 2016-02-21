@@ -286,3 +286,13 @@ void AGGShooterMinion::ReceiveDamage(FGGDamageInformation & DamageInfo)
 		FlipFlipbookComponent();
 	}
 }
+
+void AGGShooterMinion::PlayDeathSequence()
+{
+	TransitToActionState(EGGAIActionState::Inactive);
+	if (AnimatorComponent)
+	{
+		AnimatorComponent->PerformAction(EGGActionCategory::Death);
+		AnimatorComponent->AlterActionMode(EGGActionMode::Mode0);
+	}
+}

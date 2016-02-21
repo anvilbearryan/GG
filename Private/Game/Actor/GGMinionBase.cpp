@@ -60,6 +60,7 @@ void AGGMinionBase::PostInitializeComponents()
 	if (HealthComponent)
 	{
 		HealthComponent->InitializeHpState();
+		HealthComponent->OnZeroedHp.AddDynamic(this, &AGGMinionBase::PlayDeathSequence);
 	}
 }
 
@@ -199,12 +200,27 @@ void AGGMinionBase::TickEvade(float DeltaSeconds)
     
 }
 
+void AGGMinionBase::MulticastReceiveDamage_Implementation()
+{
+	//ReceiveDamage();
+}
+
+void AGGMinionBase::MulticastReceiveFatalDamage_Implementation()
+{
+	PlayDeathSequence();
+}
+
 void AGGMinionBase::ReceiveDamage(FGGDamageInformation& DamageInfo)
 {
 	if (HealthComponent)
 	{
 		HealthComponent->ApplyDamageInformation(DamageInfo);
 	}
+}
+
+void AGGMinionBase::PlayDeathSequence()
+{
+	UE_LOG(GGWarning, Warning, TEXT("MinionBase empty implementation method: PlayDeathSequence called, meaningless"));
 }
 
 FVector AGGMinionBase::GGGetTargetLocation() const

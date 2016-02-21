@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-//#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Data/GGGameTypes.h"
 #include "GGMeleeAttackComponent.generated.h"
 
@@ -21,6 +20,21 @@
  * LocalInitiateAttack is considered as local player. In this project, it would be the owning player character
  * that has input enabled to reach this method.
  */
+
+USTRUCT()
+struct FMeleeHitNotify
+{
+	GENERATED_BODY();
+	/** The target receiving the damage*/
+	UPROPERTY()
+		AActor* Target;	
+	UPROPERTY()
+		int32 DamageDealt;
+	/** So that simulated clients can receives all damage info */
+	UPROPERTY()
+		int8 ComboCount;
+};
+
 class AActor;
 UCLASS(Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
 class GG_API UGGMeleeAttackComponent : public UActorComponent
@@ -35,6 +49,13 @@ public:
 	//============
 	// Netwokring interface
 	//============
+
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_MeleeHitNotify)
+		FMeleeHitNotify MeleeHitNotify;
+	UFUNCTION()
+		void OnRep_MeleeHitNotify();
+
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Local entry point for starting an attack, calls ServerMethod for replication */
 	UFUNCTION(BlueprintCallable, Category ="GGAttack|Input")
@@ -67,7 +88,7 @@ public:
 
 	//	Specification
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		TEnumAsByte<ECollisionChannel> DamageChannel;
+	 	TEnumAsByte<ECollisionChannel> DamageChannel;
 
 	//	States
 	uint8 bIsLocalInstruction : 1;

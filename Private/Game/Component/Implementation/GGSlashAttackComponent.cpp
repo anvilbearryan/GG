@@ -163,7 +163,7 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		float loc_NextTimeStamp = CurrentTimeStamp + DeltaTime;
 		// separate into stages of an attack
-		if (bIsLocalInstruction && UpdatedAttack->IsInActivePhase(CurrentTimeStamp))
+		if (UpdatedAttack->IsInActivePhase(CurrentTimeStamp) && bIsLocalInstruction)
 		{
 			// do hit checks, also counts cases where we lagged long so as to not skip the hit checks
 			int32 Length = AffectedEntities.Num();
@@ -176,8 +176,7 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 				FVector loc_TraceCentre = GetOwner()->GetActorLocation() + loc_Definition->HitboxCentre * loc_Direction;
 
 				if (UGGFunctionLibrary::WorldOverlapMultiActorByChannel(
-					GetWorld(), loc_TraceCentre,
-					DamageChannel, loc_Definition->AttackShapeInternal, AffectedEntities))
+					GetWorld(), loc_TraceCentre, DamageChannel, loc_Definition->AttackShapeInternal, AffectedEntities))					
 				{
 					int32 NewLength = AffectedEntities.Num();
 					for (int32 i = Length; i < NewLength; i++)

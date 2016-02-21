@@ -124,8 +124,19 @@ public:
 	******** Replicated damage ********
 	*/
 	UGGDamageReceiveComponent* HealthComponent;
+
+	UFUNCTION(NetMulticast, unreliable)
+		void MulticastReceiveDamage();
+	void MulticastReceiveDamage_Implementation();
+	UFUNCTION(NetMulticast, reliable)
+		void MulticastReceiveFatalDamage();
+	void MulticastReceiveFatalDamage_Implementation();
 	UFUNCTION()
 		virtual void ReceiveDamage(FGGDamageInformation& DamageInfo);
+	
+	UFUNCTION()
+	virtual void PlayDeathSequence();
+
     /**
      ******** Utility helpers ********
      */
