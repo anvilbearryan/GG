@@ -16,21 +16,58 @@ UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 void UGGMeleeAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME_CONDITION(UGGMeleeAttackComponent, MeleeHitNotify, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UGGMeleeAttackComponent, bAttackToggle, COND_SkipOwner);
 }
 
-void UGGMeleeAttackComponent::OnRep_MeleeHitNotify()
+////********************************
+// Landing attacks
+void UGGMeleeAttackComponent::LocalHitTarget(const FMeleeHitNotify& InHitNotify)
 {
+	if (InHitNotify.HasValidData())
+	{		
+		HitTarget(InHitNotify);
+		if (GetOwnerRole() == ROLE_AutonomousProxy)
+		{
+			//	If we are not server, also needs server to update to display effects 
+			ServerHitTarget(InHitNotify);
+		}		
+	}
+}
+
+bool UGGMeleeAttackComponent::ServerHitTarget_Validate(FMeleeHitNotify OwnerHitNotify)
+{
+	return true;
+}
+
+void UGGMeleeAttackComponent::ServerHitTarget_Implementation(FMeleeHitNotify OwnerHitNotify)
+{
+	// TODO Possibily some basic verification before caling HitTarget
+	HitTarget(OwnerHitNotify);
+}
+
+void UGGMeleeAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
+{
+	MostRecentHitNotify = InHitNotify;
+}
+
+//********************************
+// Launching attacks
+
+void UGGMeleeAttackComponent::OnRep_AttackToggle()
+{
+	PushAttackRequest();
 }
 
 void UGGMeleeAttackComponent::LocalInitiateAttack(uint8 Identifier)
 {	
-	bIsLocalInstruction = true;	
-	if (GetOwnerRole() == ROLE_AutonomousProxy)
-	{		
-		InitiateAttack(Identifier);
-	}
+	bIsLocalInstruction = true;
 	ServerInitiateAttack(Identifier);
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		// if we are not authority, repeat what the server does locally
+		AttackIdentifier = Identifier; // needed?
+		PushAttackRequest();
+	}
 }
 
 bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate(uint8 Identifier)
@@ -40,53 +77,27 @@ bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate(uint8 Identifier)
 
 void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation(uint8 Identifier)
 {
-	InitiateAttack(Identifier);
-	MulticastInitiateAttack(Identifier);
+	AttackIdentifier = Identifier;
+	PushAttackRequest();
 }
 
-void UGGMeleeAttackComponent::MulticastInitiateAttack_Implementation(uint8 Identifier)
+//********************************
+// Implementation details
+void UGGMeleeAttackComponent::InitiateAttack()
 {
-	if (GetOwnerRole() == ROLE_SimulatedProxy)
-	{
-		InitiateAttack(Identifier);
-	}	
-}
-
-void UGGMeleeAttackComponent::LocalHitTarget(AActor* target, uint8 Identifier)
-{
-	HitTarget(target, Identifier);
-	if (target && GetOwnerRole() == ROLE_AutonomousProxy)
-	{
-		//	If we are not server, also needs server to update to display effects 
-		ServerHitTarget(target, Identifier);
-	}
-}
-
-bool UGGMeleeAttackComponent::ServerHitTarget_Validate(AActor * target, uint8 Identifier)
-{
-	return true;
-}
-
-void UGGMeleeAttackComponent::ServerHitTarget_Implementation(AActor * target, uint8 Identifier)
-{
-	HitTarget(target, Identifier);
-}
-
-void UGGMeleeAttackComponent::InitiateAttack(uint8 Identifier)
-{
+	SetComponentTickEnabled(true);
 	OnInitiateAttack.Broadcast();
 }
 
 void UGGMeleeAttackComponent::FinalizeAttack()
 {
 	bIsLocalInstruction = false;
+	SetComponentTickEnabled(false);
 	OnFinalizeAttack.Broadcast();
 }
 
-void UGGMeleeAttackComponent::HitTarget(AActor* target, uint8 Identifier)
-{
-}
-
+//********************************
+// Utilities
 void UGGMeleeAttackComponent::SetControllerIgnoreMoveInput()
 {
 	AGGCharacter* Character = static_cast<AGGCharacter*>(GetOwner());

@@ -13,7 +13,7 @@ UGGCharacterSensingComponent::UGGCharacterSensingComponent()
     bWantsBeginPlay = true;
     PrimaryComponentTick.bCanEverTick = true;
     
-    // ...
+    
 }
 
 // Called every frame

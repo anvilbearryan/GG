@@ -152,8 +152,6 @@ protected:
 	FVector LastActualMovementInput;
 	//	Override to cache actual input
 	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.f, bool bForce= false) override;
-	float AimLevel;
-	virtual void AddAimInput(float ScaleValue = 0.f);
 
 public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category="GG|View")
@@ -183,7 +181,5 @@ public:
     static FName BodyFlipbookComponentName;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
         UPaperFlipbookComponent* BodyFlipbookComponent;
-    static FName AnimatorComponentName;
     
-    //UGGAnimatorComponent* AnimatorComponent;
 };

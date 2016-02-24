@@ -9,7 +9,7 @@
 
 FName AGGAssaultCharacter::WeaponEffectComponentName = TEXT("WeaponEffectComponent");
 
-AGGAssaultCharacter::AGGAssaultCharacter(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
+AGGAssaultCharacter::AGGAssaultCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	WeaponEffectComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(AGGAssaultCharacter::WeaponEffectComponentName);
 	if (WeaponEffectComponent)
@@ -17,6 +17,7 @@ AGGAssaultCharacter::AGGAssaultCharacter(const FObjectInitializer& ObjectInitial
 		WeaponEffectComponent->AttachTo(BodyFlipbookComponent);
 	}
 }
+
 void AGGAssaultCharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
@@ -40,6 +41,7 @@ void AGGAssaultCharacter::PostInitializeComponents()
 		loc_SlashComp->SetActive(false);
 		loc_SlashComp->OnInitiateAttack.AddDynamic(this, &AGGAssaultCharacter::OnUseSlashAttack);
 		loc_SlashComp->OnFinalizeAttack.AddDynamic(this, &AGGAssaultCharacter::OnFinishSlashAttack);
+		loc_SlashComp->OwnerMovement = GetCharacterMovement();
 	}
 	if (WeaponEffectComponent)
 	{
@@ -147,6 +149,7 @@ void AGGAssaultCharacter::OnPressedAttack()
 	UGGSlashAttackComponent* loc_AttackComponent = NormalSlashAttackComponent.Get();
 	if (loc_AttackComponent && GetCharacterMovement())
 	{
-		loc_AttackComponent->LocalAttemptsAttack(GetCharacterMovement()->IsMovingOnGround(), false, GetVelocity().Y != 0.f);
+		loc_AttackComponent->LocalAttemptsAttack(false, GetVelocity().Y != 0.f);
 	}
 }
+

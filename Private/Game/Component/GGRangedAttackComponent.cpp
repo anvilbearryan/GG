@@ -7,167 +7,77 @@
 
 UGGRangedAttackComponent::UGGRangedAttackComponent() : Super()
 {
-	//	BeginPlay is needed to shut off component tick before we begin
-	bWantsBeginPlay = true;
 	PrimaryComponentTick.bCanEverTick = true;
 	bIsLocalInstruction = false;
+	ProcessedAttackQueue = 0;
+	SumAttackQueue = 0;
 }
 
-void UGGRangedAttackComponent::BeginPlay()
+void UGGRangedAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	SetComponentTickEnabled(false);
-	//	TOD: may not be true
-	bIsReadyToBeUsed = true;
-	
-	LaunchOffsetMultiplier.X = 1.f;
-	LaunchOffsetMultiplier.Z = 1.f;
-
-	ProjectileSpawnParam.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ProjectileSpawnParam.Owner = GetOwner();
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UGGRangedAttackComponent, SumAttackQueue, COND_SkipOwner);
 }
 
-void UGGRangedAttackComponent::LocalInitiateAttack()
-{	
-	if (!bIsReadyToBeUsed)
-	{
-		return;
-	}
-	
-	bIsLocalInstruction = true;	
-	AGGCharacter* character = Cast<AGGCharacter>(GetOwner());
-	
-	if (character)
-	{
-		LaunchOffsetMultiplier.Y = character->GetPlanarForwardVector().Y;
-	}
-	else
-	{
-		LaunchOffsetMultiplier.Y = 1.f;
-	}
+////********************************
+// Landing attacks
+void UGGRangedAttackComponent::LocalHitTarget()
+{
+	HitTarget();
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
-	{		
-		InitiateAttack();
-	}
-	ServerInitiateAttack();
-}
-
-bool UGGRangedAttackComponent::ServerInitiateAttack_Validate()
-{
-	return true;
-}
-
-void UGGRangedAttackComponent::ServerInitiateAttack_Implementation()
-{
-	InitiateAttack();
-	MulticastInitiateAttack();
-}
-
-void UGGRangedAttackComponent::MulticastInitiateAttack_Implementation()
-{
-	if (GetOwnerRole() == ROLE_SimulatedProxy)
-	{
-		InitiateAttack();
-	}	
-}
-
-void UGGRangedAttackComponent::LocalHitTarget(AActor* target)
-{
-	HitTarget(target);
-    // this is sufficient as ServerRPCs invoked on simulated proxies are dropped
-	if (target && GetOwnerRole() != ROLE_Authority)
 	{
 		//	If we are not server, also needs server to update to display effects 
-		ServerHitTarget(target);
+		ServerHitTarget(InHitNotify);
 	}
 }
 
-bool UGGRangedAttackComponent::ServerHitTarget_Validate(AActor * target)
+bool UGGRangedAttackComponent::ServerHitTarget_Validate()
 {
 	return true;
 }
 
-void UGGRangedAttackComponent::ServerHitTarget_Implementation(AActor * target)
+void UGGRangedAttackComponent::ServerHitTarget_Implementation()
 {
-	HitTarget(target);
+	// TODO Possibily some basic verification before caling HitTarget
+	HitTarget();
+}
+
+void UGGRangedAttackComponent::HitTarget()
+{
+	
+}
+
+void UGGRangedAttackComponent::LocalInitiateAttack(uint8 Identifier)
+{	
+	bIsLocalInstruction = true;
+	ServerInitiateAttack(Identifier);
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		// if we are not authority, repeat what the server does locally
+		
+		
+	}
+}
+
+bool UGGRangedAttackComponent::ServerInitiateAttack_Validate(uint8 Identifier)
+{
+	return true;
+}
+
+void UGGRangedAttackComponent::ServerInitiateAttack_Implementation(uint8 Identifier)
+{
+	
 }
 
 void UGGRangedAttackComponent::InitiateAttack()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("InitiateAttack"));
-	TimeLapsed = 0.f;
-
-	// Not really checked outside local player, but doesn't hurt to set it	
-	bIsReadyToBeUsed = false;
-
 	SetComponentTickEnabled(true);
 	OnInitiateAttack.Broadcast();
 }
 
 void UGGRangedAttackComponent::FinalizeAttack()
 {
+	bIsLocalInstruction = false;
+	SetComponentTickEnabled(false);
 	OnFinalizeAttack.Broadcast();
-}
-
-void UGGRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	check(TimeLapsed >= 0.f);
-	
-	// increment timestamp
-	TimeLapsed += DeltaTime;
-
-	if (TimeLapsed < StartUp)
-	{
-		// Startup phase
-	}
-	//	Time to launch
-	else
-	{
-        /*
-		//Code to spawn projectile				
-		FTransform transform = GetOwner()->GetTransform();
-		transform.AddToTranslation(LaunchOffset*LaunchOffsetMultiplier);
-		AActor* Projectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, transform, ProjectileSpawnParam);
-		//	Configure projectile
-		if (bIsLocalInstruction)
-		{
-			// Configure as damage contributing projectile
-
-		}
-		else
-		{
-			// Configure as dummy projectile
-
-		}
-        */
-        LaunchProjectile(bIsLocalInstruction);
-		//	Set timer for completion event for cooldown
-		SetComponentTickEnabled(false);
-        //  Animation completion
-		GetWorld()->GetTimerManager().SetTimer(
-			StateTimerHandle, this, &UGGRangedAttackComponent::FinalizeAttack, Cooldown);
-        //  Re-launching cooldown
-        GetWorld()->GetTimerManager().SetTimer(
-                                               StateTimerHandle, this, &UGGRangedAttackComponent::ResetForRetrigger, Retrigger);
-	}		
-}
-
-void UGGRangedAttackComponent::HitTarget(AActor* target)
-{
-	//	Attack landing logic, in charge of damaging
-	if (target)
-	{
-        // get the damage receiving component and deal damage
-        TArray<UGGDamageReceiveComponent*> dmgCmpArray;
-        target->GetComponents(dmgCmpArray);
-        if (dmgCmpArray.Num() > 0)
-        {
-            UGGDamageReceiveComponent* dmgCmp = dmgCmpArray[0];
-        }
-	}
-}
-
-void UGGRangedAttackComponent::ResetForRetrigger()
-{
-	bIsReadyToBeUsed = true;
 }

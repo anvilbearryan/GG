@@ -6,6 +6,7 @@
 #include "Game/Actor/GGCharacter.h"
 #include "Game/Actor/GGMinionBase.h"
 #include "Game/Utility/GGFunctionLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 void UGGSlashAttackComponent::PostInitProperties()
 {
@@ -26,103 +27,105 @@ void UGGSlashAttackComponent::PostInitProperties()
 	if (AirChargedAttack) AirChargedAttack->RecalculateCaches();
 }
 
-void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsOnGround, bool InIsCharged, bool InIsMoving)
+void UGGSlashAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	if (PendingAttackIndex != 0 && !InIsCharged && !bQueuedAttack)
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UGGSlashAttackComponent, bModeChargedAttack, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UGGSlashAttackComponent, bModeChargedAttack_Queued, COND_SkipOwner);
+
+	DOREPLIFETIME_CONDITION(UGGSlashAttackComponent, bModeMobileAttack, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UGGSlashAttackComponent, bModeMobileAttack_Queued, COND_SkipOwner);
+}
+
+void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsCharged, bool InIsMobile)
+{
+	if (NextAttackIndex != 0 && !InIsCharged && !bQueuedAttack)
 	{
-		// convert local uint32 state to bools
-		bool loc_bUsingAirAttack = bUsingAirAttack;
-		bool loc_bUsingMovingAttack = bUsingMovingAttack;
 		// Condition for when a combo is applicable i.e. instruction is of same category as current chain of attack
-		if (loc_bUsingAirAttack != InIsOnGround && loc_bUsingMovingAttack == InIsMoving)
+		if (bModeMobileAttack == InIsMobile)
 		{
 			// check TimeStamp data allows us to chain
 			UGGMeleeAttackData* loc_LastInitiatedAttack = LastInitiatedAttack.Get();
 			if (loc_LastInitiatedAttack && loc_LastInitiatedAttack->IsInComboWindow(CurrentTimeStamp))
 			{
 				// can chain on				
-				if (loc_LastInitiatedAttack->HasPastHardCooldown(CurrentTimeStamp))
-				{
-					// do the transfer now
-					LocalInitiateAttack(GetIndexFromAttackInformation(InIsOnGround, InIsCharged, InIsMoving));
-				}
-				else
-				{
-					float DelayToInitiate = loc_LastInitiatedAttack->TimeToLaunchCombo(CurrentTimeStamp);
-					if (DelayToInitiate > 0.f)
-					{	// set queue
-						LocalQueuedAttackIdentifier = GetIndexFromAttackInformation(InIsOnGround, InIsCharged, InIsMoving);
-						bQueuedAttack = true;
-						float timeTilAttemp = loc_LastInitiatedAttack->TimeToLaunchCombo(CurrentTimeStamp);
-						GetWorld()->GetTimerManager().SetTimer(
-							AttackQueueHandle, this, &UGGSlashAttackComponent::UseQueuedAttack, timeTilAttemp);							
-					}
-					else
-					{
-						// this should only happened on wrongly setup attack data
-						UE_LOG(GGWarning, Warning, TEXT("Please recheck AttackData asset, not in combo window but past hard cooldown"));
-						LocalInitiateAttack(LocalQueuedAttackIdentifier);
-					}
-				}
+				LocalInitiateAttack(GetEncryptedAttackIdentifier(InIsCharged, InIsMobile));
 			}
 			// no else, do nothing if we can't chain
-		} 		
+		}
 	}
 	else if (!LastInitiatedAttack.IsValid())
 	{
 		// use charged or is a first attack in combo if LastInitiatedAttack is null (meaning it has been finalized in tick)
-		LocalInitiateAttack(GetIndexFromAttackInformation(InIsOnGround, InIsCharged, InIsMoving));
+		LocalInitiateAttack(GetEncryptedAttackIdentifier(InIsCharged, InIsMobile));
+	}
+}
+
+const float MARGIN = 25.f;
+/** Function is called on both causer client and the server */
+void UGGSlashAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
+{
+	if (InHitNotify.HasValidData())
+	{
+		UE_LOG(GGMessage, Log, TEXT("calling receive damage to target"));
+		AGGMinionBase* loc_Minion = Cast<AGGMinionBase>(InHitNotify.Target);
+		if (loc_Minion)
+		{
+			FGGDamageInformation& loc_DmgInfo = loc_Minion->DamageNotify;
+			loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
+			loc_DmgInfo.IndirectValue = 0;
+			loc_DmgInfo.Type = InHitNotify.DamageCategory;			
+			loc_DmgInfo.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(loc_Minion->GetActorLocation() - GetOwner()->GetActorLocation());
+			AGGCharacter* loc_Owner= static_cast<AGGCharacter*>(GetOwner());
+			if (!!loc_Owner)
+			{
+				loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
+			}			
+			loc_Minion->ReceiveDamage(loc_DmgInfo);
+		}
 	}	
 }
 
-void UGGSlashAttackComponent::UseQueuedAttack()
+void UGGSlashAttackComponent::PushAttackRequest()
 {
-	bQueuedAttack = false;
-	// with attack queued, not possible to clean up input ignoring normall in Finalize
-	UGGMeleeAttackData* AttackData = LastInitiatedAttack.Get();
-	if (AttackData)
+	// TODO: add exit condition for data resets so as to not invoke invalid attacks 
+	// server handle the receipt of instructions
+	if (LastInitiatedAttack.IsValid())
 	{
-		// remove attack modifiers from last attack to character
-		if (AttackData->IsRootingMove())
+		// case queued attack
+		if (GetOwnerRole() > ROLE_SimulatedProxy)
 		{
-			SetControllerReceiveMoveInput();
+			bool locCharged;
+			bool locMobile;
+			DecryptAttackIdentifier(AttackIdentifier, locCharged, locMobile);
+			bModeChargedAttack_Queued = locCharged ? 1 : 0;
+			bModeMobileAttack_Queued = locMobile ? 1 : 0;
+			// trigger the repnotify
+			bAttackToggle = !bAttackToggle;
 		}
+		bQueuedAttack = true;
 	}
-	LocalInitiateAttack(LocalQueuedAttackIdentifier);
+	else
+	{
+		if (GetOwnerRole() > ROLE_SimulatedProxy)
+		{
+			// case new attack	
+			bool locCharged;
+			bool locMobile;
+			DecryptAttackIdentifier(AttackIdentifier, locCharged, locMobile);
+			bModeChargedAttack = locCharged;
+			bModeMobileAttack = locMobile;
+			// trigger the repnotify
+			bAttackToggle = !bAttackToggle;
+		}				
+		InitiateAttack();
+	}
 }
 
-const int32 BIT_CHARGED = 16;
-const int32 BIT_ONGROUND = 32;
-const int32 BIT_MOVING = 64;
-
-void UGGSlashAttackComponent::InitiateAttack(uint8 Identifier)
+void UGGSlashAttackComponent::InitiateAttack()
 {
-	/** This function is replicated and called through a multicast for SimulatedProxies */
-	LastInitiatedAttack = GetAttackDataFromIndex(Identifier);
-	
-	if ( (Identifier & BIT_CHARGED) == 0)
-	{
-		// needs to increment attack index for next attack if not using a charged one
-		const TArray<UGGMeleeAttackData*>* Chain = GetAttacksArrayFromIndex(Identifier);
-		if (Chain)
-		{		
-#if WITH_EDITOR
-			if (Chain->Num() == 0)
-			{
-				UE_LOG(GGWarning, Warning, TEXT("Requested attack arrary is empty"));
-			}
-#endif
-			PendingAttackIndex = (PendingAttackIndex + 1) % Chain->Num();
-		}
-		else
-		{
-#if WITH_EDITOR
-			UE_LOG(GGWarning, Warning, TEXT("Requested attack arrary is null"));
-#endif
-		}
-	}
-	bUsingAirAttack = (Identifier & BIT_ONGROUND) == 0;
-	bUsingMovingAttack = (Identifier & BIT_MOVING) != 0;
+	LastInitiatedAttack = GetAttackToUse();
 
 	UGGMeleeAttackData* AttackData = LastInitiatedAttack.Get();
 	if (AttackData)
@@ -136,22 +139,33 @@ void UGGSlashAttackComponent::InitiateAttack(uint8 Identifier)
 		{
 			SetControllerIgnoreMoveInput();
 		}
+		NextAttackIndex++;
 	}
 	// broadcasts delegates
-	Super::InitiateAttack(Identifier);
+	Super::InitiateAttack();
 }
 
 void UGGSlashAttackComponent::FinalizeAttack()
-{	
+{
 	// Cleanup if nothing follows
 	if (!bQueuedAttack)
 	{
 		LastInitiatedAttack.Reset();
-		PendingAttackIndex = 0;		
+		NextAttackIndex = 0;		
 	}
-	SetActive(false);
-	// broadcasts delegates
+	else
+	{
+		UE_LOG(GGWarning, Warning, TEXT("Called FinalizeAttack while bQueuedAttack is true => early exit from tick failed"));
+		UseQueuedAttack();
+	}
 	Super::FinalizeAttack();
+}
+
+void UGGSlashAttackComponent::UseQueuedAttack()
+{	
+	InitiateAttack();
+	// set Queue flag here, so that InitializeAttack knows we are invoking a queued attack before resetting
+	bQueuedAttack = false;
 }
 
 void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
@@ -163,7 +177,7 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		float loc_NextTimeStamp = CurrentTimeStamp + DeltaTime;
 		// separate into stages of an attack
-		if (UpdatedAttack->IsInActivePhase(CurrentTimeStamp) && bIsLocalInstruction)
+		if (bIsLocalInstruction && UpdatedAttack->IsInActivePhase(CurrentTimeStamp))
 		{
 			// do hit checks, also counts cases where we lagged long so as to not skip the hit checks
 			int32 Length = AffectedEntities.Num();
@@ -176,21 +190,25 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 				FVector loc_TraceCentre = GetOwner()->GetActorLocation() + loc_Definition->HitboxCentre * loc_Direction;
 
 				if (UGGFunctionLibrary::WorldOverlapMultiActorByChannel(
-					GetWorld(), loc_TraceCentre, DamageChannel, loc_Definition->AttackShapeInternal, AffectedEntities))					
+					GetWorld(), loc_TraceCentre, DamageChannel, loc_Definition->AttackShapeInternal, AffectedEntities))
 				{
 					int32 NewLength = AffectedEntities.Num();
 					for (int32 i = Length; i < NewLength; i++)
 					{
-						LocalHitTarget(AffectedEntities[i], CachedAttackIdentifier);
+						FMeleeHitNotify notifier;
+						notifier.Target = AffectedEntities[i];
+						notifier.DamageCategory = EGGDamageType::Standard;
+						notifier.DamageDealt = 67;
+						LocalHitTarget(notifier);						
 					}
-				}				
+				}
 			}
 			// check if we are about to change specific attack phase, if so resets caches
 			if (UpdatedAttack->ChangesAttackDefinition(CurrentTimeStamp, DeltaTime))
 			{
 				AffectedEntities.Reset();
 			}
-		}		
+		}
 		else if (!UpdatedAttack->HasPastHardCooldown(CurrentTimeStamp) && UpdatedAttack->HasPastHardCooldown(loc_NextTimeStamp))
 		{
 			// release imposed movement modifiers, this block is only possible to be entered once per attack sequence				
@@ -198,6 +216,11 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 			{
 				SetControllerReceiveMoveInput();
 			}
+		}
+		else if (bQueuedAttack && UpdatedAttack->HasPastHardCooldown(CurrentTimeStamp))
+		{
+			// use queued attack
+			UseQueuedAttack();
 		}
 		else if (UpdatedAttack->HasPastSoftCooldown(CurrentTimeStamp))
 		{
@@ -208,98 +231,86 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 	else
 	{
-		// tick enabled mistakenly
-		SetActive(false);
+		SetComponentTickEnabled(false);
 	}
 }
 
-const float MARGIN = 25.f;
-void UGGSlashAttackComponent::HitTarget(AActor * target, uint8 Identifier)
-{
-	UGGMeleeAttackData* loc_AtkData = GetAttackDataFromIndex(Identifier);
-	if (GetOwner() && target && loc_AtkData) 
-	{
-		// a copy is used to give us chance to modify damage info based on stats etc
-		FGGDamageInformation loc_DamageData;
-		loc_AtkData->GetDamageInformation(loc_DamageData);
-		AGGMinionBase* loc_targetMinion = static_cast<AGGMinionBase*>(target);
-		// InDeltaPosition is supplied from this component so it retains the responsibiltiy to determine the impact direction
-		loc_DamageData.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(target->GetActorLocation() - GetOwner()->GetActorLocation());		
-		UE_LOG(GGMessage, Log, TEXT("calling receive damage to target"));
-		loc_targetMinion->ReceiveDamage(loc_DamageData);
-	}
-}
-
-uint8 UGGSlashAttackComponent::GetIndexFromAttackInformation(bool InIsOnGround, bool InIsCharged, bool InIsMoving) const
+const int32 BIT_CHARGED = 2;
+const int32 BIT_MOVING = 4;
+uint8 UGGSlashAttackComponent::GetEncryptedAttackIdentifier(const bool & InIsCharged, const bool & InIsMobile) const
 {
 	uint8 Index = 0;
-	if (InIsCharged) 
+	if (InIsCharged)
 	{
 		Index |= BIT_CHARGED;
 	}
-	if (InIsOnGround)
-	{
-		Index |= BIT_ONGROUND;
-	}
-	if (InIsMoving)
+	if (InIsMobile)
 	{
 		Index |= BIT_MOVING;
-	}
-	Index |= PendingAttackIndex;
+	}	
 	return Index;
 }
 
-UGGMeleeAttackData* UGGSlashAttackComponent::GetAttackDataFromIndex(uint8 Identifier) const
+void UGGSlashAttackComponent::DecryptAttackIdentifier(const uint8 InIdentifier, bool & OutIsCharged, bool & OutIsMobile)
 {
-	int32 Index = Identifier;
-	bool IsCharged= (Index & BIT_CHARGED) > 0;
-	bool IsOnGround = (Index & BIT_ONGROUND) > 0;
-	bool IsMoving = (Index & BIT_MOVING) > 0;
-
-	const int32 BIT_ATTACKINDEX = ~(BIT_CHARGED | BIT_ONGROUND | BIT_MOVING);
-	int32 loc_PendingAttackIndex = Index & BIT_ATTACKINDEX;
-	
-	if (IsCharged)
-	{
-		return IsOnGround ? GroundChargedAttack : AirChargedAttack;
-	}
-	else if (IsOnGround)
-	{
-		if (IsMoving && GroundMovingAttacks.Num() > 0 && GroundMovingAttacks.IsValidIndex(loc_PendingAttackIndex))
-		{
-			return GroundMovingAttacks[loc_PendingAttackIndex];
-		}
-		else if (GroundNormalAttacks.Num() > 0 && GroundNormalAttacks.IsValidIndex(loc_PendingAttackIndex))
-		{
-			return GroundNormalAttacks[loc_PendingAttackIndex];
-		}						
-		UE_LOG(GGWarning, Warning, TEXT("No valid ground attack found from PendingAttackIndex"));
-	}
-	else
-	{
-		if (AirNormalAttacks.IsValidIndex(loc_PendingAttackIndex))
-		{
-			return AirNormalAttacks[loc_PendingAttackIndex];
-		}
-		UE_LOG(GGWarning, Warning, TEXT("No valid air attack found from PendingAttackIndex"));
-	}
-	return nullptr;
+	OutIsCharged = (InIdentifier & BIT_CHARGED) != 0;
+	OutIsMobile = (InIdentifier & BIT_MOVING) != 0;
 }
 
-const TArray<UGGMeleeAttackData*>* UGGSlashAttackComponent::GetAttacksArrayFromIndex(uint8 Identifier) const
+bool UGGSlashAttackComponent::GetOwnerGroundState() const
 {
-	int32 Index = Identifier;
-	bool IsOnGround = (Index & BIT_ONGROUND) > 0;
-	bool IsMoving = (Index & BIT_MOVING) > 0;
-
-	if (IsOnGround)
+	UCharacterMovementComponent* loc_CMC = OwnerMovement.Get();
+	if (loc_CMC == nullptr)
 	{
-		return IsMoving ? &GroundMovingAttacks : &GroundNormalAttacks;
+		AGGCharacter* loc_Character = static_cast<AGGCharacter*>(GetOwner());
+		if (loc_Character)
+		{
+			loc_CMC = loc_Character->GetCharacterMovement();
+		}
+		if (loc_CMC)
+		{
+			return  loc_CMC->IsMovingOnGround();
+		}
+	}	
+	else
+	{
+		return  loc_CMC->IsMovingOnGround();
+	}
+	UE_LOG(GGWarning, Warning, TEXT("SlashAtkComponent has no owner / charactermovement component in owner heirarchy"));		
+	// always return true if not charactermovement 
+	return true;
+}
+
+UGGMeleeAttackData* UGGSlashAttackComponent::GetAttackToUse()
+{	
+	bool loc_Charged = bQueuedAttack ? bModeChargedAttack_Queued : bModeChargedAttack;
+	bool loc_Mobile = bQueuedAttack ? bModeMobileAttack_Queued : bModeMobileAttack;
+	bModeAerialAttack = !GetOwnerGroundState();
+	if (loc_Charged)
+	{
+		return bModeAerialAttack ? AirChargedAttack : GroundChargedAttack;
+	}
+	else if (bModeAerialAttack)
+	{
+		if (AirNormalAttacks.IsValidIndex(NextAttackIndex))
+		{
+			return AirNormalAttacks[NextAttackIndex];
+		}
+		UE_LOG(GGWarning, Warning, TEXT("No valid air attack found from NextAttackIndex"));		
 	}
 	else
 	{
-		return &AirNormalAttacks;
+		if (loc_Mobile && GroundMovingAttacks.Num() > 0 && GroundMovingAttacks.IsValidIndex(NextAttackIndex))
+		{
+			return GroundMovingAttacks[NextAttackIndex];
+		}
+		else if (GroundNormalAttacks.Num() > 0 && GroundNormalAttacks.IsValidIndex(NextAttackIndex))
+		{
+			return GroundNormalAttacks[NextAttackIndex];
+		}
+		UE_LOG(GGWarning, Warning, TEXT("No valid ground attack found from NextAttackIndex"));
 	}
+	return nullptr;
 }
 
 bool UGGSlashAttackComponent::ShouldRemainInState() const
@@ -310,7 +321,7 @@ bool UGGSlashAttackComponent::ShouldRemainInState() const
 		return false;
 	}
 	
-	if (bUsingMovingAttack)
+	if (bModeMobileAttack)
 	{
 		FVector loc_Velocity = GetOwner()->GetVelocity();
 		if (FMath::Abs(loc_Velocity.Y) < 50.f)
@@ -319,7 +330,7 @@ bool UGGSlashAttackComponent::ShouldRemainInState() const
 			return false;
 		}
 	}
-	if (bUsingAirAttack)
+	if (bModeAerialAttack)
 	{
 		AGGCharacter* loc_Character = static_cast<AGGCharacter*>(GetOwner());
 		bool loc_onGround = loc_Character && loc_Character->GetCharacterMovement() && loc_Character->GetCharacterMovement()->IsMovingOnGround();

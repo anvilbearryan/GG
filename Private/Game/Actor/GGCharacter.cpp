@@ -8,7 +8,6 @@
 #include "PaperFlipbookComponent.h"
 
 FName AGGCharacter::BodyFlipbookComponentName(TEXT("BodyFlipbookComponent"));
-FName AGGCharacter::AnimatorComponentName(TEXT("AnimatorComponent"));
 
 // Sets default values
 AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
@@ -345,23 +344,6 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
         }
     }
     Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
-}
-
-void AGGCharacter::AddAimInput(float ScaleValue)
-{
-	const float AIM_DEADZONE = 0.1f;
-	if (ScaleValue > AIM_DEADZONE)
-	{
-		AimLevel = 1.f;
-	}
-	else if (ScaleValue < -AIM_DEADZONE)
-	{
-		AimLevel = -1.f;
-	}
-	else
-	{
-		AimLevel = 0.f;
-	}	
 }
 
 FVector AGGCharacter::GetPlanarForwardVector() const

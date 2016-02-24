@@ -7,7 +7,7 @@
 #include "PaperFlipbookComponent.h"
 #include "Game/Component/GGAnimatorComponent.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
-#include "Game/Utility/GGFunctionLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
 
@@ -23,6 +23,12 @@ AGGMinionBase::AGGMinionBase()
     }
 }
 
+void AGGMinionBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AGGMinionBase, DamageNotify);
+}
 // Called when the game starts or when spawned
 void AGGMinionBase::PostInitializeComponents()
 {
@@ -200,14 +206,15 @@ void AGGMinionBase::TickEvade(float DeltaSeconds)
     
 }
 
-void AGGMinionBase::MulticastReceiveDamage_Implementation()
+void AGGMinionBase::OnRep_DamageNotify()
 {
-	//ReceiveDamage();
-}
-
-void AGGMinionBase::MulticastReceiveFatalDamage_Implementation()
-{
-	PlayDeathSequence();
+	// the local causer do not rely on the OnRep to display the damage, hence the check for duplication
+	// suffice as the server does not fire OnReps
+	APlayerController* localPlayerController = GetWorld()->GetFirstPlayerController();
+	if (localPlayerController && DamageNotify.CauserPlayerState != localPlayerController->PlayerState)
+	{
+		ReceiveDamage(DamageNotify);
+	}
 }
 
 void AGGMinionBase::ReceiveDamage(FGGDamageInformation& DamageInfo)

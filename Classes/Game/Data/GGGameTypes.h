@@ -78,7 +78,8 @@ struct FGGDamageInformation
 		uint8 ImpactDirection;
 	UPROPERTY(EditAnywhere)
 		TEnumAsByte<EGGDamageType::Type> Type;
-
+	UPROPERTY()
+		APlayerState* CauserPlayerState;
 	FGGDamageInformation() {}
 
 	static FGGDamageInformation DecompressFromData(int32 DamageData)
