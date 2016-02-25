@@ -37,16 +37,16 @@ public:
 		TEnumAsByte<ECollisionChannel> DamageChannel;
 
 	/** Unlike melee where latency could drop RepNotify counts, a counter is replicated for ranged to give a chance of catching up without disrupting movement */
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_AttackToggle)
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_AttackQueue)
 		int32 SumAttackQueue;
 	/** To work out how far we are actually behind and resync if necessary */
 	int32 ProcessedAttackQueue;
+	uint8 AttackIdentifier;
 	/** Cache indicates whether this component has hit test responsibility */
 	uint8 bIsLocalInstruction : 1;
-	/** These sprites are updated by this component */
-	TArray<UGGPooledSpriteComponent*, TInlineAllocator<16>> UpdatedProjectiles;
 
 	UGGRangedAttackComponent();
+
 	//============
 	// Netwokring interface
 	//============

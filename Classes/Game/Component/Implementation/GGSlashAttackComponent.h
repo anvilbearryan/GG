@@ -33,13 +33,13 @@ public:
 	// Component states 
 protected:
 	/** For determining state exit */
-	UPROPERTY(Replicated)
+	UPROPERTY(Transient, Replicated)
 		uint8 bModeChargedAttack : 1;
-	UPROPERTY(Replicated)
+	UPROPERTY(Transient, Replicated)
 		uint8 bModeMobileAttack : 1;		
-	UPROPERTY(Replicated)
+	UPROPERTY(Transient, Replicated)
 		uint8 bModeChargedAttack_Queued : 1;
-	UPROPERTY(Replicated)
+	UPROPERTY(Transient, Replicated)
 		uint8 bModeMobileAttack_Queued : 1;
 	
 	/** States of each individual clients */
@@ -86,7 +86,7 @@ protected:
 	//********************************
 	// Child specific utilities
 	// For client transmission to server
-	uint8 GetEncryptedAttackIdentifier(const bool &InIsCharged, const bool &InIsMobile) const;
+	uint8 GetEncryptedAttackIdentifier(bool InIsCharged, bool InIsMobile) const;
 	// For server identification
 	void DecryptAttackIdentifier(const uint8 InIdentifier, bool& OutIsCharged, bool& OutIsMobile);
 	bool GetOwnerGroundState() const;

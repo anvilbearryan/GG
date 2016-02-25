@@ -4,6 +4,7 @@
 #include "Game/Actor/Implementation/GGReconCharacter.h"
 #include "Game/Component/Implementation/GGLocomotionAnimComponent.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
+#include "Game/Component/Implementation/GGReconRifleComponent.h"
 #include "PaperFlipbookComponent.h"
 
 
@@ -65,7 +66,26 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 		break;
 		case EGGActionCategory::Attack:
 		{
-			
+			UGGReconRifleComponent* loc_RifleComponent = RifleComponent.Get();
+			if (loc_RifleComponent && BodyFlipbookComponent)
+			{				
+				UPaperFlipbook* toFlipbook = loc_RifleComponent->GetCurrentBodyAnimation();
+				if (bOverridePlaybackPosition)
+				{
+					// first frame only
+					bOverridePlaybackPosition = false;
+					BodyFlipbookComponent->SetFlipbook(toFlipbook);
+				}
+				else if (toFlipbook && loc_RifleComponent->GetFlipbook() != toFlipbook)
+				{
+					// find current playbkpos
+					float currentPlaybackPositionNormalized =
+						BodyFlipbookComponent->GetPlaybackPosition() / BodyFlipbookComponent->GetFlipbookLength();
+					// conserve playback position
+					BodyFlipbookComponent->SetFlipbook(toFlipbook);
+					BodyFlipbookComponent->SetNewtime(currentPlaybackPositionNormalized*toFlipbook->GetTotalDuration());
+				}				
+			}
 		}
 		break;
 		}
@@ -82,6 +102,39 @@ void AGGReconCharacter::ReceiveDamage(int32 DamageData)
 		loc_Hp->HandleDamageData(DamageData);
 	}
 	// should flash flipbook component
+}
+
+void AGGReconCharacter::OnBeginShoot()
+{
+	ActionState = EGGActionCategory::Attack;
+	if (BodyFlipbookComponent)
+	{
+		BodyFlipbookComponent->SetLooping(true);
+		bOverridePlaybackPosition = true;
+	}
+	UGGReconRifleComponent* loc_RifleComponent = RifleComponent.Get();
+	if (loc_RifleComponent && BodyFlipbookComponent)
+	{
+		UPaperFlipbook* loc_EffectFlipbook = loc_RifleComponent->GetEffectAnimation();
+		if (loc_EffectFlipbook != nullptr)
+		{
+			WeaponEffectComponent->SetFlipbook(loc_EffectFlipbook);
+			WeaponEffectComponent->SetVisibility(true);
+			WeaponEffectComponent->SetLooping(false);
+			WeaponEffectComponent->PlayFromStart();
+		}
+	}
+}
+
+void AGGReconCharacter::OnFinishShoot()
+{
+	bOverridePlaybackPosition = true;
+	ActionState = EGGActionCategory::Locomotion;
+	if (BodyFlipbookComponent)
+	{
+		BodyFlipbookComponent->SetLooping(true);
+		BodyFlipbookComponent->Play();
+	}
 }
 
 void AGGReconCharacter::OnFinishWeaponEffectAnimation()

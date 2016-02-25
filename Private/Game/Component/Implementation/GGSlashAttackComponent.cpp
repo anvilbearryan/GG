@@ -24,7 +24,10 @@ void UGGSlashAttackComponent::PostInitProperties()
 	{
 		if (a) a->RecalculateCaches();
 	}
-	if (AirChargedAttack) AirChargedAttack->RecalculateCaches();
+	if (AirChargedAttack) 
+	{
+		AirChargedAttack->RecalculateCaches();
+	}
 }
 
 void UGGSlashAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -133,7 +136,7 @@ void UGGSlashAttackComponent::InitiateAttack()
 		AffectedEntities.Reset();
 		// initialize state for attack
 		CurrentTimeStamp = 0.f;
-		SetActive(true);
+		SetComponentTickEnabled(true);
 		// apply attack modifiers to character
 		if (AttackData->IsRootingMove())
 		{
@@ -237,7 +240,7 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 
 const int32 BIT_CHARGED = 2;
 const int32 BIT_MOVING = 4;
-uint8 UGGSlashAttackComponent::GetEncryptedAttackIdentifier(const bool & InIsCharged, const bool & InIsMobile) const
+uint8 UGGSlashAttackComponent::GetEncryptedAttackIdentifier(bool InIsCharged, bool InIsMobile) const
 {
 	uint8 Index = 0;
 	if (InIsCharged)

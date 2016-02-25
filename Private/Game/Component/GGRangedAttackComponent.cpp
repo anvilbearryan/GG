@@ -54,8 +54,8 @@ void UGGRangedAttackComponent::LocalInitiateAttack(uint8 Identifier)
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		// if we are not authority, repeat what the server does locally
-		
-		
+		AttackIdentifier = Identifier; // needed?
+		PushAttackRequest();
 	}
 }
 
@@ -66,7 +66,8 @@ bool UGGRangedAttackComponent::ServerInitiateAttack_Validate(uint8 Identifier)
 
 void UGGRangedAttackComponent::ServerInitiateAttack_Implementation(uint8 Identifier)
 {
-	
+	AttackIdentifier = Identifier;
+	PushAttackRequest();
 }
 
 void UGGRangedAttackComponent::InitiateAttack()

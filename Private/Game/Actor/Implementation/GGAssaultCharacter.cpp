@@ -122,7 +122,6 @@ void AGGAssaultCharacter::OnUseSlashAttack()
 			WeaponEffectComponent->PlayFromStart();
 		}
 	}
-	UE_LOG(GGMessage, Log, TEXT("Use attack delegate on ACharacter"));
 }
 
 void AGGAssaultCharacter::OnFinishSlashAttack()
@@ -133,7 +132,6 @@ void AGGAssaultCharacter::OnFinishSlashAttack()
 		BodyFlipbookComponent->SetLooping(true);
 		BodyFlipbookComponent->Play();
 	}	
-	UE_LOG(GGMessage, Log, TEXT("Finish attack delegate on ACharacter"));
 }
 
 void AGGAssaultCharacter::OnFinishWeaponEffectAnimation()
