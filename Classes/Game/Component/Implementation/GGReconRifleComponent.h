@@ -2,18 +2,61 @@
 
 #pragma once
 
-#include "Components/ActorComponent.h"
-#include "Game/Data/GGGameTypes.h"
+#include "Game/Component/GGRangedAttackComponent.h"
+#include "Game/Data/GGProjectileData.h"
 #include "GGReconRifleComponent.generated.h"
 
 /**
  * Responsible for both the launch and update of projectiles
  */	
-class UGGProjectileData;
 class UGGTriggerAnimData;
+class UGGPooledSpriteComponent;
 class UCharacterMovementComponent;
+class AGGSpritePool;
+class AGGCharacter;
+
+/** Contains information necessary in updating projectile's state and handling events*/
+USTRUCT()
+struct FLaunchedProjectile
+{
+	GENERATED_BODY()
+
+	// safe guard in case sprite component is destroyed somehow
+	UGGPooledSpriteComponent* SpriteBody;
+	// this is stored to make delayed launch possible
+	FVector LaunchDirection;
+	FVector ContinualAcceleration;
+	// since we are using PaperSpriteComponent, they do not store velocity by default unlike an AActor
+	FVector CurrentVelocity;
+	UGGProjectileData* ProjectileData;
+
+	int8 CurrentCollisionCount;
+
+	FLaunchedProjectile()
+	{
+		SpriteBody = nullptr;
+		LaunchDirection = FVector::ZeroVector;
+		ContinualAcceleration = FVector::ZeroVector;
+		ProjectileData = nullptr;
+		CurrentCollisionCount = 0;
+	}
+
+	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data)
+		: LaunchDirection(direction.X, direction.Y, direction.Z), CurrentCollisionCount(0)
+	{
+		SpriteBody = body;
+		ProjectileData = data;
+		if (ProjectileData != nullptr)
+		{
+			ContinualAcceleration = ProjectileData->GetGravityVector();
+			ContinualAcceleration.Y = FMath::Sign(LaunchDirection.Y) * ContinualAcceleration.Y;
+			CurrentVelocity = LaunchDirection * ProjectileData->LaunchSpeed;
+		}
+	}
+};
+
 UCLASS()
-class GG_API UGGReconRifleComponent : public UActorComponent
+class GG_API UGGReconRifleComponent : public UGGRangedAttackComponent
 {
 	GENERATED_BODY()
 public:	
@@ -24,21 +67,30 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
 		UGGProjectileData* ProjectileData_Charged;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
-		UGGTriggerAnimData* TriggerAnimData_Charged;
-	
+		UGGTriggerAnimData* TriggerAnimData_Charged;	
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		int32 MaxMovingAttackCount;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		float MovingAttackCountDuration;
+	/** The position we launch the projectile when shooting straight, defaults for Right */
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		FVector AimOffset_Neutral;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		FVector AimOffset_Up;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		FVector AimOffset_Down;
+	/** The variable position we launch the projectile with */
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		float LaunchOffset_Random;
 	float FiringLength_Normal;
 	float FiringLength_Charged;
 
 	//********************************
 	// Component states 
 protected:
-	// No queued version, we don't allow immediate aim change animation-wise
+	// No queued version, we don't allow immediate aim change animation-wise. Also replicated in owning character for locomotion animation
 	UPROPERTY(Transient, Replicated)
-		uint8 WeaponAimLevel;
+	uint8 WeaponAimLevel;
 
 	UGGProjectileData* LastUsedProjectileData;
 	UGGTriggerAnimData* BodyAnimDataInUse;
@@ -57,10 +109,10 @@ protected:
 	 */
 	uint8 bWeaponIsFiring : 1;
 	uint8 bQueuedAttack : 1;
-
-	/** sprites updated by this component */
-	FTimerHandle AttackQueueHandle
-	TArray<UGGPooledSpriteComponent*, TInlineAllocator<16>> UpdatedProjectiles;
+	FTimerHandle AttackQueueHandle;
+	TWeakObjectPtr<AGGSpritePool> SpritePool;
+	/** sprites updated by this component */	
+	TArray<FLaunchedProjectile, TInlineAllocator<16>> UpdatedProjectiles;
 	float TimeOfLastAttack;
 
 public:
@@ -79,10 +131,10 @@ public:
 
 protected:
 
-	// ******** MeleeAttackComponent interface ********
+	// ******** RangedAttackComponent interface ********
 	//********************************
 	// Landing attacks
-	virtual void HitTarget() override;
+	virtual void HitTarget(const FRangedHitNotify &InHitNotify) override;
 
 	//********************************
 	// Launching attacks
@@ -108,11 +160,19 @@ protected:
 	
 	bool GetOwnerGroundState() const;
 	
-	bool CanQueueShots() const;
+	bool CanQueueShots();
+
+	// use params when possible for more options in network implementation	
+	FVector GetAimOffset(uint8 InAimLevel) const;
+	FVector GetAimDirection(uint8 InAimLevel) const;
+
+	bool FindSpritePoolReference();
 
 	// For picking the right projectile from current states
 	UGGProjectileData* GetProjectileDataToUse() const;
 	UGGTriggerAnimData* GetTriggerAnimDataToUse() const;
+
+	AGGCharacter* GetTypedOwner() const;
 
 public:
 	virtual UPaperFlipbook* GetCurrentBodyAnimation() const;

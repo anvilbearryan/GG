@@ -73,4 +73,7 @@ public:
 			return false;
 		}
 	}
+
+	static void BlendFlipbookToComponent(class UPaperFlipbookComponent* InFlipbookComponent, class UPaperFlipbook* ToFlipbook);
+	
 };

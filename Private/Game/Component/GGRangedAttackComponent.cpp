@@ -4,6 +4,7 @@
 #include "Game/Component/GGRangedAttackComponent.h"
 #include "Game/Actor/GGCharacter.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
+#include "Net/UnrealNetwork.h"
 
 UGGRangedAttackComponent::UGGRangedAttackComponent() : Super()
 {
@@ -19,11 +20,11 @@ void UGGRangedAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME_CONDITION(UGGRangedAttackComponent, SumAttackQueue, COND_SkipOwner);
 }
 
-////********************************
+//********************************
 // Landing attacks
-void UGGRangedAttackComponent::LocalHitTarget()
+void UGGRangedAttackComponent::LocalHitTarget(const FRangedHitNotify& InHitNotify)
 {
-	HitTarget();
+	HitTarget(InHitNotify);
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		//	If we are not server, also needs server to update to display effects 
@@ -31,20 +32,34 @@ void UGGRangedAttackComponent::LocalHitTarget()
 	}
 }
 
-bool UGGRangedAttackComponent::ServerHitTarget_Validate()
+bool UGGRangedAttackComponent::ServerHitTarget_Validate(FRangedHitNotify LocalsHitNotify)
 {
 	return true;
 }
 
-void UGGRangedAttackComponent::ServerHitTarget_Implementation()
+void UGGRangedAttackComponent::ServerHitTarget_Implementation(FRangedHitNotify LocalsHitNotify)
 {
 	// TODO Possibily some basic verification before caling HitTarget
-	HitTarget();
+	HitTarget(LocalsHitNotify);
 }
 
-void UGGRangedAttackComponent::HitTarget()
+void UGGRangedAttackComponent::HitTarget(const FRangedHitNotify& InHitNotify)
 {
-	
+	MostRecentHitNotify = InHitNotify;
+}
+
+//********************************
+// Launching attacks
+void UGGRangedAttackComponent::OnRep_AttackQueue(int32 OldValue)
+{
+	if (SumAttackQueue - OldValue < 5)
+	{
+		PushAttackRequest();
+	}
+	else
+	{
+		ProcessedAttackQueue = SumAttackQueue;
+	}
 }
 
 void UGGRangedAttackComponent::LocalInitiateAttack(uint8 Identifier)

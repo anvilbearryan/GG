@@ -21,14 +21,52 @@
  * LocalInitiateAttack is considered as local player. In this project, it would be the owning player character
  * that has input enabled to reach this method.
  */
-class UGGPooledSpriteComponent;
 
-UCLASS(Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
+USTRUCT()
+struct FRangedHitNotify
+{
+	GENERATED_BODY();
+	/** The target receiving the damage*/
+	UPROPERTY()
+		AActor* Target;
+	UPROPERTY()
+		int16 DamageDealt;
+	/** So that simulated clients can receives all damage info */
+	UPROPERTY()
+		TEnumAsByte<EGGDamageType::Type> DamageCategory;
+	UPROPERTY()
+		FVector_NetQuantize HitPosition;
+
+	FORCEINLINE bool HasValidData() const
+	{
+		return Target != nullptr && DamageDealt > 0;
+	}
+	/*
+	UPROPERTY()
+	uint8 Coord_0;
+	UPROPERTY()
+	uint32 Coord_1;
+	const float Z_UNIT = 12.5f;
+	FORCEINLINE void SetPosition(FVector position)
+	{
+		Coord_0 = 0;
+		Coord_1 = 0;
+
+		int32 Z = FMath::Clamp<int32>(FMath::Round(position.Z / Z_UNIT), -(1 << 13) + 1 , (1 << 13) - 1);
+		Coord_0 |= Z < 0 ? (1 << 7) : 0;
+		
+		int32 Y = position.Y;
+
+	}*/
+};
+
+class UGGPooledSpriteComponent;
+UCLASS(Abstract, Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
 class GG_API UGGRangedAttackComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-		DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStatusUpdateEventSignature);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStatusUpdateEventSignature);
 
 public:
 	//********************************
@@ -36,6 +74,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		TEnumAsByte<ECollisionChannel> DamageChannel;
 
+	//********************************
+	//	States
+	UPROPERTY(Transient)
+		 FRangedHitNotify MostRecentHitNotify;
 	/** Unlike melee where latency could drop RepNotify counts, a counter is replicated for ranged to give a chance of catching up without disrupting movement */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_AttackQueue)
 		int32 SumAttackQueue;
@@ -51,7 +93,7 @@ public:
 	// Netwokring interface
 	//============
 
-	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	//********************************
@@ -61,20 +103,23 @@ protected:
 	* neccesary change in target state.
 	*/
 	UFUNCTION()
-		void LocalHitTarget();
+		void LocalHitTarget(const FRangedHitNotify &InHitNotify);
 	//	TODO: Change parameter type to enemy base class
 	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
-		void ServerHitTarget();
-	bool ServerHitTarget_Validate();
-	void ServerHitTarget_Implementation();
+		void ServerHitTarget(FRangedHitNotify LocalsHitNotify);
+	bool ServerHitTarget_Validate(FRangedHitNotify LocalsHitNotify);
+	void ServerHitTarget_Implementation(FRangedHitNotify LocalsHitNotify);
 
 	UFUNCTION()
-		virtual void HitTarget();
+		virtual void HitTarget(const FRangedHitNotify &InHitNotify);
 
 	//********************************
 	// Launching attacks
+	
+	virtual void PushAttackRequest() PURE_VIRTUAL(UGGMeleeAttackComponent::PushAttackRequest, );
+
 	UFUNCTION()
-		void OnRep_AttackQueue();
+		void OnRep_AttackQueue(int32 OldValue);
 	/** Local entry point for starting an attack, calls ServerMethod for replication. Identifier represents shoot direction */
 	UFUNCTION()
 		void LocalInitiateAttack(uint8 Identifier);

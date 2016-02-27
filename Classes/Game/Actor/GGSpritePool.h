@@ -13,7 +13,7 @@ class GG_API AGGSpritePool : public AActor
 
 protected:	
 	
-	TArray<UGGPooledSpriteComponent*, TInLineAllocator<48>> AvailableInstances;
+	TArray<UGGPooledSpriteComponent*, TInlineAllocator<48>> AvailableInstances;
 
 public:	
 	// Sets default values for this actor's properties

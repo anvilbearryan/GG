@@ -8,26 +8,30 @@
 /**
  * 
  */
+class UPaperFlipbook;
+class UPaperSprite;
 UCLASS()
 class GG_API UGGProjectileData : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		float LaunchSpeed;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		FVector GravityDirection;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		float GravityStrength;	
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		UPaperFlipbook* LaunchEffect;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		UPaperSprite* TravelSprite;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		UPaperFlipbook* ImpactEffect;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
-		uint8 bVelocityDictatesRotation;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
+		uint8 bVelocityDictatesRotation : 1;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
+		int32 Penetration;
 
 private:
 	FVector Gravity_Internal;
@@ -37,6 +41,6 @@ public:
 
 	FORCEINLINE FVector GetGravityVector() const
 	{
-		return FVector(Gravity_Internal);
+		return Gravity_Internal;
 	}
 };

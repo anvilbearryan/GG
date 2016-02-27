@@ -200,7 +200,7 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 					{
 						FMeleeHitNotify notifier;
 						notifier.Target = AffectedEntities[i];
-						notifier.DamageCategory = EGGDamageType::Standard;
+						notifier.DamageCategory = EGGDamageType::Slash;
 						notifier.DamageDealt = 67;
 						LocalHitTarget(notifier);						
 					}

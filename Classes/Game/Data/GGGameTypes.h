@@ -57,6 +57,7 @@ namespace EGGDamageType
 	{
 		//	Just for exposing to BP...
 		Standard = 0,
+		Slash = 1,
 		TYPES_COUNT
 	};
 }

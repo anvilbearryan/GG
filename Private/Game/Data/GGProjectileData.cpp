@@ -7,6 +7,6 @@
 
 void UGGProjectileData::RecalculateCaches()
 {
-	Gravity_Internal = GravityDirection.Nromalize() * GravityStrenght;
+	Gravity_Internal = GravityDirection.GetSafeNormal() * GravityStrength;
 }
 

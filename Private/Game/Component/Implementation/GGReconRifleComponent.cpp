@@ -4,9 +4,18 @@
 #include "Game/Component/Implementation/GGReconRifleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Game/Actor/GGMinionBase.h"
+
 #include "Net/UnrealNetwork.h"
+
 #include "Game/Data/GGProjectileData.h"
 #include "Game/Data/GGTriggerAnimData.h"
+
+#include "Game/Framework/GGGameState.h"
+#include "Game/Actor/GGSpritePool.h"
+#include "Game/Component/GGPooledSpriteComponent.h"
+#include "PaperFlipbookComponent.h"
+
 
 void UGGReconRifleComponent::PostInitProperties()
 {
@@ -23,8 +32,9 @@ void UGGReconRifleComponent::PostInitProperties()
 
 void UGGReconRifleComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::GetLifeTimeReplicatedProps(OutLifeTimeProps);
-	DOREPLIFETIME_COND(UGGReconRifleComponent, bModeChargedAttack, COND_SkipOwner);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UGGReconRifleComponent, bModeChargedAttack, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UGGReconRifleComponent, WeaponAimLevel, COND_SkipOwner);
 }
 
 void UGGReconRifleComponent::LocalAttemptsAttack(bool InIsCharged, uint8 AimLevel)
@@ -33,6 +43,30 @@ void UGGReconRifleComponent::LocalAttemptsAttack(bool InIsCharged, uint8 AimLeve
 	if (CanQueueShots())
 	{
 		LocalInitiateAttack(GetEncryptedAttackIdentifier(InIsCharged, AimLevel));
+	}
+}
+
+void UGGReconRifleComponent::HitTarget(const FRangedHitNotify &InHitNotify)
+{
+	if (InHitNotify.HasValidData())
+	{
+		UE_LOG(GGMessage, Log, TEXT("calling receive damage to target"));
+		AGGMinionBase* loc_Minion = Cast<AGGMinionBase>(InHitNotify.Target);
+		if (loc_Minion)
+		{
+			FGGDamageInformation& loc_DmgInfo = loc_Minion->DamageNotify;
+			loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
+			loc_DmgInfo.IndirectValue = 0;
+			loc_DmgInfo.Type = InHitNotify.DamageCategory;
+			AGGCharacter* loc_Owner = GetTypedOwner();						
+			if (!!loc_Owner)
+			{
+				loc_DmgInfo.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(
+					loc_Minion->GetActorLocation() - loc_Owner->GetActorLocation());
+				loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
+			}
+			loc_Minion->ReceiveDamage(loc_DmgInfo);
+		}
 	}
 }
 
@@ -66,6 +100,7 @@ void UGGReconRifleComponent::PushAttackRequest()
 	}
 }
 
+const float ROOT_TWO = 1.41421356f;
 void UGGReconRifleComponent::InitiateAttack()
 {
 	LastUsedProjectileData = GetProjectileDataToUse();
@@ -74,12 +109,48 @@ void UGGReconRifleComponent::InitiateAttack()
 	// Timestamp is used for setting a dynamic timer to quit state based on time lapsed from last attack
 	TimeOfLastAttack = GetWorld()->GetTimeSeconds();
 	// Actual "spawning" of projectile bodies
+	if (SpritePool.IsValid() || FindSpritePoolReference())
+	{
+		// if the ptr is valid, or not valid but set to be valid in Find
+		UGGPooledSpriteComponent* spriteInstance = SpritePool.Get()->CheckoutInstance();		
+		AGGCharacter* loc_Char = GetTypedOwner();
+		UPaperFlipbookComponent* loc_Flipbook = loc_Char->BodyFlipbookComponent;
+		if (LastUsedProjectileData && spriteInstance && loc_Char && loc_Flipbook)
+		{
+			// initialize spriteInstance
+			// set sprite transform, scale (face left / face right)  is copied from owning character's body directly
+			FTransform spriteTransform = loc_Flipbook->GetComponentToWorld();			
+			FVector aimDirection = GetAimDirection(WeaponAimLevel);
+			if (aimDirection.Z != 0.f && LastUsedProjectileData->bVelocityDictatesRotation)
+			{
+				// rotation may need adjustment to point up/down, depending on the ProjectileData used
+				spriteTransform.ConcatenateRotation(
+					FQuat(0.f, ROOT_TWO * 0.5f, 0.f, FMath::Sign(aimDirection.Z) * ROOT_TWO * 0.5f));
+			}
+			// add location offset
+			spriteTransform.AddToTranslation(GetAimOffset(WeaponAimLevel));
+			// apply transform			
+			spriteInstance->SetWorldTransform(spriteTransform, false, nullptr, ETeleportType::TeleportPhysics);
+			// set display information
+			spriteInstance->SetSprite(LastUsedProjectileData->TravelSprite);
+			spriteInstance->SetVisibility(true, true);
+			// initialize physics
+			spriteInstance->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			spriteInstance->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+			spriteInstance->SetCollisionResponseToChannel(DamageChannel, ECollisionResponse::ECR_Block);
+			// configure FLaunchedProjectile and add to array
+			UpdatedProjectiles.Add(FLaunchedProjectile(spriteInstance, aimDirection, LastUsedProjectileData));
+			
+		}
+	}
+
 
 	ProcessedAttackQueue++;	
 	// set timer to check for queue
 	float locFiringDelay = (bQueuedAttack && bModeChargedAttack_Queued) || (!bQueuedAttack && FiringLength_Charged) ?
 		 FiringLength_Charged : FiringLength_Normal;
-	GetWorld()->GetTimerManager().SetTimer(AttackQueueHandle, this, &UGGReconRifleComponent::HandleQueuedAttack, locFiringDelay);
+	GetWorld()->GetTimerManager().SetTimer(
+		AttackQueueHandle, this, &UGGReconRifleComponent::HandleQueuedAttack, locFiringDelay);
 	SetComponentTickEnabled(true);
 	Super::InitiateAttack();
 }
@@ -87,7 +158,7 @@ void UGGReconRifleComponent::InitiateAttack()
 void UGGReconRifleComponent::FinalizeAttack()
 {
 	// tick is disabled thorugh a combined condition, here we check the other which is if all projectilese are deactivated
-	if (UpdatedProjectile.Num() == 0)
+	if (UpdatedProjectiles.Num() == 0)
 	{
 		SetComponentTickEnabled(false);
 	}
@@ -110,7 +181,43 @@ void UGGReconRifleComponent::HandleQueuedAttack()
 void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	// unlike melee, queues are handled using timers instead so we only need to handle projectiles update here
+	
+	for (int32 i = UpdatedProjectiles.Num() - 1; i >= 0; i--)
+	{
+		auto& projectile = UpdatedProjectiles[i];
+		// no substepping, lazy!
+		// sweep component
+		FVector delta = projectile.CurrentVelocity * DeltaTime + 0.5f * projectile.ContinualAcceleration * DeltaTime * DeltaTime;
+		FHitResult hitResult;
+		projectile.SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
+		// collision handling
+		if (hitResult.bBlockingHit)
+		{
+			// handle damage
+			FRangedHitNotify notifier;
+			notifier.Target = hitResult.Actor.Get();
+			notifier.DamageDealt = 100;
+			notifier.HitPosition = projectile.SpriteBody->GetComponentLocation();
+			notifier.DamageCategory = EGGDamageType::Standard;
+			LocalHitTarget(notifier);
+			// handle impact effects
+			
+			// cleanup
+			projectile.CurrentCollisionCount++;
+			if (projectile.CurrentCollisionCount > projectile.ProjectileData->Penetration)
+			{
+				UE_LOG(GGMessage, Log, TEXT("Clean up projectile"));
+				projectile.SpriteBody->SetVisibility(false, true);
+				projectile.SpriteBody->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				projectile.SpriteBody->SetSprite(nullptr);
+				// no longer needs update
+				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
+			}
+		}
+		// set new velocity
+		projectile.CurrentVelocity += projectile.ContinualAcceleration * DeltaTime;
+	}
 }
 
 const int32 BIT_CHARGED = 128;
@@ -135,7 +242,7 @@ bool UGGReconRifleComponent::GetOwnerGroundState() const
 	UCharacterMovementComponent* loc_CMC = OwnerMovement.Get();
 	if (loc_CMC == nullptr)
 	{
-		AGGCharacter* loc_Character = static_cast<AGGCharacter*>(GetOwner());
+		AGGCharacter* loc_Character = GetTypedOwner();
 		if (loc_Character)
 		{
 			loc_CMC = loc_Character->GetCharacterMovement();
@@ -155,7 +262,7 @@ bool UGGReconRifleComponent::GetOwnerGroundState() const
 }
 
 const float SMALL_SPEED = 25.f;
-bool UGGReconRifleComponent::CanQueueShots() const
+bool UGGReconRifleComponent::CanQueueShots()
 {
 	if (GetOwner() == nullptr)
 	{
@@ -184,6 +291,59 @@ bool UGGReconRifleComponent::CanQueueShots() const
 	return MovingAttackTimeRegister.Num() < MaxMovingAttackCount;
 }
 
+FVector UGGReconRifleComponent::GetAimOffset(uint8 InAimLevel) const
+{
+	if (InAimLevel == 0)
+	{
+		return AimOffset_Down;
+	}
+	if (InAimLevel == 1)
+	{
+		AGGCharacter* loc_Char = GetTypedOwner();
+		if (loc_Char)
+		{
+			return loc_Char->GetPlanarForwardVector().Y * AimOffset_Neutral;
+		}
+		else
+		{
+			UE_LOG(GGWarning, Warning, TEXT("Can't find owning character..."));
+		}
+	}
+	return AimOffset_Up;
+}
+
+FVector UGGReconRifleComponent::GetAimDirection(uint8 InAimLevel) const
+{
+	if (InAimLevel == 0)
+	{
+		return FVector::UpVector * -1.f;
+	}
+	if (InAimLevel == 1)
+	{
+		AGGCharacter* loc_Char = GetTypedOwner();
+		if (loc_Char)
+		{
+			return loc_Char->GetPlanarForwardVector();
+		}
+		else
+		{
+			UE_LOG(GGWarning, Warning, TEXT("Can't find owning character..."));
+		}
+	}
+	return FVector::UpVector;
+}
+
+// return true if found
+bool UGGReconRifleComponent::FindSpritePoolReference()
+{
+	AGGGameState* loc_GS = GetWorld()->GetGameState<AGGGameState>();
+	if (loc_GS)
+	{
+		SpritePool = loc_GS->LevelSpritePool;
+	}
+	return SpritePool.IsValid();
+}
+
 UGGProjectileData* UGGReconRifleComponent::GetProjectileDataToUse() const
 {
 	bool locCharged = bQueuedAttack ? bModeChargedAttack_Queued : bModeChargedAttack;
@@ -196,6 +356,11 @@ UGGTriggerAnimData* UGGReconRifleComponent::GetTriggerAnimDataToUse() const
 	bool locCharged = bQueuedAttack ? bModeChargedAttack_Queued : bModeChargedAttack;
 
 	return locCharged ? TriggerAnimData_Charged : TriggerAnimData_Normal;
+}
+
+AGGCharacter* UGGReconRifleComponent::GetTypedOwner() const
+{
+	return static_cast<AGGCharacter*>(GetOwner());
 }
 
 UPaperFlipbook * UGGReconRifleComponent::GetCurrentBodyAnimation() const

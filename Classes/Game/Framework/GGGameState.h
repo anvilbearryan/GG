@@ -9,6 +9,8 @@
 /**
  *  GameState should be the place to store all the pointer to the level's manager classes that will be used by actors of the level.
  */
+class AGGSpritePool;
+
 UCLASS(Blueprintable, ClassGroup="GG|Framework")
 class GG_API AGGGameState : public AGameState
 {
@@ -21,6 +23,8 @@ public:
 	virtual void BeginPlay() override;
 
     TArray<AGGCharacter*>& GetCharacterList();
+
+	AGGSpritePool* LevelSpritePool;
 
     UFUNCTION(BlueprintCallable, Category ="GG|Framework")
     void UpdateCharacterList();

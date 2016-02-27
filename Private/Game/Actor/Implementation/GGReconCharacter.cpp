@@ -6,7 +6,8 @@
 #include "Game/Component/GGDamageReceiveComponent.h"
 #include "Game/Component/Implementation/GGReconRifleComponent.h"
 #include "PaperFlipbookComponent.h"
-
+#include "Net/UnrealNetwork.h"
+#include "Game/Utility/GGFunctionLibrary.h"
 
 FName AGGReconCharacter::WeaponEffectComponentName = TEXT("WeaponEffectComponent");
 
@@ -32,7 +33,24 @@ void AGGReconCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
-	LocomotionAnimComponent = FindComponentByClass<UGGLocomotionAnimComponent>();
+	TInlineComponentArray<UGGLocomotionAnimComponent*> LocoComponents;
+	GetComponents(LocoComponents);
+	for (int32 i = 0; i < LocoComponents.Num(); i++)
+	{
+		if (i == 0)
+		{
+			LocomotionAnimComponent_Neutral = LocoComponents[i];
+		}
+		if (i == 1)
+		{
+			LocomotionAnimComponent_Up = LocoComponents[i];
+		}
+		if (i == 2)
+		{
+			LocomotionAnimComponent_Down = LocoComponents[i];
+		}
+	}
+
 	/** TODO: handle game save loading */
 
 
@@ -47,6 +65,12 @@ void AGGReconCharacter::PostInitializeComponents()
 	}
 }
 
+void AGGReconCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(AGGReconCharacter, InputAimLevel_RepQuan, COND_SkipOwner);
+}
+
 void AGGReconCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -57,8 +81,13 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 		{
 		case EGGActionCategory::Locomotion:
 		{
-			UGGLocomotionAnimComponent* loc_LocomotionAnimComponent = LocomotionAnimComponent.Get();
-			if (loc_LocomotionAnimComponent)
+			UGGLocomotionAnimComponent* loc_LocomotionAnimComponent = GetActiveLocAnimComponent();
+			if (loc_LocomotionAnimComponent != LastActiveLocoAnimComponent)
+			{
+				UGGFunctionLibrary::BlendFlipbookToComponent(BodyFlipbookComponent, loc_LocomotionAnimComponent->GetCurrentAnimation());
+				LastActiveLocoAnimComponent = loc_LocomotionAnimComponent;
+			}
+			else
 			{
 				BodyFlipbookComponent->SetFlipbook(loc_LocomotionAnimComponent->GetCurrentAnimation());
 			}
@@ -76,20 +105,44 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 					bOverridePlaybackPosition = false;
 					BodyFlipbookComponent->SetFlipbook(toFlipbook);
 				}
-				else if (toFlipbook && loc_RifleComponent->GetFlipbook() != toFlipbook)
+				else 
 				{
-					// find current playbkpos
-					float currentPlaybackPositionNormalized =
-						BodyFlipbookComponent->GetPlaybackPosition() / BodyFlipbookComponent->GetFlipbookLength();
-					// conserve playback position
-					BodyFlipbookComponent->SetFlipbook(toFlipbook);
-					BodyFlipbookComponent->SetNewtime(currentPlaybackPositionNormalized*toFlipbook->GetTotalDuration());
+					UGGFunctionLibrary::BlendFlipbookToComponent(BodyFlipbookComponent, toFlipbook);
 				}				
 			}
 		}
 		break;
 		}
 	}
+}
+
+const float SMALL_DECIMAL = 0.2f;
+UGGLocomotionAnimComponent* AGGReconCharacter::GetActiveLocAnimComponent() const
+{
+	if (IsLocallyControlled())
+	{
+		// use aim level
+		if (InputAimLevel > SMALL_DECIMAL)
+		{
+			return LocomotionAnimComponent_Up.Get();
+		}
+		else if (InputAimLevel < -SMALL_DECIMAL)
+		{
+			return LocomotionAnimComponent_Down.Get();
+		}
+	}
+	else
+	{
+		if (InputAimLevel_RepQuan > 1)
+		{
+			return LocomotionAnimComponent_Up.Get();
+		}
+		else if (InputAimLevel_RepQuan == 0)
+		{
+			return LocomotionAnimComponent_Down.Get();
+		}
+	}
+	return LocomotionAnimComponent_Neutral.Get();
 }
 
 void AGGReconCharacter::ReceiveDamage(int32 DamageData)
@@ -135,6 +188,10 @@ void AGGReconCharacter::OnFinishShoot()
 		BodyFlipbookComponent->SetLooping(true);
 		BodyFlipbookComponent->Play();
 	}
+	if (Role == ROLE_Authority && !IsLocallyControlled())
+	{
+		InputAimLevel_RepQuan = 1;
+	}
 }
 
 void AGGReconCharacter::OnFinishWeaponEffectAnimation()
@@ -150,19 +207,32 @@ void AGGReconCharacter::AddAimInput(float ScaleValue)
 	const float AIM_DEADZONE = 0.1f;
 	if (ScaleValue > AIM_DEADZONE)
 	{
-		AimLevel = 1.f;
+		InputAimLevel = 1.f;
 	}
 	else if (ScaleValue < -AIM_DEADZONE)
 	{
-		AimLevel = -1.f;
+		InputAimLevel = -1.f;
 	}
 	else
 	{
-		AimLevel = 0.f;
+		InputAimLevel = 0.f;
 	}
 }
 
 void AGGReconCharacter::OnPressedAttack()
 {
-	
+	UGGReconRifleComponent* loc_RifleComponent = RifleComponent.Get();
+	if (loc_RifleComponent)
+	{
+		uint8 locAimLevel = 0;
+		if (FMath::Abs(InputAimLevel) < SMALL_DECIMAL)
+		{
+			locAimLevel = 1;
+		}
+		else if (InputAimLevel > 0)
+		{
+			locAimLevel = 2;
+		}
+		loc_RifleComponent->LocalAttemptsAttack(false, locAimLevel);
+	}
 }

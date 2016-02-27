@@ -8,7 +8,7 @@
 
 class UGGDamageReceiveComponent;
 class UGGLocomotionAnimComponent;
-class UGGReaconRifleComponent;
+class UGGReconRifleComponent;
 class UPaperFlipbookComponent;
 
 UCLASS()
@@ -20,14 +20,23 @@ public:
 	// Composition
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
 		UPaperFlipbookComponent* WeaponEffectComponent;
-	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent;	
+	
 	TWeakObjectPtr<UGGDamageReceiveComponent> HealthComponent;
-	TWeakObjectPtr<UGGReaconRifleComponent> RifleComponent;
+	TWeakObjectPtr<UGGReconRifleComponent> RifleComponent;
+
+	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent_Neutral;
+	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent_Up;
+	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent_Down;
 
 	// States
 	TEnumAsByte<EGGActionCategory::Type> ActionState;	
 	uint8 bOverridePlaybackPosition: 1;
+	
+	UGGLocomotionAnimComponent* LastActiveLocoAnimComponent;
 
+	float InputAimLevel;
+	UPROPERTY(Transient, Replicated)
+		uint8 InputAimLevel_RepQuan;
 
 	AGGReconCharacter(const FObjectInitializer& ObjectInitializer);
 
@@ -35,9 +44,13 @@ public:
 	// Override to obtain reference to attack and health components
 	virtual void PostInitializeComponents() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	virtual void Tick(float DeltaSeconds) override;
 
-	// Assault character passive: no interrupt
+	UGGLocomotionAnimComponent* GetActiveLocAnimComponent() const;
+
+	// Recon character passive: dodge
 	virtual void ReceiveDamage(int32 DamageData) override;
 	
 	UFUNCTION()
@@ -48,7 +61,6 @@ public:
 		void OnFinishWeaponEffectAnimation();
 
 	/** Specific input handling */
-	float AimLevel;
 	void AddAimInput(float ScaleValue = 0.f);
 	void OnPressedAttack();
 };
