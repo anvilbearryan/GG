@@ -72,8 +72,9 @@ public:
 	//********************************
 	//	Specification
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		TEnumAsByte<ECollisionChannel> DamageChannel;
-
+		TArray<TEnumAsByte<ECollisionChannel>> TargetObjectTypes;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		TEnumAsByte<ECollisionChannel> ProjectileObjectType;
 	//********************************
 	//	States
 	UPROPERTY(Transient)

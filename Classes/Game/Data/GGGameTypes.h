@@ -111,12 +111,12 @@ struct FGGDamageInformation
 		else if (InDeltaPosition.Z < -FGGDamageInformation::HitMargin)
 		{
 			// case 789
-			Out = 4;
+			Out = 1;
 		}
 		else
 		{
 			// case 456
-			Out = 1;
+			Out = 4;
 		}
 		if (InDeltaPosition.Y > FGGDamageInformation::HitMargin)
 		{

@@ -63,11 +63,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
 		UGGProjectileData* ProjectileData_Normal;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
-		UGGTriggerAnimData* TriggerAnimData_Normal;
+		UGGTriggerAnimData* TriggerAnimData_Normal_Neutral;
+	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
+	UGGTriggerAnimData* TriggerAnimData_Normal_Up;
+	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
+	UGGTriggerAnimData* TriggerAnimData_Normal_Down;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
 		UGGProjectileData* ProjectileData_Charged;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
-		UGGTriggerAnimData* TriggerAnimData_Charged;	
+		UGGTriggerAnimData* TriggerAnimData_Charged_Neutral;	
+	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
+		UGGTriggerAnimData* TriggerAnimData_Charged_Up;
+	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
+		UGGTriggerAnimData* TriggerAnimData_Charged_Down;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		int32 MaxMovingAttackCount;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
@@ -82,8 +90,10 @@ public:
 	/** The variable position we launch the projectile with */
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		float LaunchOffset_Random;
-	float FiringLength_Normal;
-	float FiringLength_Charged;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		float FiringLength_Normal;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		float FiringLength_Charged;
 
 	//********************************
 	// Component states 
@@ -159,7 +169,7 @@ protected:
 	void DecryptAttackIdentifier(const uint8 InIdentifier, bool& OutIsCharged, uint8 &OutAimLevel);
 	
 	bool GetOwnerGroundState() const;
-	
+	bool IsOwnerMoving() const;
 	bool CanQueueShots();
 
 	// use params when possible for more options in network implementation	
@@ -170,7 +180,7 @@ protected:
 
 	// For picking the right projectile from current states
 	UGGProjectileData* GetProjectileDataToUse() const;
-	UGGTriggerAnimData* GetTriggerAnimDataToUse() const;
+	UGGTriggerAnimData* GetTriggerAnimDataToUse(uint8 InAimLevel) const;
 
 	AGGCharacter* GetTypedOwner() const;
 

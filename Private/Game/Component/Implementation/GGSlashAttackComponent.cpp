@@ -78,11 +78,11 @@ void UGGSlashAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 			FGGDamageInformation& loc_DmgInfo = loc_Minion->DamageNotify;
 			loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
 			loc_DmgInfo.IndirectValue = 0;
-			loc_DmgInfo.Type = InHitNotify.DamageCategory;			
-			loc_DmgInfo.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(loc_Minion->GetActorLocation() - GetOwner()->GetActorLocation());
+			loc_DmgInfo.Type = InHitNotify.DamageCategory;						
 			AGGCharacter* loc_Owner= static_cast<AGGCharacter*>(GetOwner());
 			if (!!loc_Owner)
 			{
+				loc_DmgInfo.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(loc_Minion->GetActorLocation() - GetOwner()->GetActorLocation());
 				loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
 			}			
 			loc_Minion->ReceiveDamage(loc_DmgInfo);

@@ -281,7 +281,8 @@ void AGGShooterMinion::ReceiveDamage(FGGDamageInformation & DamageInfo)
 	// play damage taking event
 	FVector2D impactDirection = DamageInfo.GetImpactDirection();
 	float forwardY = GetPlanarForwardVector().Y;
-	if (impactDirection.Y * forwardY > 0.f)
+	// USE X, because its 2D vector!
+	if (impactDirection.X * forwardY > 0.f)
 	{
 		FlipFlipbookComponent();
 	}

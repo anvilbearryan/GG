@@ -93,7 +93,7 @@ void UGGRangedAttackComponent::InitiateAttack()
 
 void UGGRangedAttackComponent::FinalizeAttack()
 {
-	bIsLocalInstruction = false;
-	SetComponentTickEnabled(false);
+	// unlike melee, don't set local instruction false since its used in damage dealing process
+	// tick also kept enabled as its used to update launched projectile
 	OnFinalizeAttack.Broadcast();
 }

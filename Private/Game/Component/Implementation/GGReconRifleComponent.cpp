@@ -62,7 +62,7 @@ void UGGReconRifleComponent::HitTarget(const FRangedHitNotify &InHitNotify)
 			if (!!loc_Owner)
 			{
 				loc_DmgInfo.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(
-					loc_Minion->GetActorLocation() - loc_Owner->GetActorLocation());
+					loc_Minion->GetActorLocation() - InHitNotify.HitPosition);
 				loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
 			}
 			loc_Minion->ReceiveDamage(loc_DmgInfo);
@@ -104,7 +104,7 @@ const float ROOT_TWO = 1.41421356f;
 void UGGReconRifleComponent::InitiateAttack()
 {
 	LastUsedProjectileData = GetProjectileDataToUse();
-	BodyAnimDataInUse = GetTriggerAnimDataToUse();
+	BodyAnimDataInUse = GetTriggerAnimDataToUse(WeaponAimLevel);
 	bWeaponIsFiring = true;
 	// Timestamp is used for setting a dynamic timer to quit state based on time lapsed from last attack
 	TimeOfLastAttack = GetWorld()->GetTimeSeconds();
@@ -136,18 +136,25 @@ void UGGReconRifleComponent::InitiateAttack()
 			spriteInstance->SetVisibility(true, true);
 			// initialize physics
 			spriteInstance->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			spriteInstance->SetCollisionObjectType(ProjectileObjectType);
 			spriteInstance->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-			spriteInstance->SetCollisionResponseToChannel(DamageChannel, ECollisionResponse::ECR_Block);
+			for (auto type : TargetObjectTypes)
+			{
+				spriteInstance->SetCollisionResponseToChannel(type, ECollisionResponse::ECR_Block);
+			}			
 			// configure FLaunchedProjectile and add to array
 			UpdatedProjectiles.Add(FLaunchedProjectile(spriteInstance, aimDirection, LastUsedProjectileData));
 			
 		}
 	}
-
+	if (IsOwnerMoving())
+	{		
+		MovingAttackTimeRegister.Add(GetWorld()->GetTimeSeconds());
+	}
 
 	ProcessedAttackQueue++;	
 	// set timer to check for queue
-	float locFiringDelay = (bQueuedAttack && bModeChargedAttack_Queued) || (!bQueuedAttack && FiringLength_Charged) ?
+	float locFiringDelay = (bQueuedAttack && bModeChargedAttack_Queued) || (!bQueuedAttack && bModeChargedAttack) ?
 		 FiringLength_Charged : FiringLength_Normal;
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackQueueHandle, this, &UGGReconRifleComponent::HandleQueuedAttack, locFiringDelay);
@@ -175,6 +182,7 @@ void UGGReconRifleComponent::HandleQueuedAttack()
 	else
 	{
 		bWeaponIsFiring = false;
+		FinalizeAttack();
 	}
 }
 
@@ -194,16 +202,18 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		// collision handling
 		if (hitResult.bBlockingHit)
 		{
-			// handle damage
-			FRangedHitNotify notifier;
-			notifier.Target = hitResult.Actor.Get();
-			notifier.DamageDealt = 100;
-			notifier.HitPosition = projectile.SpriteBody->GetComponentLocation();
-			notifier.DamageCategory = EGGDamageType::Standard;
-			LocalHitTarget(notifier);
+			if (bIsLocalInstruction)
+			{// handle damage only if local
+				FRangedHitNotify notifier;
+				notifier.Target = hitResult.Actor.Get();
+				notifier.DamageDealt = 100;
+				notifier.HitPosition = projectile.SpriteBody->GetComponentLocation();
+				notifier.DamageCategory = EGGDamageType::Standard;
+				LocalHitTarget(notifier);
+			}
 			// handle impact effects
 			
-			// cleanup
+			// cleanup for everyone
 			projectile.CurrentCollisionCount++;
 			if (projectile.CurrentCollisionCount > projectile.ProjectileData->Penetration)
 			{
@@ -213,6 +223,10 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 				projectile.SpriteBody->SetSprite(nullptr);
 				// no longer needs update
 				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
+				if (SpritePool.IsValid())
+				{
+					SpritePool.Get()->CheckinInstance(projectile.SpriteBody);
+				}
 			}
 		}
 		// set new velocity
@@ -262,6 +276,11 @@ bool UGGReconRifleComponent::GetOwnerGroundState() const
 }
 
 const float SMALL_SPEED = 25.f;
+bool UGGReconRifleComponent::IsOwnerMoving() const
+{
+	return FMath::Abs(GetOwner()->GetVelocity().Y) > SMALL_SPEED;
+}
+
 bool UGGReconRifleComponent::CanQueueShots()
 {
 	if (GetOwner() == nullptr)
@@ -274,7 +293,7 @@ bool UGGReconRifleComponent::CanQueueShots()
 		// don't care if mid-air
 		return true;
 	}
-	bool moving = FMath::Abs(GetOwner()->GetVelocity().Y) > SMALL_SPEED;
+	bool moving = IsOwnerMoving();
 	if (!moving)
 	{
 		return true;
@@ -295,21 +314,22 @@ FVector UGGReconRifleComponent::GetAimOffset(uint8 InAimLevel) const
 {
 	if (InAimLevel == 0)
 	{
-		return AimOffset_Down;
+		return AimOffset_Down + FVector::RightVector * LaunchOffset_Random * FMath::RoundToFloat(FMath::FRandRange(-1.f, 1.f));
 	}
 	if (InAimLevel == 1)
 	{
 		AGGCharacter* loc_Char = GetTypedOwner();
 		if (loc_Char)
 		{
-			return loc_Char->GetPlanarForwardVector().Y * AimOffset_Neutral;
+			return loc_Char->GetPlanarForwardVector().Y * AimOffset_Neutral 
+				+ FVector::UpVector * LaunchOffset_Random * FMath::RoundToFloat(FMath::FRandRange(-1.f, 1.f));
 		}
 		else
 		{
 			UE_LOG(GGWarning, Warning, TEXT("Can't find owning character..."));
 		}
 	}
-	return AimOffset_Up;
+	return AimOffset_Up + FVector::RightVector * LaunchOffset_Random * FMath::RoundToFloat(FMath::FRandRange(-1.f, 1.f));
 }
 
 FVector UGGReconRifleComponent::GetAimDirection(uint8 InAimLevel) const
@@ -351,11 +371,18 @@ UGGProjectileData* UGGReconRifleComponent::GetProjectileDataToUse() const
 	return locCharged ? ProjectileData_Charged : ProjectileData_Normal;
 }
 
-UGGTriggerAnimData* UGGReconRifleComponent::GetTriggerAnimDataToUse() const
+UGGTriggerAnimData* UGGReconRifleComponent::GetTriggerAnimDataToUse(uint8 InAimLevel) const
 {
 	bool locCharged = bQueuedAttack ? bModeChargedAttack_Queued : bModeChargedAttack;
-
-	return locCharged ? TriggerAnimData_Charged : TriggerAnimData_Normal;
+	if (InAimLevel == 0)
+	{
+		return locCharged ? TriggerAnimData_Charged_Down : TriggerAnimData_Normal_Down;
+	}
+	if (InAimLevel == 1)
+	{
+		return locCharged ? TriggerAnimData_Charged_Neutral: TriggerAnimData_Normal_Neutral;
+	}
+	return locCharged ? TriggerAnimData_Charged_Up : TriggerAnimData_Normal_Up;
 }
 
 AGGCharacter* UGGReconRifleComponent::GetTypedOwner() const
@@ -384,9 +411,9 @@ UPaperFlipbook * UGGReconRifleComponent::GetCurrentBodyAnimation() const
 
 UPaperFlipbook * UGGReconRifleComponent::GetEffectAnimation() const
 {
-	if (LastUsedProjectileData != nullptr)
+	if (LastUsedProjectileData)
 	{
-		return LastUsedProjectileData->ImpactEffect;
+		return LastUsedProjectileData->LaunchEffect;
 	}
 	return nullptr;
 }

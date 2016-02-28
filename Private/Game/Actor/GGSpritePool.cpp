@@ -9,14 +9,21 @@ AGGSpritePool::AGGSpritePool()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
+	for (int32 i = 0; i < 24; i++)
+	{
+		UGGPooledSpriteComponent* sprite = CreateDefaultSubobject<UGGPooledSpriteComponent>(FName("PooledSprites", i));
+		sprite->AttachTo(RootComponent);
+		sprite->SetAbsolute(true, true, true);
+	}
 }
 
 // Called when the game starts or when spawned
 void AGGSpritePool::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	GetComponents(AvailableInstances);
 }
 
 UGGPooledSpriteComponent* AGGSpritePool::CheckoutInstance()

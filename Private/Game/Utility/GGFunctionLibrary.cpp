@@ -18,5 +18,6 @@ void  UGGFunctionLibrary::BlendFlipbookToComponent(UPaperFlipbookComponent* InFl
 		// conserve playback position
 		InFlipbookComponent->SetFlipbook(ToFlipbook);
 		InFlipbookComponent->SetNewTime(currentPlaybackPositionNormalized * ToFlipbook->GetTotalDuration());
+		InFlipbookComponent->Play();
 	}
 }

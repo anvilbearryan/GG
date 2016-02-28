@@ -33,6 +33,7 @@ void AGGReconCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
+	RifleComponent = FindComponentByClass<UGGReconRifleComponent>();
 	TInlineComponentArray<UGGLocomotionAnimComponent*> LocoComponents;
 	GetComponents(LocoComponents);
 	for (int32 i = 0; i < LocoComponents.Num(); i++)
@@ -48,6 +49,7 @@ void AGGReconCharacter::PostInitializeComponents()
 		if (i == 2)
 		{
 			LocomotionAnimComponent_Down = LocoComponents[i];
+			UE_LOG(GGMessage, Log, TEXT("Found all locos"));
 		}
 	}
 
@@ -82,14 +84,23 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 		case EGGActionCategory::Locomotion:
 		{
 			UGGLocomotionAnimComponent* loc_LocomotionAnimComponent = GetActiveLocAnimComponent();
-			if (loc_LocomotionAnimComponent != LastActiveLocoAnimComponent)
+			if (loc_LocomotionAnimComponent) 
 			{
-				UGGFunctionLibrary::BlendFlipbookToComponent(BodyFlipbookComponent, loc_LocomotionAnimComponent->GetCurrentAnimation());
-				LastActiveLocoAnimComponent = loc_LocomotionAnimComponent;
+				if (loc_LocomotionAnimComponent != LastActiveLocoAnimComponent)
+				{
+					UGGFunctionLibrary::BlendFlipbookToComponent(BodyFlipbookComponent, loc_LocomotionAnimComponent->GetCurrentAnimation());
+					LastActiveLocoAnimComponent = loc_LocomotionAnimComponent;
+
+					UE_LOG(GGWarning, Warning, TEXT("Change of anim state"));
+				}
+				else
+				{
+					BodyFlipbookComponent->SetFlipbook(loc_LocomotionAnimComponent->GetCurrentAnimation());					
+				}
 			}
 			else
 			{
-				BodyFlipbookComponent->SetFlipbook(loc_LocomotionAnimComponent->GetCurrentAnimation());
+				UE_LOG(GGWarning, Warning, TEXT("No active anim component"));
 			}
 		}
 		break;
@@ -113,6 +124,10 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 		}
 		break;
 		}
+	}
+	else
+	{
+		UE_LOG(GGWarning, Warning, TEXT("No body flipbook component"));
 	}
 }
 

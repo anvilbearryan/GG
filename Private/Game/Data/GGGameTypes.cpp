@@ -12,4 +12,4 @@ FVector2D(1.f,0.f), FVector2D(0.f,0.f), FVector2D(-1.f, 0.f),
 //	7	8	9
 FVector2D(1.f,-1.f), FVector2D(0.f,-1.f), FVector2D(-1.f, -1.f)
 };
-const float FGGDamageInformation::HitMargin = 25.f;
+const float FGGDamageInformation::HitMargin = 6.25f;
