@@ -55,7 +55,7 @@ public:
     /** The desired travel direction set using AI logic input */
 	UPROPERTY(Category ="GGAI|Input", BlueprintReadWrite, Transient)
     FVector TravelDirection;
-
+	FVector LocationCache;
     UGGAIMovementComponent* MovementComponent;
     
     FGGBasePlatform BasePlatform;

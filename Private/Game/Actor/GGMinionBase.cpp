@@ -80,7 +80,7 @@ void AGGMinionBase::Tick( float DeltaTime )
     }
     
     TravelDirection = FVector::ZeroVector;
-    
+
     if (bIsBehaviourTickEnabled && Target && Role == ROLE_Authority)
     {
         switch(ActionState)
@@ -96,6 +96,11 @@ void AGGMinionBase::Tick( float DeltaTime )
                 break;
         }
     }
+	// Update component velocity for clients since their movement component does not tick
+	if (Role < ROLE_Authority)
+	{		
+		RootComponent->ComponentVelocity = ReplicatedMovement.LinearVelocity;
+	}
 }
 
 void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActorComponent* InMovementComponent)
