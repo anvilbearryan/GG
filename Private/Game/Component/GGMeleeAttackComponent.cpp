@@ -2,8 +2,8 @@
 
 #include "GG.h"
 #include "Game/Component/GGMeleeAttackComponent.h"
-#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Net/UnrealNetwork.h"
 
 UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 {
@@ -13,155 +13,113 @@ UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 	bIsLocalInstruction = false;
 }
 
-void UGGMeleeAttackComponent::BeginPlay()
+void UGGMeleeAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	SetComponentTickEnabled(false);
-	//	TOD: may not be true
-	bIsReadyToBeUsed = true;
-	switch (HitboxShape)
-	{
-	case EGGShape::Line:
-		// Line doesn't really make sense in our use case
-		break;
-	case EGGShape::Box:
-		Hitbox = FCollisionShape::MakeBox(HitboxHalfExtent);
-		break;
-	case EGGShape::Sphere:
-		Hitbox = FCollisionShape::MakeSphere(HitboxHalfExtent.GetAbsMax());
-		break;
-	case EGGShape::Capsule:
-		Hitbox = FCollisionShape::MakeCapsule(HitboxHalfExtent.X, HitboxHalfExtent.Z);
-		break;
-	}
-
-	HitboxOffsetMultiplier.X = 1.f;
-	HitboxOffsetMultiplier.Z = 1.f;
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UGGMeleeAttackComponent, bAttackToggle, COND_SkipOwner);
 }
 
-void UGGMeleeAttackComponent::LocalInitiateAttack(uint8 Index)
-{	
-	if (!bIsReadyToBeUsed)
-	{
-		return;
-	}
-	
-	bIsLocalInstruction = true;	
-	AGGCharacter* character = Cast<AGGCharacter>(GetOwner());
-	
-	if (character)
-	{
-		HitboxOffsetMultiplier.Y = character->GetPlanarForwardVector().Y;
-	}
-	else
-	{
-		HitboxOffsetMultiplier.Y = 1.f;
-	}
-
-	if (GetOwnerRole() == ROLE_AutonomousProxy)
+////********************************
+// Landing attacks
+void UGGMeleeAttackComponent::LocalHitTarget(const FMeleeHitNotify& InHitNotify)
+{
+	if (InHitNotify.HasValidData())
 	{		
-		InitiateAttack(Index);
+		HitTarget(InHitNotify);
+		if (GetOwnerRole() == ROLE_AutonomousProxy)
+		{
+			//	If we are not server, also needs server to update to display effects 
+			ServerHitTarget(InHitNotify);
+		}		
 	}
-	ServerInitiateAttack(Index);
 }
 
-bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate(uint8 Index)
+bool UGGMeleeAttackComponent::ServerHitTarget_Validate(FMeleeHitNotify OwnerHitNotify)
 {
 	return true;
 }
 
-void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation(uint8 Index)
+void UGGMeleeAttackComponent::ServerHitTarget_Implementation(FMeleeHitNotify OwnerHitNotify)
 {
-	InitiateAttack(Index);
-	MulticastInitiateAttack(Index);
+	// TODO Possibily some basic verification before caling HitTarget
+	HitTarget(OwnerHitNotify);
 }
 
-void UGGMeleeAttackComponent::MulticastInitiateAttack_Implementation(uint8 Index)
+void UGGMeleeAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 {
-	if (GetOwnerRole() == ROLE_SimulatedProxy)
-	{
-		InitiateAttack(Index);
-	}	
+	MostRecentHitNotify = InHitNotify;
 }
 
-void UGGMeleeAttackComponent::LocalHitTarget(AActor* target, uint8 Index)
+//********************************
+// Launching attacks
+
+void UGGMeleeAttackComponent::OnRep_AttackToggle()
 {
-	HitTarget(target);
-	if (target && GetOwnerRole() != ROLE_Authority)
+	PushAttackRequest();
+}
+
+void UGGMeleeAttackComponent::LocalInitiateAttack(uint8 Identifier)
+{	
+	bIsLocalInstruction = true;
+	ServerInitiateAttack(Identifier);
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
-		//	If we are not server, also needs server to update to display effects 
-		ServerHitTarget(target, Index);
+		// if we are not authority, repeat what the server does locally
+		AttackIdentifier = Identifier; // needed?
+		PushAttackRequest();
 	}
 }
 
-bool UGGMeleeAttackComponent::ServerHitTarget_Validate(AActor * target, uint8 Index)
+bool UGGMeleeAttackComponent::ServerInitiateAttack_Validate(uint8 Identifier)
 {
 	return true;
 }
 
-void UGGMeleeAttackComponent::ServerHitTarget_Implementation(AActor * target, uint8 Index)
+void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation(uint8 Identifier)
 {
-	HitTarget(target, Index);
+	AttackIdentifier = Identifier;
+	PushAttackRequest();
 }
 
-void UGGMeleeAttackComponent::InitiateAttack(uint8 Index)
+//********************************
+// Implementation details
+void UGGMeleeAttackComponent::InitiateAttack()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("InitiateAttack"));
-	TimeLapsed = 0.f;
-
-	// Not really checked outside local player, but doesn't hurt to set it	
-	bIsReadyToBeUsed = false;
-
-	AffectedEntities.Reset(MaxNumTargetsPerHit);
-
 	SetComponentTickEnabled(true);
 	OnInitiateAttack.Broadcast();
 }
 
-void UGGMeleeAttackComponent::FinalizeAttack(uint8 Index)
+void UGGMeleeAttackComponent::FinalizeAttack()
 {
-	bIsReadyToBeUsed = true;	
+	bIsLocalInstruction = false;
+	SetComponentTickEnabled(false);
 	OnFinalizeAttack.Broadcast();
 }
 
-void UGGMeleeAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
+//********************************
+// Utilities
+void UGGMeleeAttackComponent::SetControllerIgnoreMoveInput()
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	check(TimeLapsed >= 0.f);
-	
-	// increment timestamp
-	TimeLapsed += DeltaTime;
-
-	if (TimeLapsed < StartUp)
+	AGGCharacter* Character = static_cast<AGGCharacter*>(GetOwner());
+	if (Character && Character->IsLocallyControlled())
 	{
-		// Startup phase
-	}
-	else if (TimeLapsed < StartUp + Active)
-	{
-		// Active phase., look for targets in local version of this component
-		if (bIsLocalInstruction)
+		APlayerController* PlayerController = static_cast<APlayerController*>(Character->GetController());
+		if (PlayerController)
 		{
-			// Check for hit target
-			int32 Length = AffectedEntities.Num();
-			if (UGGFunctionLibrary::WorldOverlapMultiActorByChannel(
-				GetWorld(), GetOwner()->GetActorLocation() + HitboxCentre * HitboxOffsetMultiplier, 
-				HitChannel, Hitbox, AffectedEntities))
-			{
-				int32 NewLength = AffectedEntities.Num();
-				for (int32 i = Length; i < NewLength; i++)
-				{
-					LocalHitTarget(AffectedEntities[i]);
-				}			
-			}
+			PlayerController->SetIgnoreMoveInput(true);
 		}
 	}
-	else
-	{
-		SetComponentTickEnabled(false);
-		GetWorld()->GetTimerManager().SetTimer(
-			StateTimerHandle, this, &UGGMeleeAttackComponent::FinalizeAttack, Cooldown);
-	}		
 }
 
-void UGGMeleeAttackComponent::HitTarget(AActor* target, uint8 Index)
+void UGGMeleeAttackComponent::SetControllerReceiveMoveInput()
 {
+	AGGCharacter* Character = static_cast<AGGCharacter*>(GetOwner());
+	if (Character && Character->IsLocallyControlled())
+	{
+		APlayerController* PlayerController = static_cast<APlayerController*>(Character->GetController());
+		if (PlayerController)
+		{
+			PlayerController->SetIgnoreMoveInput(false);
+		}
+	}
 }

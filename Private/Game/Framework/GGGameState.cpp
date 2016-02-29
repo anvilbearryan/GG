@@ -2,6 +2,7 @@
 
 #include "GG.h"
 #include "Game/Framework/GGGameState.h"
+#include "Game/Actor/GGSpritePool.h"
 
 AGGGameState::AGGGameState(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {	
@@ -10,9 +11,31 @@ AGGGameState::AGGGameState(const FObjectInitializer& ObjectInitializer) : Super(
 
 void AGGGameState::BeginPlay()
 {
-	Super::BeginPlay();
-
+	Super::BeginPlay();	
+	
 	// search actor list for manager objects
+	for (TActorIterator<AGGSpritePool> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+	{
+		LevelSpritePool = *ActorItr;
+		break;
+	}
+}
+
+AGGSpritePool* AGGGameState::GetSpritePool()
+{
+	if (LevelSpritePool.IsValid())
+	{
+		return LevelSpritePool.Get();
+	}
+	else 
+	{
+		for (TActorIterator<AGGSpritePool> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+		{
+			LevelSpritePool = *ActorItr;
+			return LevelSpritePool.Get();
+		}		
+	}
+	return nullptr;
 }
 
 TArray<AGGCharacter*>& AGGGameState::GetCharacterList()

@@ -7,8 +7,7 @@
 #include "Game/Component/GGAnimatorComponent.h"
 #include "PaperFlipbookComponent.h"
 
-FName AGGCharacter::FlipbookComponentName(TEXT("FlipbookComponent"));
-FName AGGCharacter::AnimatorComponentName(TEXT("AnimatorComponent"));
+FName AGGCharacter::BodyFlipbookComponentName(TEXT("BodyFlipbookComponent"));
 
 // Sets default values
 AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
@@ -20,12 +19,11 @@ AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
 	Right = FVector::RightVector;
 	Left = Right * -1.f;
     
-    FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(AGGCharacter::FlipbookComponentName);
+    BodyFlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(AGGCharacter::BodyFlipbookComponentName);
     if (RootComponent)
     {
-        FlipbookComponent->AttachTo(RootComponent);
+        BodyFlipbookComponent->AttachTo(RootComponent);
     }
-
 }
 
 void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -38,32 +36,48 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 // Called when the game starts or when spawned
 void AGGCharacter::PostInitializeComponents()
 {
-	Super::PostInitializeComponents();
-    TArray<UGGAnimatorComponent*> anim;
-    GetComponents(anim);
-	if (anim.Num() > 0 && FlipbookComponent)
-    {
-        AnimatorComponent = anim[0];
-        AnimatorComponent->PlaybackComponent = FlipbookComponent;
-        AnimatorComponent->TickCurrentBlendSpace();
-        FlipbookComponent->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);
-    }
+	Super::PostInitializeComponents();   
 }
 
 // Called every frame
 void AGGCharacter::Tick( float DeltaTime )
 {
     Super::Tick(DeltaTime);
-    if (AnimatorComponent)
+    /*
+	if (AnimatorComponent)
     {
         AnimatorComponent->ManualTick(DeltaTime);
     }
+	*/
+	if (BodyFlipbookComponent)
+	{
+		// turning sync
+		float YVel = GetVelocity().Y;
+		if (BodyFlipbookComponent->RelativeScale3D.X * YVel < 0.f)
+		{
+			BodyFlipbookComponent->SetRelativeScale3D(FVector(FMath::Sign(YVel), 1.f, 1.f));
+		}
+	}
 }
 
 // Called to bind functionality to input
 void AGGCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
+	// bind movement and jump inputs
+	check(InputComponent);
+	InputComponent->BindAxis("MoveRight", this, &AGGCharacter::MoveRight);
+
+	InputComponent->BindAction("Jump", IE_Pressed, this, &AGGCharacter::Jump);
+	InputComponent->BindAction("Jump", IE_Released, this, &AGGCharacter::StopJumping);
+
+	InputComponent->BindAction("Dash", IE_Pressed, this, &AGGCharacter::Dash);
+	InputComponent->BindAction("Dash", IE_Released, this, &AGGCharacter::StopDashing);
+}
+
+void AGGCharacter::MoveRight(float AxisValue)
+{
+	AddMovementInput(Right, AxisValue);
 }
 
 void AGGCharacter::Jump()
@@ -303,16 +317,7 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
 {
     //  We changes axis values from input based on wall jump condition
 	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
-	{
-		// Cheaper to compare input axis values than setting scale every frame 
-        if (LastActualMovementInput.Y * ScaleValue < 0.f)
-        {
-            // turn detected (product strictly < 0 implies opposite direction)
-            if (FlipbookComponent)
-            {
-                FlipbookComponent->SetRelativeScale3D(FVector(FMath::Sign(ScaleValue), 1.f, 1.f));
-            }
-        }
+	{		
 		// cache non-zero input for possible retrievle
 		LastActualMovementInput = WorldDirection * ScaleValue;
         if (CanWallJump())
@@ -341,29 +346,11 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
     Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
 }
 
-
-void AGGCharacter::AddAimInput(float ScaleValue)
-{
-	const float AIM_DEADZONE = 0.1f;
-	if (ScaleValue > AIM_DEADZONE)
-	{
-		AimLevel = 1.f;
-	}
-	else if (ScaleValue < -AIM_DEADZONE)
-	{
-		AimLevel = -1.f;
-	}
-	else
-	{
-		AimLevel = 0.f;
-	}	
-}
-
 FVector AGGCharacter::GetPlanarForwardVector() const
 {
-    if (FlipbookComponent)
+    if (BodyFlipbookComponent)
     {
-        return FlipbookComponent->RelativeScale3D.X < 0.f ? Left : Right;
+        return BodyFlipbookComponent->RelativeScale3D.X < 0.f ? Left : Right;
     }
     return Right;
 }
@@ -379,12 +366,12 @@ void AGGCharacter::ServerReceiveDamage_Implementation(int32 DamageData)
     {
         ReceiveDamage(DamageData);
     }
-    NetMulticastReceiveDamage(DamageData);
+    MulticastReceiveDamage(DamageData);
 }
 
-void AGGCharacter::NetMulticastReceiveDamage_Implementation(int32 DamageData)
+void AGGCharacter::MulticastReceiveDamage_Implementation(int32 DamageData)
 {
-    if (!IsLocallyControlled())
+    if (Role == ROLE_SimulatedProxy)
     {
         ReceiveDamage(DamageData);
     }
@@ -392,6 +379,7 @@ void AGGCharacter::NetMulticastReceiveDamage_Implementation(int32 DamageData)
 
 void AGGCharacter::ReceiveDamage(int32 DamageData)
 {    
+	// chance here to do damage reduction and pasdive calculation
     if (IsLocallyControlled())
     {
         ServerReceiveDamage(DamageData);

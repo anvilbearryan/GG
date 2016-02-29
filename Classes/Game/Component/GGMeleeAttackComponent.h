@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-//#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Data/GGGameTypes.h"
 #include "GGMeleeAttackComponent.generated.h"
 
@@ -21,98 +20,117 @@
  * LocalInitiateAttack is considered as local player. In this project, it would be the owning player character
  * that has input enabled to reach this method.
  */
+
+USTRUCT()
+struct FMeleeHitNotify
+{
+	GENERATED_BODY();
+	/** The target receiving the damage*/
+	UPROPERTY()
+		AActor* Target;	
+	UPROPERTY()
+		int16 DamageDealt;
+	/** So that simulated clients can receives all damage info */
+	UPROPERTY()
+		TEnumAsByte<EGGDamageType::Type> DamageCategory;
+
+	FORCEINLINE bool HasValidData() const
+	{
+		return Target != nullptr && DamageDealt > 0;
+	}
+};
+
 class AActor;
-UCLASS(Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
+UCLASS(Abstract, Blueprintable, ClassGroup = "GG|Attack", meta=(BlueprintSpawnableComponent))
 class GG_API UGGMeleeAttackComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-		DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStatusUpdateEventSignature);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStatusUpdateEventSignature);
+
+public:
+	//********************************
+	//	Specification
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		TEnumAsByte<ECollisionChannel> DamageChannel;
+protected:
+	//********************************
+	//	States	
+	/** Cache containing what we last hit. Note: Only valid on owner and server */
+	UPROPERTY(Transient)
+		FMeleeHitNotify MostRecentHitNotify;
+	
+	/** Current attack state, attack requests queued until toggled, this way we do not need to keep passing around the attack identifier */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_AttackToggle)
+		uint8 bAttackToggle : 1;	
+	/** Cache indicates whether this component has hit test responsibility */
+	uint8 bIsLocalInstruction : 1;
+	/** Main variable of Communication between server and owning client.
+	*	Meaningless by itself, subclasses interprets this value to determine which attack is used by the local player
+	*/
+	uint8 AttackIdentifier;
+	TArray<AActor*, TInlineAllocator<8>> AffectedEntities;
 
 public:
 	UGGMeleeAttackComponent();
 
-	virtual void BeginPlay() override;
-	//============
-	// Netwokring interface
-	//============
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	/** Local entry point for starting an attack, calls ServerMethod for replication */
-	UFUNCTION(BlueprintCallable, Category ="GGAttack|Input")
-		void LocalInitiateAttack(uint8 Index);
-
-	/**	Server receives attack instruction from client, calls MulticastInitiateAttack for remote replication */
-	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
-		void ServerInitiateAttack(uint8 Index);
-	bool ServerInitiateAttack_Validate(uint8 Index);
-	void ServerInitiateAttack_Implementation(uint8 Index);
-
-	/**
-	* Replicates instruction to remote simulated proxies, unfortunately there is no "except owning client type"
-	* RPC so its done in the body manually
-	*/
-	UFUNCTION(NetMulticast, Reliable, Category = "GGAttack|Replication")
-		void MulticastInitiateAttack(uint8 Index);
-	void MulticastInitiateAttack_Implementation(uint8 Index);
+protected:
+	//********************************
+	// Landing attacks
 	/**
 	* Hit detection is done in owning client for co-op smooth experience and reports to the server to handle
 	* neccesary change in target state.
 	*/
 	UFUNCTION()
-		void LocalHitTarget(AActor* target, uint8 Index);
+		void LocalHitTarget(const FMeleeHitNotify &InHitNotify);
 	//	TODO: Change parameter type to enemy base class
 	UFUNCTION(Server, Reliable, WithValidation, Category = "GGAttack|Replication")
-		void ServerHitTarget(AActor* target, uint8 Index);
-	bool ServerHitTarget_Validate(AActor* target, uint8 Index);
-	void ServerHitTarget_Implementation(AActor* target, uint8 Index);
+		void ServerHitTarget(FMeleeHitNotify OwnerHitNotify);
+	bool ServerHitTarget_Validate(FMeleeHitNotify OwnerHitNotify);
+	void ServerHitTarget_Implementation(FMeleeHitNotify OwnerHitNotify);
 
-	//	Specification
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		FVector HitboxCentre;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		TEnumAsByte<EGGShape::Type> HitboxShape;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		FVector HitboxHalfExtent;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		TEnumAsByte<ECollisionChannel> HitChannel;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		float StartUp;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		float Active;
-	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
-		float Cooldown;
+	UFUNCTION()
+		virtual void HitTarget(const FMeleeHitNotify& InHitNotify);
 
-	//	Not exposed to blueprint
-	FCollisionShape Hitbox;
+	//********************************
+	// Launching attacks
+	UFUNCTION()
+		void OnRep_AttackToggle();
+	
+	/** Local entry point for starting an attack, calls ServerMethod for replication */
+	UFUNCTION()
+		void LocalInitiateAttack(uint8 Identifier);
+	/**	Server handles attack instruction from client, updates replicated (Skip owner) fields if necessary for replication */
+	UFUNCTION(Server, Unreliable, WithValidation, Category = "GGAttack|Replication")
+		void ServerInitiateAttack(uint8 Identifier);
+	bool ServerInitiateAttack_Validate(uint8 Identifier);
+	void ServerInitiateAttack_Implementation(uint8 Identifier);
 
-	//	States
-	uint32 bIsReadyToBeUsed : 1;
-	uint32 bIsLocalInstruction : 1;
-	float TimeLapsed;
-	FVector HitboxOffsetMultiplier;
-	FTimerHandle StateTimerHandle;
-
-	const int32 MaxNumTargetsPerHit = 8;
-	TArray<AActor*, TInlineAllocator<8>> AffectedEntities;
+	virtual void PushAttackRequest() PURE_VIRTUAL(UGGMeleeAttackComponent::PushAttackRequest, );
 
 protected:
-	/** Actual method that processes an attack instruction, should not be called directly from owning actor */
+	/** Actual method that begins an attack move */
 	UFUNCTION()
-		virtual void InitiateAttack(uint8 Index);
+		virtual void InitiateAttack();
+	/** Final exit point of attack move */
 	UFUNCTION()
-		virtual void FinalizeAttack(uint8 Index);
+		virtual void FinalizeAttack();
 
 public:
-	//	Sub-classes / Owning actors should bind to this delegate for functionality
+	//	for actual functionality , BPs should bind to this delegate while C++ subclasses overrides the base methods
 	UPROPERTY(BlueprintAssignable, Category ="GGAttack")
 		FStatusUpdateEventSignature OnInitiateAttack;
 	UPROPERTY(BlueprintAssignable, Category ="GGAttack")
 		FStatusUpdateEventSignature OnFinalizeAttack;
-	/** Where all updates are handled, consider moving the StartUp -> Active part via timer */
-	virtual void TickComponent(
-		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
-	UFUNCTION(BlueprintCallable, Category ="GGAttack")
-		virtual void HitTarget(AActor* target, uint8 Index);
+	//********************************
+	// General utilities
+	/** UFUNCTION, so that timers can be set */
+	UFUNCTION()
+		void SetControllerIgnoreMoveInput();
+	UFUNCTION()
+		void SetControllerReceiveMoveInput();
 };

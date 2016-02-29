@@ -11,7 +11,7 @@ UGGAIMovementComponent::UGGAIMovementComponent()
 
 bool UGGAIMovementComponent::HasValidData()
 {
-    return MinionOwner && UpdatedComponent;
+    return MinionOwner && UpdatedComponent && GetOwnerRole() == ROLE_Authority;
 }
 
 void UGGAIMovementComponent::SyncBaseMovement()

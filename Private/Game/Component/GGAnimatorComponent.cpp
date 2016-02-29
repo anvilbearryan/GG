@@ -116,7 +116,6 @@ void UGGAnimatorComponent::PerformAction(TEnumAsByte<EGGActionCategory::Type> Ne
 
 void UGGAnimatorComponent::AlterActionMode(TEnumAsByte<EGGActionMode::Type> NewActionMode)
 {
-    // Cannot just cast to int32 for action mode
     int32 mode = NewActionMode;
     //if (SecondaryStateIndex_Current != mode)
     //{

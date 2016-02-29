@@ -2,17 +2,27 @@
 
 #include "GG.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
-
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UGGDamageReceiveComponent::UGGDamageReceiveComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	bWantsBeginPlay = true;
 	PrimaryComponentTick.bCanEverTick = true;
+	bReplicates = true;
+}
 
-	// ...
+void UGGDamageReceiveComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UGGDamageReceiveComponent, Hp_Current);
+	DOREPLIFETIME(UGGDamageReceiveComponent, Hp_Max);
+}
+
+int32 UGGDamageReceiveComponent::GetCurrentHp() const
+{
+	return Hp_Current;
 }
 
 void UGGDamageReceiveComponent::InitializeHpState()
@@ -20,19 +30,7 @@ void UGGDamageReceiveComponent::InitializeHpState()
     Hp_Current = Hp_Max;
     Hp_CurrentEstimate = Hp_Current;
     Hp_Recoverable = Hp_Max;
-}
-
-// Called when the game starts
-void UGGDamageReceiveComponent::BeginPlay()
-{
-	Super::BeginPlay();
-    check (Hp_Current <= Hp_Max);
-    if (Hp_Current == Hp_Max)
-    {
-        SetComponentTickEnabled(false);
-    }
-	// ...
-	
+	SetActive(false);
 }
 
 // Called every frame
@@ -47,7 +45,7 @@ void UGGDamageReceiveComponent::TickComponent( float DeltaTime, ELevelTick TickT
 	if (Hp_CurrentEstimate >= Hp_Recoverable)
     {
         Hp_Current = Hp_Recoverable;
-        SetComponentTickEnabled(false);
+        SetActive(false);
         if (Hp_Current == Hp_Max)
         {
             OnMaxedHp.Broadcast();
@@ -69,7 +67,7 @@ void UGGDamageReceiveComponent::HandleDamageData(int32 DamageData)
 void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageInformation& information)
 {
     //  Set as decimal part of estimated hp
-    Hp_CurrentEstimate -= Hp_Current;
+	Hp_CurrentEstimate -= FMath::FloorToFloat(Hp_CurrentEstimate);;
     
     Hp_Recoverable = Hp_Current - information.IndirectValue;
     Hp_Current = Hp_Recoverable - information.DirectValue;
@@ -88,6 +86,6 @@ void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageInformation& inf
     if (Hp_Current < Hp_Recoverable)
     {
         //  enable regen through tick
-        SetComponentTickEnabled(true);
+		SetActive(true);
     }
 }
