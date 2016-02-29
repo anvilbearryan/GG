@@ -25,9 +25,9 @@ bool UGGCharacterMovementComponent::IsTouchingWall(const FVector &InDirection, f
 	// Test with a box that is enclosed by the capsule.
 	const float CapsuleRadius = CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleRadius();
 	const float CapsuleHeight = CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-	const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleRadius, CapsuleRadius * 0.5f, CapsuleHeight * 0.5f));
+	const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleRadius, CapsuleRadius, CapsuleHeight));
 
-	FVector Start = CharacterOwner->GetCapsuleComponent()->GetComponentLocation() + InDirection * CapsuleRadius * 0.5f;
+	FVector Start = CharacterOwner->GetCapsuleComponent()->GetComponentLocation();// +InDirection * CapsuleRadius * 0.5f;
 	FVector End = Start + InDirection * Distance;
 	bool bBlockingHit = GetWorld()->SweepTestByChannel(Start, End, FQuat::Identity, CollisionChannel, BoxShape, QueryParams, ResponseParam);
 
@@ -114,13 +114,15 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
         FVector SavedFallAcceleration = FallAcceleration;
 		//	saving the wall jump enforced acceleration to avoid calculating it each substep
 		bool bWallJumpLateralMode = ggChar->bModeWallJump;
-		FVector WallJumpAcceleration;
+		FVector WallJumpAcceleration = FVector::ZeroVector;
 		if (ggChar->bPressedWallJumpLeft)
 		{
+			bWallJumpLateralMode = true;
 			WallJumpAcceleration.Y = -1.f;
 		}
 		else if (ggChar->bPressedWallJumpRight)
 		{
+			bWallJumpLateralMode = true;
 			WallJumpAcceleration.Y = 1.f;
 		}
 		else
@@ -166,8 +168,16 @@ void UGGCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iteration
 				{
 					bWallJumpLateralMode = false;
                     FallAcceleration = SavedFallAcceleration;
-					GEngine->AddOnScreenDebugMessage(1, 2.f, FColor::Red, TEXT("Lateral wall jump finished"));
+					UE_LOG(GGMessage, Log, TEXT("Wall jump finished"));
 				}
+				else
+				{
+					//UE_LOG(GGMessage, Log, TEXT("Wall jump ongoing"));
+				}
+			}
+			else if (ggChar->bModeWallJump)
+			{
+				GEngine->AddOnScreenDebugMessage(1, 2.f, FColor::Red, TEXT("Problem...."));
 			}
 
 			// Apply input

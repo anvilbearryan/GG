@@ -6,7 +6,8 @@
 #include "Game/Component/GGAIMovementComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "Game/Component/GGAnimatorComponent.h"
-#include "Game/Utility/GGFunctionLibrary.h"
+#include "Game/Component/GGDamageReceiveComponent.h"
+#include "Net/UnrealNetwork.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
 
@@ -22,52 +23,51 @@ AGGMinionBase::AGGMinionBase()
     }
 }
 
+void AGGMinionBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AGGMinionBase, DamageNotify);
+}
 // Called when the game starts or when spawned
 void AGGMinionBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
     /** Bind pawn sensing delegates */
-    TInlineComponentArray<UGGCharacterSensingComponent*> sensingComp;
-    GetComponents(sensingComp);
-    if (sensingComp.IsValidIndex(0))
-    {
-        Sensor = sensingComp[0];
+	Sensor = FindComponentByClass<UGGCharacterSensingComponent>();
+    if (Sensor)
+    {        
         Sensor->OnActivate.BindDynamic(this, &AGGMinionBase::OnSensorActivate);
         Sensor->OnAlert.BindDynamic(this, &AGGMinionBase::OnSensorAlert);
         Sensor->OnUnalert.BindDynamic(this, &AGGMinionBase::OnSensorUnalert);
         Sensor->OnDeactivate.BindDynamic(this, &AGGMinionBase::OnSensorDeactivate);
     }
+	MovementComponent = FindComponentByClass<UGGAIMovementComponent>();
+	if (MovementComponent)
+	{
+		MovementComponent->SetUpdatedComponent(MovementCapsule);
+		MovementComponent->MinionOwner = this;
+	}
+
+	FlipbookComponent = FindComponentByClass<UPaperFlipbookComponent>();
     
-    TInlineComponentArray<UGGAIMovementComponent*> movementComp;
-    GetComponents(movementComp);
-    if (movementComp.IsValidIndex(0))
-    {
-        MovementComponent = movementComp[0];
-        if (MovementComponent)
-        {
-            MovementComponent->SetUpdatedComponent(MovementCapsule);
-            MovementComponent->MinionOwner = this;
-        }
-    }
+	AnimatorComponent = FindComponentByClass<UGGAnimatorComponent>();
     
-    TInlineComponentArray<UPaperFlipbookComponent*> flipbook;
-    GetComponents(flipbook);
-    if (flipbook.IsValidIndex(0))
+    if (AnimatorComponent  && FlipbookComponent)
     {
-        FlipbookComponent = flipbook[0];
-    }
-    
-    TInlineComponentArray<UGGAnimatorComponent*> anim;
-    GetComponents(anim);
-    if (anim.Num() > 0 && anim[0] && FlipbookComponent)
-    {
-        AnimatorComponent = anim[0];
         AnimatorComponent->PlaybackComponent = FlipbookComponent;
         AnimatorComponent->TickCurrentBlendSpace();
         FlipbookComponent->OnFinishedPlaying.AddDynamic(AnimatorComponent, &UGGAnimatorComponent::OnReachEndOfState);
     }
     
     bIsBehaviourTickEnabled = true;
+
+	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
+	if (HealthComponent)
+	{
+		HealthComponent->InitializeHpState();
+		HealthComponent->OnZeroedHp.AddDynamic(this, &AGGMinionBase::PlayDeathSequence);
+	}
 }
 
 // Called every frame
@@ -80,8 +80,8 @@ void AGGMinionBase::Tick( float DeltaTime )
     }
     
     TravelDirection = FVector::ZeroVector;
-    
-    if (bIsBehaviourTickEnabled && Target)
+
+    if (bIsBehaviourTickEnabled && Target && Role == ROLE_Authority)
     {
         switch(ActionState)
         {
@@ -96,6 +96,11 @@ void AGGMinionBase::Tick( float DeltaTime )
                 break;
         }
     }
+	// Update component velocity for clients since their movement component does not tick
+	if (Role < ROLE_Authority)
+	{		
+		RootComponent->ComponentVelocity = ReplicatedMovement.LinearVelocity;
+	}
 }
 
 void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActorComponent* InMovementComponent)
@@ -204,6 +209,30 @@ void AGGMinionBase::TickPrepareAttack(float DeltaSeconds)
 void AGGMinionBase::TickEvade(float DeltaSeconds)
 {
     
+}
+
+void AGGMinionBase::OnRep_DamageNotify()
+{
+	// the local causer do not rely on the OnRep to display the damage, hence the check for duplication
+	// suffice as the server does not fire OnReps
+	APlayerController* localPlayerController = GetWorld()->GetFirstPlayerController();
+	if (localPlayerController && DamageNotify.CauserPlayerState != localPlayerController->PlayerState)
+	{
+		ReceiveDamage(DamageNotify);
+	}
+}
+
+void AGGMinionBase::ReceiveDamage(FGGDamageInformation& DamageInfo)
+{
+	if (HealthComponent)
+	{
+		HealthComponent->ApplyDamageInformation(DamageInfo);
+	}
+}
+
+void AGGMinionBase::PlayDeathSequence()
+{
+	UE_LOG(GGWarning, Warning, TEXT("MinionBase empty implementation method: PlayDeathSequence called, meaningless"));
 }
 
 FVector AGGMinionBase::GGGetTargetLocation() const

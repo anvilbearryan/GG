@@ -1,52 +1,23 @@
 #include "GG.h"
 #include "Game/Utility/GGFunctionLibrary.h"
-
-bool UGGFunctionLibrary::WorldOverlapMultiActorByChannel(UWorld* World, const FVector & Pos, ECollisionChannel TraceChannel, const FCollisionShape & CollisionShape, TArray<AActor*>& OutOverlaps)
+#include "PaperFlipbookComponent.h"
+#include "PaperFlipbook.h"
+TArray<FOverlapResult> UGGFunctionLibrary::OverlapResults = TArray<FOverlapResult>();
+void  UGGFunctionLibrary::BlendFlipbookToComponent(UPaperFlipbookComponent* InFlipbookComponent, UPaperFlipbook* ToFlipbook)
 {
-	if (World == nullptr)
+	if (ToFlipbook && InFlipbookComponent->GetFlipbook() != ToFlipbook)
 	{
-		return false;
-	}
-
-	TArray<FOverlapResult> OutHits;
-	const FQuat IdentityQuat;
-
-#if WITH_EDITOR
-	switch (CollisionShape.ShapeType)
-	{
-	case ECollisionShape::Line:
-		DrawDebugLine(World, Pos - CollisionShape.GetExtent() * 0.5f, Pos + CollisionShape.GetExtent() * 0.5f,
-			FColor::Red, false, -1.f, 0, 12.5f);
-		break;
-	case ECollisionShape::Box:
-		DrawDebugBox(World, Pos, CollisionShape.GetExtent(), FColor::Red);
-		break;
-	case ECollisionShape::Sphere:
-		DrawDebugSphere(World, Pos, CollisionShape.GetSphereRadius(), 16, FColor::Red);
-		break;
-	case ECollisionShape::Capsule:
-		DrawDebugCapsule(World, Pos, CollisionShape.GetCapsuleHalfHeight(), CollisionShape.GetCapsuleRadius(), 
-			FQuat(), FColor::Red, false, -1.f, 0, 12.5f);
-		break;
-	}	
-#endif
-
-	if (World->OverlapMultiByChannel(OutHits, Pos, IdentityQuat, TraceChannel, CollisionShape))
-	{
-		bool bHasNewEntity = false;
-		for (FOverlapResult& result : OutHits)
+		// find current playbkpos
+		float currentFlipbookLengthInv = InFlipbookComponent->GetFlipbookLength();
+		if (currentFlipbookLengthInv > 0.f)
 		{
-			AActor* OverlapActor = result.GetActor();
-			if (OverlapActor && !OutOverlaps.Contains(OverlapActor))
-			{
-				bHasNewEntity = true;
-				OutOverlaps.Add(OverlapActor);
-			}
+			currentFlipbookLengthInv = 1 / currentFlipbookLengthInv;
 		}
-		return bHasNewEntity;
-	}
-	else
-	{
-		return false;
+		float currentPlaybackPositionNormalized =
+			InFlipbookComponent->GetPlaybackPosition() * currentFlipbookLengthInv;
+		// conserve playback position
+		InFlipbookComponent->SetFlipbook(ToFlipbook);
+		InFlipbookComponent->SetNewTime(currentPlaybackPositionNormalized * ToFlipbook->GetTotalDuration());
+		InFlipbookComponent->Play();
 	}
 }

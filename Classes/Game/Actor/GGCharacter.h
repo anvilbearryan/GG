@@ -3,10 +3,9 @@
 #pragma once
 
 #include "GameFramework/Character.h"
-//#include "PaperFlipbookComponent.h"
 #include "GGCharacter.generated.h"
 
-
+/** TODO: create interface for clients to set server data from game save */
 class UGGAnimatorComponent;
 class UPaperFlipbookComponent;
 
@@ -30,6 +29,9 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
+private:
+	void MoveRight(float AxisValue);
+
 	/**	=================================
 	* 
 	* Movement ability interface
@@ -50,11 +52,11 @@ public:
 	*/
 	//	Flags indicating wall jump direction
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-        uint32 bPressedWallJumpRight : 1;
+        uint8 bPressedWallJumpRight : 1;
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-        uint32 bPressedWallJumpLeft : 1;
+        uint8 bPressedWallJumpLeft : 1;
 	UPROPERTY(VisibleAnywhere, Category = GGCharacter)
-        uint32 bModeWallJump : 1;
+        uint8 bModeWallJump : 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
 		float WallJumpMaxHoldTimeVertical;
 	/**
@@ -101,9 +103,9 @@ public:
 	*/
 
 	/** Input flag */
-	uint32 bIsDashKeyDown : 1;
+	uint8 bIsDashKeyDown : 1;
 	/**	Replicated flag */
-	uint32 bPerformDashedAction : 1;
+	uint8 bPerformDashedAction : 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = GGCharacter)
 		float DashMaxDuration;
 	float TimeDashedFor;
@@ -142,7 +144,7 @@ private:	// Handy for directional wall check by CharacterMovementComponent etc
 	FVector Right;
 	FVector Left;
 protected:
-
+	
 	/**
 	* Local field, we save the last non-zero player input direction so that we can tell where the 
 	* Character wants to face.
@@ -150,8 +152,6 @@ protected:
 	FVector LastActualMovementInput;
 	//	Override to cache actual input
 	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.f, bool bForce= false) override;
-	float AimLevel;
-	virtual void AddAimInput(float ScaleValue = 0.f);
 
 public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category="GG|View")
@@ -173,15 +173,13 @@ public:
     
     //  Multicast function. called by server to let simulated proxies know this client has take damage
     UFUNCTION(unreliable, NetMulticast, Category="GG|GGDamage")
-        void NetMulticastReceiveDamage(int32 DamageData);
-    void NetMulticastReceiveDamage_Implementation(int32 DamageData);
+        void MulticastReceiveDamage(int32 DamageData);
+    void MulticastReceiveDamage_Implementation(int32 DamageData);
     
     virtual void ReceiveDamage(int32 DamageData);
     
-    static FName FlipbookComponentName;
+    static FName BodyFlipbookComponentName;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
-        UPaperFlipbookComponent* FlipbookComponent;
-    static FName AnimatorComponentName;
+        UPaperFlipbookComponent* BodyFlipbookComponent;
     
-    UGGAnimatorComponent* AnimatorComponent;
 };

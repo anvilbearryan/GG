@@ -4,170 +4,96 @@
 #include "Game/Component/GGRangedAttackComponent.h"
 #include "Game/Actor/GGCharacter.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
+#include "Net/UnrealNetwork.h"
 
 UGGRangedAttackComponent::UGGRangedAttackComponent() : Super()
 {
-	//	BeginPlay is needed to shut off component tick before we begin
-	bWantsBeginPlay = true;
 	PrimaryComponentTick.bCanEverTick = true;
 	bIsLocalInstruction = false;
+	ProcessedAttackQueue = 0;
+	SumAttackQueue = 0;
 }
 
-void UGGRangedAttackComponent::BeginPlay()
+void UGGRangedAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	SetComponentTickEnabled(false);
-	//	TOD: may not be true
-	bIsReadyToBeUsed = true;
-	
-	LaunchOffsetMultiplier.X = 1.f;
-	LaunchOffsetMultiplier.Z = 1.f;
-
-	ProjectileSpawnParam.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ProjectileSpawnParam.Owner = GetOwner();
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UGGRangedAttackComponent, SumAttackQueue, COND_SkipOwner);
 }
 
-void UGGRangedAttackComponent::LocalInitiateAttack()
-{	
-	if (!bIsReadyToBeUsed)
+//********************************
+// Landing attacks
+void UGGRangedAttackComponent::LocalHitTarget(const FRangedHitNotify& InHitNotify)
+{
+	HitTarget(InHitNotify);
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
-		return;
+		//	If we are not server, also needs server to update to display effects 
+		ServerHitTarget(InHitNotify);
 	}
-	
-	bIsLocalInstruction = true;	
-	AGGCharacter* character = Cast<AGGCharacter>(GetOwner());
-	
-	if (character)
+}
+
+bool UGGRangedAttackComponent::ServerHitTarget_Validate(FRangedHitNotify LocalsHitNotify)
+{
+	return true;
+}
+
+void UGGRangedAttackComponent::ServerHitTarget_Implementation(FRangedHitNotify LocalsHitNotify)
+{
+	// TODO Possibily some basic verification before caling HitTarget
+	HitTarget(LocalsHitNotify);
+}
+
+void UGGRangedAttackComponent::HitTarget(const FRangedHitNotify& InHitNotify)
+{
+	MostRecentHitNotify = InHitNotify;
+}
+
+//********************************
+// Launching attacks
+void UGGRangedAttackComponent::OnRep_AttackQueue(int32 OldValue)
+{
+	if (SumAttackQueue - OldValue < 5)
 	{
-		LaunchOffsetMultiplier.Y = character->GetPlanarForwardVector().Y;
+		PushAttackRequest();
 	}
 	else
 	{
-		LaunchOffsetMultiplier.Y = 1.f;
+		ProcessedAttackQueue = SumAttackQueue;
 	}
+}
+
+void UGGRangedAttackComponent::LocalInitiateAttack(uint8 Identifier)
+{	
+	bIsLocalInstruction = true;
+	ServerInitiateAttack(Identifier);
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
-	{		
-		InitiateAttack();
+	{
+		// if we are not authority, repeat what the server does locally
+		AttackIdentifier = Identifier; // needed?
+		PushAttackRequest();
 	}
-	ServerInitiateAttack();
 }
 
-bool UGGRangedAttackComponent::ServerInitiateAttack_Validate()
+bool UGGRangedAttackComponent::ServerInitiateAttack_Validate(uint8 Identifier)
 {
 	return true;
 }
 
-void UGGRangedAttackComponent::ServerInitiateAttack_Implementation()
+void UGGRangedAttackComponent::ServerInitiateAttack_Implementation(uint8 Identifier)
 {
-	InitiateAttack();
-	MulticastInitiateAttack();
-}
-
-void UGGRangedAttackComponent::MulticastInitiateAttack_Implementation()
-{
-	if (GetOwnerRole() == ROLE_SimulatedProxy)
-	{
-		InitiateAttack();
-	}	
-}
-
-void UGGRangedAttackComponent::LocalHitTarget(AActor* target)
-{
-	HitTarget(target);
-    // this is sufficient as ServerRPCs invoked on simulated proxies are dropped
-	if (target && GetOwnerRole() != ROLE_Authority)
-	{
-		//	If we are not server, also needs server to update to display effects 
-		ServerHitTarget(target);
-	}
-}
-
-bool UGGRangedAttackComponent::ServerHitTarget_Validate(AActor * target)
-{
-	return true;
-}
-
-void UGGRangedAttackComponent::ServerHitTarget_Implementation(AActor * target)
-{
-	HitTarget(target);
+	AttackIdentifier = Identifier;
+	PushAttackRequest();
 }
 
 void UGGRangedAttackComponent::InitiateAttack()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("InitiateAttack"));
-	TimeLapsed = 0.f;
-
-	// Not really checked outside local player, but doesn't hurt to set it	
-	bIsReadyToBeUsed = false;
-
 	SetComponentTickEnabled(true);
 	OnInitiateAttack.Broadcast();
 }
 
 void UGGRangedAttackComponent::FinalizeAttack()
 {
+	// unlike melee, don't set local instruction false since its used in damage dealing process
+	// tick also kept enabled as its used to update launched projectile
 	OnFinalizeAttack.Broadcast();
-}
-
-void UGGRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	check(TimeLapsed >= 0.f);
-	
-	// increment timestamp
-	TimeLapsed += DeltaTime;
-
-	if (TimeLapsed < StartUp)
-	{
-		// Startup phase
-	}
-	//	Time to launch
-	else
-	{
-        /*
-		//Code to spawn projectile				
-		FTransform transform = GetOwner()->GetTransform();
-		transform.AddToTranslation(LaunchOffset*LaunchOffsetMultiplier);
-		AActor* Projectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, transform, ProjectileSpawnParam);
-		//	Configure projectile
-		if (bIsLocalInstruction)
-		{
-			// Configure as damage contributing projectile
-
-		}
-		else
-		{
-			// Configure as dummy projectile
-
-		}
-        */
-        LaunchProjectile(bIsLocalInstruction);
-		//	Set timer for completion event for cooldown
-		SetComponentTickEnabled(false);
-        //  Animation completion
-		GetWorld()->GetTimerManager().SetTimer(
-			StateTimerHandle, this, &UGGRangedAttackComponent::FinalizeAttack, Cooldown);
-        //  Re-launching cooldown
-        GetWorld()->GetTimerManager().SetTimer(
-                                               StateTimerHandle, this, &UGGRangedAttackComponent::ResetForRetrigger, Retrigger);
-	}		
-}
-
-void UGGRangedAttackComponent::HitTarget(AActor* target)
-{
-	//	Attack landing logic, in charge of damaging
-	if (target)
-	{
-        // get the damage receiving component and deal damage
-        TArray<UGGDamageReceiveComponent*> dmgCmpArray;
-        target->GetComponents(dmgCmpArray);
-        if (dmgCmpArray.Num() > 0)
-        {
-            UGGDamageReceiveComponent* dmgCmp = dmgCmpArray[0];
-        }
-	}
-}
-
-void UGGRangedAttackComponent::ResetForRetrigger()
-{
-	bIsReadyToBeUsed = true;
 }

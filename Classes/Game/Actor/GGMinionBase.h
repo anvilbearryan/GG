@@ -3,7 +3,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "Game/Utility/GGFunctionLibrary.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGMinionBase.generated.h"
 
 /**
@@ -27,6 +27,7 @@ class UActorComponent;
 class UGGAnimatorComponent;
 class UGGAIMovementComponent;
 class UPaperFlipbookComponent;
+class UGGDamageReceiveComponent;
 
 UCLASS()
 class GG_API AGGMinionBase : public AActor
@@ -38,6 +39,7 @@ public:
     // Sets default values for this actor's properties
 	AGGMinionBase();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
     /** Method that is called even on late join clients, we bind the delegates here although only the server "should" be aware of those */
 	virtual void PostInitializeComponents() override;
 	
@@ -51,9 +53,9 @@ public:
     UCapsuleComponent* MovementCapsule;
    
     /** The desired travel direction set using AI logic input */
-	UPROPERTY(Category ="GGAI|Input", BlueprintReadWrite)
+	UPROPERTY(Category ="GGAI|Input", BlueprintReadWrite, Transient)
     FVector TravelDirection;
-
+	FVector LocationCache;
     UGGAIMovementComponent* MovementComponent;
     
     FGGBasePlatform BasePlatform;
@@ -118,6 +120,20 @@ public:
     UPaperFlipbookComponent* FlipbookComponent;
     UGGAnimatorComponent* AnimatorComponent;
     
+	/**
+	******** Replicated damage ********
+	*/
+	UGGDamageReceiveComponent* HealthComponent;
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_DamageNotify)
+		FGGDamageInformation DamageNotify;
+	UFUNCTION()
+		void OnRep_DamageNotify();
+	UFUNCTION()
+		virtual void ReceiveDamage(FGGDamageInformation& InDamageInfo);
+	
+	UFUNCTION()
+	virtual void PlayDeathSequence();
+
     /**
      ******** Utility helpers ********
      */
@@ -130,7 +146,7 @@ public:
     static FVector Right;
     static FVector Left;
     UFUNCTION()
-    FVector GetPlanarForwardVector() const;
+		FVector GetPlanarForwardVector() const;
 };
 
 namespace GGMovementBaseUtils
