@@ -21,6 +21,23 @@ void AGGGameState::BeginPlay()
 	}
 }
 
+AGGSpritePool* AGGGameState::GetSpritePool()
+{
+	if (LevelSpritePool.IsValid())
+	{
+		return LevelSpritePool.Get();
+	}
+	else 
+	{
+		for (TActorIterator<AGGSpritePool> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+		{
+			LevelSpritePool = *ActorItr;
+			return LevelSpritePool.Get();
+		}		
+	}
+	return nullptr;
+}
+
 TArray<AGGCharacter*>& AGGGameState::GetCharacterList()
 {
     return CharacterList;

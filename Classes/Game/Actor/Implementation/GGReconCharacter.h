@@ -62,5 +62,9 @@ public:
 
 	/** Specific input handling */
 	void AddAimInput(float ScaleValue = 0.f);
+	UFUNCTION(Server, unreliable, WithValidation)
+		void ServerUpdateAim(uint8 NewAimLevel);
+	bool ServerUpdateAim_Validate(uint8 NewAimLevel);
+	void ServerUpdateAim_Implementation(uint8 NewAimLevel);
 	void OnPressedAttack();
 };

@@ -55,6 +55,14 @@ void AGGReconCharacter::PostInitializeComponents()
 
 	/** TODO: handle game save loading */
 
+	UGGReconRifleComponent* loc_Rifle = RifleComponent.Get();
+	if (loc_Rifle)
+	{
+		loc_Rifle->SetComponentTickEnabled(false);
+		loc_Rifle->OnInitiateAttack.AddDynamic(this, &AGGReconCharacter::OnBeginShoot);
+		loc_Rifle->OnFinalizeAttack.AddDynamic(this, &AGGReconCharacter::OnFinishShoot);
+		loc_Rifle->OwnerMovement = GetCharacterMovement();
+	}
 
 	if (WeaponEffectComponent)
 	{
@@ -203,10 +211,6 @@ void AGGReconCharacter::OnFinishShoot()
 		BodyFlipbookComponent->SetLooping(true);
 		BodyFlipbookComponent->Play();
 	}
-	if (Role == ROLE_Authority && !IsLocallyControlled())
-	{
-		InputAimLevel_RepQuan = 1;
-	}
 }
 
 void AGGReconCharacter::OnFinishWeaponEffectAnimation()
@@ -219,19 +223,36 @@ void AGGReconCharacter::OnFinishWeaponEffectAnimation()
 
 void AGGReconCharacter::AddAimInput(float ScaleValue)
 {
-	const float AIM_DEADZONE = 0.1f;
-	if (ScaleValue > AIM_DEADZONE)
+	uint8 locProposedAimLevel = 0;
+	if (ScaleValue > SMALL_DECIMAL)
 	{
 		InputAimLevel = 1.f;
+		locProposedAimLevel = 2;
 	}
-	else if (ScaleValue < -AIM_DEADZONE)
+	else if (ScaleValue < -SMALL_DECIMAL)
 	{
 		InputAimLevel = -1.f;
 	}
 	else
 	{
 		InputAimLevel = 0.f;
+		locProposedAimLevel = 1;
 	}
+	if (InputAimLevel_RepQuan != locProposedAimLevel)
+	{		
+		ServerUpdateAim(locProposedAimLevel);
+		// ensure local player updates the value, though listen server would do it twice but that doesn't hurt
+		InputAimLevel_RepQuan = locProposedAimLevel;
+	}
+}
+bool AGGReconCharacter::ServerUpdateAim_Validate(uint8 NewAimLevel)
+{
+	return true;
+}
+
+void AGGReconCharacter::ServerUpdateAim_Implementation(uint8 NewAimLevel)
+{
+	InputAimLevel_RepQuan = NewAimLevel;
 }
 
 void AGGReconCharacter::OnPressedAttack()

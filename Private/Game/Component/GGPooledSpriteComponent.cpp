@@ -9,3 +9,17 @@ UGGPooledSpriteComponent::UGGPooledSpriteComponent() : Super()
 	bWantsBeginPlay = false;
 	PrimaryComponentTick.bCanEverTick = false;
 }
+
+void UGGPooledSpriteComponent::PreCheckout()
+{
+	SetVisibility(true, true);
+	SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+}
+
+void UGGPooledSpriteComponent::PreCheckin()
+{
+	SetVisibility(false, true);
+	SetSprite(nullptr);
+	SetCollisionEnabled(ECollisionEnabled::NoCollision);	
+}

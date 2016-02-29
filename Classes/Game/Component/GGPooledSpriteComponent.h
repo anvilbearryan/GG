@@ -17,4 +17,9 @@ class GG_API UGGPooledSpriteComponent : public UPaperSpriteComponent
 public:
 	int32 Index;
 	UGGPooledSpriteComponent();
+
+	void PreCheckout();
+	/** Checkin (returns to pool) is set as UFunction to allow timerrs */
+	UFUNCTION()
+		void PreCheckin();
 };

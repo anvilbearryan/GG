@@ -17,14 +17,15 @@ class GG_API AGGGameState : public AGameState
 	GENERATED_BODY()
 	
     TArray<AGGCharacter*> CharacterList;
+	TWeakObjectPtr<AGGSpritePool> LevelSpritePool;
 public:
 	AGGGameState(const FObjectInitializer& ObjectInitializer);
 
 	virtual void BeginPlay() override;
+	
+	AGGSpritePool* GetSpritePool();
 
-    TArray<AGGCharacter*>& GetCharacterList();
-
-	AGGSpritePool* LevelSpritePool;
+    TArray<AGGCharacter*>& GetCharacterList();	
 
     UFUNCTION(BlueprintCallable, Category ="GG|Framework")
     void UpdateCharacterList();

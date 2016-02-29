@@ -41,7 +41,7 @@ void UGGReconRifleComponent::LocalAttemptsAttack(bool InIsCharged, uint8 AimLeve
 {	
 	// no need for rejection, complicated combo timing not implemented for shooting
 	if (CanQueueShots())
-	{
+	{		
 		LocalInitiateAttack(GetEncryptedAttackIdentifier(InIsCharged, AimLevel));
 	}
 }
@@ -118,6 +118,7 @@ void UGGReconRifleComponent::InitiateAttack()
 		if (LastUsedProjectileData && spriteInstance && loc_Char && loc_Flipbook)
 		{
 			// initialize spriteInstance
+			spriteInstance->PreCheckout();
 			// set sprite transform, scale (face left / face right)  is copied from owning character's body directly
 			FTransform spriteTransform = loc_Flipbook->GetComponentToWorld();			
 			FVector aimDirection = GetAimDirection(WeaponAimLevel);
@@ -129,22 +130,19 @@ void UGGReconRifleComponent::InitiateAttack()
 			}
 			// add location offset
 			spriteTransform.AddToTranslation(GetAimOffset(WeaponAimLevel));
-			// apply transform			
+			// apply transform						
 			spriteInstance->SetWorldTransform(spriteTransform, false, nullptr, ETeleportType::TeleportPhysics);
 			// set display information
 			spriteInstance->SetSprite(LastUsedProjectileData->TravelSprite);
-			spriteInstance->SetVisibility(true, true);
 			// initialize physics
-			spriteInstance->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 			spriteInstance->SetCollisionObjectType(ProjectileObjectType);
-			spriteInstance->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+			//spriteInstance->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 			for (auto type : TargetObjectTypes)
 			{
 				spriteInstance->SetCollisionResponseToChannel(type, ECollisionResponse::ECR_Block);
 			}			
 			// configure FLaunchedProjectile and add to array
-			UpdatedProjectiles.Add(FLaunchedProjectile(spriteInstance, aimDirection, LastUsedProjectileData));
-			
+			UpdatedProjectiles.Add(FLaunchedProjectile(spriteInstance, aimDirection, LastUsedProjectileData, TimeOfLastAttack));
 		}
 	}
 	if (IsOwnerMoving())
@@ -190,15 +188,14 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	// unlike melee, queues are handled using timers instead so we only need to handle projectiles update here
-	
-	for (int32 i = UpdatedProjectiles.Num() - 1; i >= 0; i--)
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	for (int32 i = UpdatedProjectiles.Num() - 1; i >=0; --i)
 	{
-		auto& projectile = UpdatedProjectiles[i];
 		// no substepping, lazy!
 		// sweep component
-		FVector delta = projectile.CurrentVelocity * DeltaTime + 0.5f * projectile.ContinualAcceleration * DeltaTime * DeltaTime;
+		FVector delta = UpdatedProjectiles[i].CurrentVelocity * DeltaTime + UpdatedProjectiles[i].ContinualAcceleration * DeltaTime * DeltaTime * 0.5f;
 		FHitResult hitResult;
-		projectile.SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
+		UpdatedProjectiles[i].SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
 		// collision handling
 		if (hitResult.bBlockingHit)
 		{
@@ -207,37 +204,67 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 				FRangedHitNotify notifier;
 				notifier.Target = hitResult.Actor.Get();
 				notifier.DamageDealt = 100;
-				notifier.HitPosition = projectile.SpriteBody->GetComponentLocation();
+				notifier.HitPosition = UpdatedProjectiles[i].SpriteBody->GetComponentLocation();
 				notifier.DamageCategory = EGGDamageType::Standard;
 				LocalHitTarget(notifier);
 			}
 			// handle impact effects
-			
+
 			// cleanup for everyone
-			projectile.CurrentCollisionCount++;
-			if (projectile.CurrentCollisionCount > projectile.ProjectileData->Penetration)
+			UpdatedProjectiles[i].CurrentCollisionCount++;
+			if (UpdatedProjectiles[i].CurrentCollisionCount > UpdatedProjectiles[i].ProjectileData->Penetration)
 			{
-				UE_LOG(GGMessage, Log, TEXT("Clean up projectile"));
-				projectile.SpriteBody->SetVisibility(false, true);
-				projectile.SpriteBody->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-				projectile.SpriteBody->SetSprite(nullptr);
-				// no longer needs update
-				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
+				// cleanup
+				UpdatedProjectiles[i].SpriteBody->PreCheckin();
+				// no longer needs update				
 				if (SpritePool.IsValid())
 				{
-					SpritePool.Get()->CheckinInstance(projectile.SpriteBody);
+					SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
 				}
+				else
+				{
+					UpdatedProjectiles[i].SpriteBody->DestroyComponent();
+				}
+				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
+			}
+			else
+			{
+				// set new velocity
+				UpdatedProjectiles[i].CurrentVelocity += UpdatedProjectiles[i].ContinualAcceleration * DeltaTime;
 			}
 		}
-		// set new velocity
-		projectile.CurrentVelocity += projectile.ContinualAcceleration * DeltaTime;
+		else
+		{			
+			if (CurrentTime > UpdatedProjectiles[i].Lifespan + UpdatedProjectiles[i].SpawnTime)
+			{
+				// cleanup
+				UpdatedProjectiles[i].SpriteBody->PreCheckin();
+				// no longer needs update				
+				if (SpritePool.IsValid())
+				{
+					SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
+				}
+				else
+				{
+					UpdatedProjectiles[i].SpriteBody->DestroyComponent();
+				}     
+				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
+			}
+			else
+			{
+				// set new velocity
+				UpdatedProjectiles[i].CurrentVelocity += UpdatedProjectiles[i].ContinualAcceleration * DeltaTime;
+			}			
+		}
 	}
+	// the order recorded in indicesToRemove is decreasing, we should be safe to assume the continual removal has no effect on indices recorded 
+
 }
 
 const int32 BIT_CHARGED = 128;
 uint8 UGGReconRifleComponent::GetEncryptedAttackIdentifier(bool InIsCharged, uint8 AimLevel) const
 {
-	uint8 Index = AimLevel;
+	uint8 Index = bWeaponIsFiring ? WeaponAimLevel : AimLevel;
 	if (InIsCharged)
 	{
 		Index |= BIT_CHARGED;
@@ -359,7 +386,7 @@ bool UGGReconRifleComponent::FindSpritePoolReference()
 	AGGGameState* loc_GS = GetWorld()->GetGameState<AGGGameState>();
 	if (loc_GS)
 	{
-		SpritePool = loc_GS->LevelSpritePool;
+		SpritePool = loc_GS->GetSpritePool();
 	}
 	return SpritePool.IsValid();
 }

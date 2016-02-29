@@ -78,6 +78,7 @@ public:
 	bool IsFacingTarget() const;
 
 	FTimerHandle TurnHandle;
+
 	void SequenceTurnFacingDirection(float TotalTimeToTake, float FlipDelay);
 	UFUNCTION()
 		void FlipFlipbookComponent();

@@ -32,7 +32,8 @@ public:
 		uint8 bVelocityDictatesRotation : 1;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		int32 Penetration;
-
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
+		float Lifespan;
 private:
 	FVector Gravity_Internal;
 	

@@ -7,19 +7,7 @@
 #include "GGRangedAttackComponent.generated.h"
 
 /**
- * Base class representing ranged attack component, carries the bag of functions that are needed to take in
- * damage information from spawned projectiles to send to server as RPC. Key timing of events in a shoot
- * includes the StartUp, Cooldown and Retrigger time.
- 
- * StartUp: broadcasts OnInitiateAttack delegate, supposingly this should makes the character immobile until  
- *			the move finishes caused by TimeLapsed passing the whole StartUp duration. At the end up Startup,
- *			the projectile is launched.
- * Cooldown:Time after StartUp the OnFinalizeAttack delegate is called.
- * Retrigger:	Activation is not immediately reset on cooldown, instead must wait for Reload until next launch.
-
- * The component does not check properly whether it is a local player, instead, whoever manages to call 
- * LocalInitiateAttack is considered as local player. In this project, it would be the owning player character
- * that has input enabled to reach this method.
+ * Notifier struct sent from the attack component's owner to the server to inform hit events
  */
 
 USTRUCT()
@@ -40,24 +28,7 @@ struct FRangedHitNotify
 	FORCEINLINE bool HasValidData() const
 	{
 		return Target != nullptr && DamageDealt > 0;
-	}
-	/*
-	UPROPERTY()
-	uint8 Coord_0;
-	UPROPERTY()
-	uint32 Coord_1;
-	const float Z_UNIT = 12.5f;
-	FORCEINLINE void SetPosition(FVector position)
-	{
-		Coord_0 = 0;
-		Coord_1 = 0;
-
-		int32 Z = FMath::Clamp<int32>(FMath::Round(position.Z / Z_UNIT), -(1 << 13) + 1 , (1 << 13) - 1);
-		Coord_0 |= Z < 0 ? (1 << 7) : 0;
-		
-		int32 Y = position.Y;
-
-	}*/
+	}	
 };
 
 class UGGPooledSpriteComponent;

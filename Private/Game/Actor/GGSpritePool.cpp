@@ -23,34 +23,37 @@ AGGSpritePool::AGGSpritePool()
 void AGGSpritePool::BeginPlay()
 {
 	Super::BeginPlay();
-	GetComponents(AvailableInstances);
+	TArray<UGGPooledSpriteComponent*> hierarchy;
+	GetComponents(hierarchy);
+	for (int32 i = 0; i < hierarchy.Num(); i++)
+	{
+		AvailableInstances.Enqueue(hierarchy[i]);
+	}
 }
 
 UGGPooledSpriteComponent* AGGSpritePool::CheckoutInstance()
 {
-	if (AvailableInstances.Num() > 0)
+	UGGPooledSpriteComponent* result;
+	if (!AvailableInstances.Dequeue(result))
 	{
-		return AvailableInstances.Pop(false);
-	}
-	else
-	{
-		UGGPooledSpriteComponent* NewInstance = NewObject<UGGPooledSpriteComponent>(this, UGGPooledSpriteComponent::StaticClass());		
-		if (!!NewInstance) 
+		result = NewObject<UGGPooledSpriteComponent>(this, UGGPooledSpriteComponent::StaticClass());		
+		if (result)
 		{
-			NewInstance->RegisterComponent();
-			NewInstance->AttachTo(GetRootComponent());
-			NewInstance->SetAbsolute(true, true, true);
-		}
-		// could be null
-		return NewInstance;
+			result->RegisterComponent();
+			result->AttachTo(GetRootComponent());
+			result->SetAbsolute(true, true, true);
+		}		
 	}
+	// could be null
+	return result;
 }
 
 void AGGSpritePool::CheckinInstance(UGGPooledSpriteComponent * InInstance)
 {
-	if (!!InInstance)
+	if (InInstance)
 	{
-		AvailableInstances.Add(InInstance);
+		AvailableInstances.Enqueue(InInstance);
+		UE_LOG(GGMessage, Log, TEXT("recycled instance successfully"));
 	}
 }
 

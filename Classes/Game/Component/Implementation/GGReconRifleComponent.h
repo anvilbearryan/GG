@@ -29,7 +29,8 @@ struct FLaunchedProjectile
 	// since we are using PaperSpriteComponent, they do not store velocity by default unlike an AActor
 	FVector CurrentVelocity;
 	UGGProjectileData* ProjectileData;
-
+	float Lifespan;
+	float SpawnTime;
 	int8 CurrentCollisionCount;
 
 	FLaunchedProjectile()
@@ -39,18 +40,22 @@ struct FLaunchedProjectile
 		ContinualAcceleration = FVector::ZeroVector;
 		ProjectileData = nullptr;
 		CurrentCollisionCount = 0;
+		Lifespan = 0;
+		SpawnTime = 0;
 	}
 
-	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data)
-		: LaunchDirection(direction.X, direction.Y, direction.Z), CurrentCollisionCount(0)
+	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data, float time)
+		: LaunchDirection(direction), CurrentCollisionCount(0)
 	{
 		SpriteBody = body;
 		ProjectileData = data;
-		if (ProjectileData != nullptr)
+		if (data != nullptr)
 		{
-			ContinualAcceleration = ProjectileData->GetGravityVector();
+			ContinualAcceleration = data->GetGravityVector();
 			ContinualAcceleration.Y = FMath::Sign(LaunchDirection.Y) * ContinualAcceleration.Y;
-			CurrentVelocity = LaunchDirection * ProjectileData->LaunchSpeed;
+			CurrentVelocity = LaunchDirection * data->LaunchSpeed;
+			SpawnTime = time;
+			Lifespan = data->Lifespan;
 		}
 	}
 };
@@ -100,7 +105,7 @@ public:
 protected:
 	// No queued version, we don't allow immediate aim change animation-wise. Also replicated in owning character for locomotion animation
 	UPROPERTY(Transient, Replicated)
-	uint8 WeaponAimLevel;
+		uint8 WeaponAimLevel;
 
 	UGGProjectileData* LastUsedProjectileData;
 	UGGTriggerAnimData* BodyAnimDataInUse;
@@ -122,7 +127,8 @@ protected:
 	FTimerHandle AttackQueueHandle;
 	TWeakObjectPtr<AGGSpritePool> SpritePool;
 	/** sprites updated by this component */	
-	TArray<FLaunchedProjectile, TInlineAllocator<16>> UpdatedProjectiles;
+	TArray<FLaunchedProjectile> UpdatedProjectiles;
+	//TArray<FLaunchedProjectile, TInlineAllocator<16>> UpdatedProjectiles;
 	float TimeOfLastAttack;
 
 public:
