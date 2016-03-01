@@ -5,22 +5,16 @@
 #include "Game/Actor/GGMinionBase.h"
 #include "GGShooterMinion.generated.h"
 
-/**
- * 
- */
+class UGGNpcRangedAttackComponent;
+class UGGProjectileData;
+
 UCLASS()
 class GG_API AGGShooterMinion : public AGGMinionBase
 {
 	GENERATED_BODY()
 
 public:
-	virtual void OnReachWalkingBound() override;
-
-	virtual void OnSensorActivate_Implementation() override;
-	virtual void OnSensorAlert_Implementation() override;
-	virtual void OnSensorUnalert_Implementation() override;
-	virtual void OnSensorDeactivate_Implementation() override;
-
+	
 	/** Patrol properties
 	*	A "patrol" is the action of wandering without a specific target.
 	*	In a patrol, the entity travels in the same direction until it reaches a wall where it can no longer go forward.
@@ -35,7 +29,6 @@ public:
 	UPROPERTY(Category = "GGAI|Patrol", EditAnywhere)
 		float TurnPausePatrol;
 	float TimeWalkedContinually;
-	virtual void TickPatrol(float DeltaSeconds) override;
 
 	/** Attack preparation properties */
 	UPROPERTY(Category = "GGAI|PrepareAttack", EditAnywhere)
@@ -44,21 +37,6 @@ public:
 		FVector2D AttackMaxRange;
 	UPROPERTY(Category = "GGAI|PrepareAttack", EditAnywhere)
 		float TurnPauseAim;
-	virtual void TickPrepareAttack(float DeltaSeconds) override;
-
-	/** Attack properties */
-	// = Duration of Evasion phase
-	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
-	float AttackCooldown;
-	FTimerHandle AttackHandle;
-	UFUNCTION()
-		void SequenceCastAttack();
-	UFUNCTION(Category = "GGAI|Attack", BlueprintImplementableEvent)
-		void OnCastAttack();
-	UFUNCTION()
-		void CompleteAttack();
-	UFUNCTION(Category="GGAI|Attack", BlueprintImplementableEvent)
-		void OnCompleteAttack();
 
 	/** Evasion phase properties */
 	// Range to trigger evasion, should be smaller than EvadeSafeRange
@@ -71,21 +49,73 @@ public:
 		float TurnPauseEvade;
 	uint32 bIsInActiveEvasionMode : 1;
 	float TimeEvadedFor;
-	virtual void TickEvade(float DeltaSeconds) override;
 
+	/** Attack properties */	
+	// = Duration of Evasion phase
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+		float AttackCooldown;
+	/** The delay from changing animation to shooting the first projectile */
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+		float ShootStartupDelay;
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+		int32 NumberOfShotsPerAttack;		
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+		float DelayBetweenShots;
+	/** Default transform faces right */
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+		FVector ShootOffset;
+
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+		UGGProjectileData* AttackProjectileData;
+	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
+		UPaperFlipbook* AttackFlipbook;
+	TWeakObjectPtr<UGGNpcRangedAttackComponent> RangedAttackComponent;
+	/** This action handle controls possible interrupts, this way no matter what state we are in we only need to clear this timer */
+	FTimerHandle ActionHandle;
+	int32 CurrentAttackCount;
+
+	virtual void PostInitializeComponents() override;
+
+	virtual void OnReachWalkingBound() override;
+	
+	virtual void ReceiveDamage(FGGDamageInformation& DamageInfo) override;
+	virtual void PlayDeathSequence() override;
+	UFUNCTION()
+		void CompleteDeath();
+	virtual void OnSensorActivate_Implementation() override;
+	virtual void OnSensorAlert_Implementation() override;
+	virtual void OnSensorUnalert_Implementation() override;
+	virtual void OnSensorDeactivate_Implementation() override;
+
+	virtual void TickAnimation(float DeltaSeconds) override;
+
+	virtual void TickPatrol(float DeltaSeconds) override;
+	virtual void TickPrepareAttack(float DeltaSeconds) override;
+	virtual void TickEvade(float DeltaSeconds) override;
+		
+	/**	For 1-directional behaviour */
+	void SyncFlipbookComponentWithTravelDirection();
+
+	virtual void MinionAttack_Internal(uint8 InInstruction) override;
+
+	UFUNCTION()
+		void ShootForward();
+	UFUNCTION()
+		void CompleteAttack();
+
+	//********************************
+	//	One-way facing enemy utility, potentiall abstract into base
 	bool IsTargetInSuppliedRange(const FVector2D& Range) const;
 
 	bool IsFacingTarget() const;
 
+	//********************************
+	//	Turning method
 	FTimerHandle TurnHandle;
 
 	void SequenceTurnFacingDirection(float TotalTimeToTake, float FlipDelay);
 	UFUNCTION()
 		void FlipFlipbookComponent();
+	
 
-	void SyncFlipbookComponentWithTravelDirection();
-
-	virtual void ReceiveDamage(FGGDamageInformation& DamageInfo) override;
-
-	virtual void PlayDeathSequence() override;
 };

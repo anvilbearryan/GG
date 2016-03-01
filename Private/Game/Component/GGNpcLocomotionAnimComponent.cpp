@@ -3,7 +3,8 @@
 #include "GG.h"
 #include "Game/Component/GGNpcLocomotionAnimComponent.h"
 #include "Game/Actor/GGMinionBase.h"
-#include "Game/Component/GGAnimatorComponent.h"
+#include "Game/Data/GGGameTypes.h"
+#include "Game/Data/GGNpcAnimBlendspaceData.h"
 
 // Sets default values for this component's properties
 UGGNpcLocomotionAnimComponent::UGGNpcLocomotionAnimComponent()
@@ -18,7 +19,7 @@ UGGNpcLocomotionAnimComponent::UGGNpcLocomotionAnimComponent()
 
 UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetCurrentAnimation() const
 {
-	if (IsActive() && LocomotionData)
+	if (LocomotionData)
 	{
 		const AGGMinionBase* loc_MinionOwner = Cast<AGGMinionBase>(GetOwner());
 		if (loc_MinionOwner)
@@ -35,6 +36,21 @@ UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetCurrentAnimation() const
 			{
 				return LocomotionData->GetAirFlipbook(loc_Velocity.Z);
 			}
+		}
+	}
+	return nullptr;
+}
+
+UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetDeathFlipbook(EGGDamageType::Type type) const
+{
+	if (LocomotionData)
+	{
+		switch (type)
+		{
+		case EGGDamageType::Standard:
+			return LocomotionData->GetStandardDeathFlipbook();
+		case EGGDamageType::Slash:
+			return LocomotionData->GetSlashDeathFlipbook();
 		}
 	}
 	return nullptr;

@@ -22,5 +22,5 @@ public:
 	// Called every frame
 	virtual UPaperFlipbook* GetCurrentAnimation() const;
 
-	
+	virtual UPaperFlipbook* GetDeathFlipbook(EGGDamageType::Type type) const;
 };

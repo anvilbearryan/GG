@@ -3,62 +3,17 @@
 #pragma once
 
 #include "Game/Component/GGRangedAttackComponent.h"
-#include "Game/Data/GGProjectileData.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGReconRifleComponent.generated.h"
 
 /**
  * Responsible for both the launch and update of projectiles
  */	
+class UGGProjectileData;
 class UGGTriggerAnimData;
-class UGGPooledSpriteComponent;
 class UCharacterMovementComponent;
 class AGGSpritePool;
 class AGGCharacter;
-
-/** Contains information necessary in updating projectile's state and handling events*/
-USTRUCT()
-struct FLaunchedProjectile
-{
-	GENERATED_BODY()
-
-	// safe guard in case sprite component is destroyed somehow
-	UGGPooledSpriteComponent* SpriteBody;
-	// this is stored to make delayed launch possible
-	FVector LaunchDirection;
-	FVector ContinualAcceleration;
-	// since we are using PaperSpriteComponent, they do not store velocity by default unlike an AActor
-	FVector CurrentVelocity;
-	UGGProjectileData* ProjectileData;
-	float Lifespan;
-	float SpawnTime;
-	int8 CurrentCollisionCount;
-
-	FLaunchedProjectile()
-	{
-		SpriteBody = nullptr;
-		LaunchDirection = FVector::ZeroVector;
-		ContinualAcceleration = FVector::ZeroVector;
-		ProjectileData = nullptr;
-		CurrentCollisionCount = 0;
-		Lifespan = 0;
-		SpawnTime = 0;
-	}
-
-	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data, float time)
-		: LaunchDirection(direction), CurrentCollisionCount(0)
-	{
-		SpriteBody = body;
-		ProjectileData = data;
-		if (data != nullptr)
-		{
-			ContinualAcceleration = data->GetGravityVector();
-			ContinualAcceleration.Y = FMath::Sign(LaunchDirection.Y) * ContinualAcceleration.Y;
-			CurrentVelocity = LaunchDirection * data->LaunchSpeed;
-			SpawnTime = time;
-			Lifespan = data->Lifespan;
-		}
-	}
-};
 
 UCLASS()
 class GG_API UGGReconRifleComponent : public UGGRangedAttackComponent
@@ -70,9 +25,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
 		UGGTriggerAnimData* TriggerAnimData_Normal_Neutral;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
-	UGGTriggerAnimData* TriggerAnimData_Normal_Up;
+		UGGTriggerAnimData* TriggerAnimData_Normal_Up;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
-	UGGTriggerAnimData* TriggerAnimData_Normal_Down;
+		UGGTriggerAnimData* TriggerAnimData_Normal_Down;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")
 		UGGProjectileData* ProjectileData_Charged;
 	UPROPERTY(EditDefaultsOnly, Category = "GGAttack|Specification")

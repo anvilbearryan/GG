@@ -36,19 +36,22 @@ class GG_API UGGNpcAnimBlendspaceData : public UDataAsset
 		UPaperFlipbook* AirFlipbook_Rise;
 	UPROPERTY(EditAnywhere, Category = "GGAnimation")
 		UPaperFlipbook* AirFlipbook_Fall;
+
+	UPROPERTY(EditAnywhere, Category = "GGAnimation")
+		UPaperFlipbook* DeathFlipbook_Standard;
+	UPROPERTY(EditAnywhere, Category = "GGAnimation")
+		UPaperFlipbook* DeathFlipbook_Slash;
+
 public:
 	FORCEINLINE UPaperFlipbook* GetGroundFlipbook(float InSignedSpeed) const
 	{
-		if (bDirectionSensitive_Horizontal)
+		if (bDirectionSensitive_Horizontal && !!RunFlipbook_Backward && InSignedSpeed < -RunMargin)
 		{
-			if (!!RunFlipbook_Forward && InSignedSpeed > RunMargin)
-			{
-				return RunFlipbook_Forward;
-			}
-			if (!!RunFlipbook_Backward && InSignedSpeed < -RunMargin)
-			{
-				return RunFlipbook_Backward;
-			}
+			return RunFlipbook_Backward;
+		}
+		if (!!RunFlipbook_Forward && FMath::Abs(InSignedSpeed) > RunMargin)
+		{
+			return RunFlipbook_Forward;
 		}
 		return StandFlipbook;
 	}
@@ -66,5 +69,13 @@ public:
 			}
 		}
 		return AirFlipbook_Neutral;
+	}
+	FORCEINLINE UPaperFlipbook* GetStandardDeathFlipbook()
+	{
+		return !!DeathFlipbook_Standard ? DeathFlipbook_Standard : DeathFlipbook_Slash;
+	}
+	FORCEINLINE UPaperFlipbook* GetSlashDeathFlipbook()
+	{
+		return !!DeathFlipbook_Slash ? DeathFlipbook_Slash : DeathFlipbook_Standard;
 	}
 };

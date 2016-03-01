@@ -11,6 +11,11 @@
 * Animator component handles network synced state transitions through replicating a byte with compressed information
 */
 
+//******************************************
+//******************************************
+//	Super-seded class, to be deleted
+//******************************************
+//******************************************
 class UPaperFlipbookComponent;
 
 UCLASS(Blueprintable, ClassGroup = "GG|Animation", meta=(BlueprintSpawnableComponent))
