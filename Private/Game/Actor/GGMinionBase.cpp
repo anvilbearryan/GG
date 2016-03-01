@@ -211,6 +211,16 @@ void AGGMinionBase::TickEvade(float DeltaSeconds)
     
 }
 
+void AGGMinionBase::MulticastAttack_Implementation()
+{
+	MinionAttack_Internal();
+}
+
+void AGGMinionBase::MinionAttack_Internal()
+{
+	UE_LOG(GGWarning, Warning, TEXT("Empty base method needs not be called"));
+}
+
 void AGGMinionBase::OnRep_DamageNotify()
 {
 	// the local causer do not rely on the OnRep to display the damage, hence the check for duplication

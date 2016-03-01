@@ -107,6 +107,11 @@ protected:
     virtual void TickPrepareAttack(float DeltaSeconds);
     virtual void TickEvade(float DeltaSeconds);
 
+	UFUNCTION(NetMulticast, reliable)
+		void MulticastAttack();
+	void MulticastAttack_Implementation();
+
+	virtual void MinionAttack_Internal();
 public:
     /**
      ******** Character Sensing ********

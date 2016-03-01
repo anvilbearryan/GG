@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
-#include "Game/Data/GGGameTypes.h"
+#include "Paperflipbook.h"
 #include "GGAnimBlendspaceData.generated.h"
 
 /**
