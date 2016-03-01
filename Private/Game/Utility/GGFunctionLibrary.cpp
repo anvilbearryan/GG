@@ -2,6 +2,7 @@
 #include "Game/Utility/GGFunctionLibrary.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
+
 TArray<FOverlapResult> UGGFunctionLibrary::OverlapResults = TArray<FOverlapResult>();
 void  UGGFunctionLibrary::BlendFlipbookToComponent(UPaperFlipbookComponent* InFlipbookComponent, UPaperFlipbook* ToFlipbook)
 {

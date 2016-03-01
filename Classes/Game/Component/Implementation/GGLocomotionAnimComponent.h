@@ -6,7 +6,7 @@
 #include "Game/Data/GGGameTypes.h"
 #include "GGLocomotionAnimComponent.generated.h"
 
-/** A Self aware component that requires no replication to tell which flipbook the owning character should play */
+/** A Self aware component that requires no replication to tell which flipbook the owning CHARACTER should play */
 class UGGAnimBlendspaceData;
 UCLASS(Blueprintable,  ClassGroup=(GGAnimation), meta=(BlueprintSpawnableComponent) )
 class GG_API UGGLocomotionAnimComponent : public UActorComponent
@@ -21,6 +21,5 @@ public:
 	virtual UPaperFlipbook* GetCurrentAnimation() const;
 
 	UPROPERTY(EditAnywhere, Category="GGAnimation")
-		UGGAnimBlendspaceData* LocomotionData;		
-	
+		UGGAnimBlendspaceData* LocomotionData;
 };

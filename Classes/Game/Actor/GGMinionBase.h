@@ -57,7 +57,12 @@ public:
     FVector TravelDirection;
 	FVector LocationCache;
     UGGAIMovementComponent* MovementComponent;
-    
+	
+	FORCEINLINE UGGAIMovementComponent* GetAIMovement() const
+	{
+		return MovementComponent;
+	}
+
     FGGBasePlatform BasePlatform;
 	uint32 bReachedWalkingBound : 1;
     void SetMovementBase(UPrimitiveComponent* NewBase, UActorComponent* InMovementComponent);
@@ -68,7 +73,7 @@ public:
      ******** AI Behaviour ********
      */
     UPROPERTY(Category="GGAI|State", EditDefaultsOnly, BlueprintReadOnly)
-    TEnumAsByte<EGGAIActionState::Type> ActionState;
+		TEnumAsByte<EGGAIActionState::Type> ActionState;
     
     UFUNCTION(Category="GGAI|State", BlueprintCallable)
     void TransitToActionState(TEnumAsByte<EGGAIActionState::Type> newState);

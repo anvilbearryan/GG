@@ -139,17 +139,17 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 	}
 }
 
-const float SMALL_DECIMAL = 0.2f;
+const float SMALL_DECIMAL_RECON = 0.2f;
 UGGLocomotionAnimComponent* AGGReconCharacter::GetActiveLocAnimComponent() const
 {
 	if (IsLocallyControlled())
 	{
 		// use aim level
-		if (InputAimLevel > SMALL_DECIMAL)
+		if (InputAimLevel > SMALL_DECIMAL_RECON)
 		{
 			return LocomotionAnimComponent_Up.Get();
 		}
-		else if (InputAimLevel < -SMALL_DECIMAL)
+		else if (InputAimLevel < -SMALL_DECIMAL_RECON)
 		{
 			return LocomotionAnimComponent_Down.Get();
 		}
@@ -224,12 +224,12 @@ void AGGReconCharacter::OnFinishWeaponEffectAnimation()
 void AGGReconCharacter::AddAimInput(float ScaleValue)
 {
 	uint8 locProposedAimLevel = 0;
-	if (ScaleValue > SMALL_DECIMAL)
+	if (ScaleValue > SMALL_DECIMAL_RECON)
 	{
 		InputAimLevel = 1.f;
 		locProposedAimLevel = 2;
 	}
-	else if (ScaleValue < -SMALL_DECIMAL)
+	else if (ScaleValue < -SMALL_DECIMAL_RECON)
 	{
 		InputAimLevel = -1.f;
 	}
@@ -261,7 +261,7 @@ void AGGReconCharacter::OnPressedAttack()
 	if (loc_RifleComponent)
 	{
 		uint8 locAimLevel = 0;
-		if (FMath::Abs(InputAimLevel) < SMALL_DECIMAL)
+		if (FMath::Abs(InputAimLevel) < SMALL_DECIMAL_RECON)
 		{
 			locAimLevel = 1;
 		}

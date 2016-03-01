@@ -94,13 +94,13 @@ void UGGAIMovementComponent::CalcVelocity(FVector& OutVelocity, FVector& Current
     }
 }
 
-float GROUND_CHECK_DELTA = 10.f;
+float GROUND_CHECK_DELTA_AIMOVEMENT = 10.f;
 void UGGAIMovementComponent::CheckForGround(FHitResult& Result, ECollisionChannel Channel, float Direction)
 {
     FVector Start = UpdatedComponent->GetComponentLocation();
     Start.Y = Start.Y + Direction * GetMinionOwner()->GetHalfWidth();
     FVector End = Start;
-    End.Z = End.Z - GROUND_CHECK_DELTA - MinionOwner->GetHalfHeight();
+    End.Z = End.Z - GROUND_CHECK_DELTA_AIMOVEMENT - MinionOwner->GetHalfHeight();
     GetWorld()->LineTraceSingleByChannel(Result, Start, End, Channel, GroundQueryParams);
     
 }
@@ -155,7 +155,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
         if (StepResult.IsValidBlockingHit())
         {
             FHitResult ZPushResult;
-            SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 15.f * DeltaTime), Quat, true, ZPushResult);
+            SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA_AIMOVEMENT * 15.f * DeltaTime), Quat, true, ZPushResult);
             GetMinionOwner()->SetMovementBase(StepResult.GetComponent(), this);
         
             GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Step channel"));
@@ -167,7 +167,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
             if (PlatformResult.bBlockingHit)
             {
                 FHitResult ZPushResult;
-                SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA * 15.f * DeltaTime), Quat, true, ZPushResult);
+                SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA_AIMOVEMENT * 15.f * DeltaTime), Quat, true, ZPushResult);
                 GetMinionOwner()->SetMovementBase(PlatformResult.GetComponent(), this);
                 
                 GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Platform channel"));
@@ -190,7 +190,7 @@ void UGGAIMovementComponent::ConfineWalkingMoveDelta(FVector& MoveDelta)
 
 }
 
-bool UGGAIMovementComponent::IsMovingOnGround()
+bool UGGAIMovementComponent::IsMovingOnGround() const
 {
     return (UpdatedComponent && MovementMode == EMovementMode::MOVE_Walking);
 }

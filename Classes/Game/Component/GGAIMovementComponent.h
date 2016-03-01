@@ -66,9 +66,10 @@ protected:
     virtual void ConfineWalkingMoveDelta(FVector& MoveDelta);
     
     /** Helper functions */
-    
-    bool IsMovingOnGround();
-    
+public:    
+    bool IsMovingOnGround() const;
+
+protected:
     virtual void TickFalling(float DeltaTime);
     
 public:

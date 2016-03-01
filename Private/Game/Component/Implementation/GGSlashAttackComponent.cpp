@@ -65,7 +65,6 @@ void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsCharged, bool InIsMob
 	}
 }
 
-const float MARGIN = 25.f;
 /** Function is called on both causer client and the server */
 void UGGSlashAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 {
@@ -238,26 +237,26 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 }
 
-const int32 BIT_CHARGED = 2;
-const int32 BIT_MOVING = 4;
+const int32 BIT_CHARGED_GGSLASh = 2;
+const int32 BIT_MOVING_GGSLASH = 4;
 uint8 UGGSlashAttackComponent::GetEncryptedAttackIdentifier(bool InIsCharged, bool InIsMobile) const
 {
 	uint8 Index = 0;
 	if (InIsCharged)
 	{
-		Index |= BIT_CHARGED;
+		Index |= BIT_CHARGED_GGSLASh;
 	}
 	if (InIsMobile)
 	{
-		Index |= BIT_MOVING;
+		Index |= BIT_MOVING_GGSLASH;
 	}	
 	return Index;
 }
 
 void UGGSlashAttackComponent::DecryptAttackIdentifier(const uint8 InIdentifier, bool & OutIsCharged, bool & OutIsMobile)
 {
-	OutIsCharged = (InIdentifier & BIT_CHARGED) != 0;
-	OutIsMobile = (InIdentifier & BIT_MOVING) != 0;
+	OutIsCharged = (InIdentifier & BIT_CHARGED_GGSLASh) != 0;
+	OutIsMobile = (InIdentifier & BIT_MOVING_GGSLASH) != 0;
 }
 
 bool UGGSlashAttackComponent::GetOwnerGroundState() const

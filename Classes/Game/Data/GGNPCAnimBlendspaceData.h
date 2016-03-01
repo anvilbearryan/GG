@@ -4,13 +4,13 @@
 
 #include "Engine/DataAsset.h"
 #include "PaperFlipbook.h"
-#include "GGNPCAnimBlendspaceData.generated.h"
+#include "GGNpcAnimBlendspaceData.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GG_API UGGNPCAnimBlendspaceData : public UDataAsset
+class GG_API UGGNpcAnimBlendspaceData : public UDataAsset
 {
 	GENERATED_BODY()			
 	/** Sets to large value if entity does not have run animation */
@@ -36,7 +36,7 @@ class GG_API UGGNPCAnimBlendspaceData : public UDataAsset
 		UPaperFlipbook* AirFlipbook_Rise;
 	UPROPERTY(EditAnywhere, Category = "GGAnimation")
 		UPaperFlipbook* AirFlipbook_Fall;
-
+public:
 	FORCEINLINE UPaperFlipbook* GetGroundFlipbook(float InSignedSpeed) const
 	{
 		if (bDirectionSensitive_Horizontal)

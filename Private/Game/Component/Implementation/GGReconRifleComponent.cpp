@@ -196,6 +196,7 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		FVector delta = UpdatedProjectiles[i].CurrentVelocity * DeltaTime + UpdatedProjectiles[i].ContinualAcceleration * DeltaTime * DeltaTime * 0.5f;
 		FHitResult hitResult;
 		UpdatedProjectiles[i].SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
+		UpdatedProjectiles[i].CurrentVelocity += UpdatedProjectiles[i].ContinualAcceleration * DeltaTime; // inefficient since it may not be necessary, but makes code cleaner doing so here
 		// collision handling
 		if (hitResult.bBlockingHit)
 		{
@@ -210,7 +211,7 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 			}
 			// handle impact effects
 
-			// cleanup for everyone
+			// check collision cleanup for everyone
 			UpdatedProjectiles[i].CurrentCollisionCount++;
 			if (UpdatedProjectiles[i].CurrentCollisionCount > UpdatedProjectiles[i].ProjectileData->Penetration)
 			{
@@ -226,56 +227,40 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 					UpdatedProjectiles[i].SpriteBody->DestroyComponent();
 				}
 				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
-			}
-			else
-			{
-				// set new velocity
-				UpdatedProjectiles[i].CurrentVelocity += UpdatedProjectiles[i].ContinualAcceleration * DeltaTime;
-			}
-		}
-		else
-		{			
-			if (CurrentTime > UpdatedProjectiles[i].Lifespan + UpdatedProjectiles[i].SpawnTime)
-			{
-				// cleanup
-				UpdatedProjectiles[i].SpriteBody->PreCheckin();
-				// no longer needs update				
-				if (SpritePool.IsValid())
-				{
-					SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
-				}
-				else
-				{
-					UpdatedProjectiles[i].SpriteBody->DestroyComponent();
-				}     
-				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
-			}
-			else
-			{
-				// set new velocity
-				UpdatedProjectiles[i].CurrentVelocity += UpdatedProjectiles[i].ContinualAcceleration * DeltaTime;
 			}			
 		}
+		else if (CurrentTime > UpdatedProjectiles[i].Lifespan + UpdatedProjectiles[i].SpawnTime)
+		{	// check lifespan cleanup for everyone			
+			UpdatedProjectiles[i].SpriteBody->PreCheckin();
+			// no longer needs update				
+			if (SpritePool.IsValid())
+			{
+				SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
+			}
+			else
+			{
+				UpdatedProjectiles[i].SpriteBody->DestroyComponent();
+			}
+			UpdatedProjectiles.RemoveAtSwap(i, 1, false);
+		}
 	}
-	// the order recorded in indicesToRemove is decreasing, we should be safe to assume the continual removal has no effect on indices recorded 
-
 }
 
-const int32 BIT_CHARGED = 128;
+const int32 BIT_CHARGED_GGRIFLE = 128;
 uint8 UGGReconRifleComponent::GetEncryptedAttackIdentifier(bool InIsCharged, uint8 AimLevel) const
 {
 	uint8 Index = bWeaponIsFiring ? WeaponAimLevel : AimLevel;
 	if (InIsCharged)
 	{
-		Index |= BIT_CHARGED;
+		Index |= BIT_CHARGED_GGRIFLE;
 	}
 	return Index;
 }
 
 void UGGReconRifleComponent::DecryptAttackIdentifier(const uint8 InIdentifier, bool & OutIsCharged, uint8 & OutAimLevel)
 {
-	OutIsCharged = !!(InIdentifier & BIT_CHARGED);
-	OutAimLevel = InIdentifier & (BIT_CHARGED - 1); // all the right bits
+	OutIsCharged = !!(InIdentifier & BIT_CHARGED_GGRIFLE);
+	OutAimLevel = InIdentifier & (BIT_CHARGED_GGRIFLE - 1); // all the right bits
 }
 
 bool UGGReconRifleComponent::GetOwnerGroundState() const
@@ -302,10 +287,10 @@ bool UGGReconRifleComponent::GetOwnerGroundState() const
 	return true;
 }
 
-const float SMALL_SPEED = 25.f;
+const float SMALL_SPEED_GGRIFLE = 25.f;
 bool UGGReconRifleComponent::IsOwnerMoving() const
 {
-	return FMath::Abs(GetOwner()->GetVelocity().Y) > SMALL_SPEED;
+	return FMath::Abs(GetOwner()->GetVelocity().Y) > SMALL_SPEED_GGRIFLE;
 }
 
 bool UGGReconRifleComponent::CanQueueShots()
