@@ -165,21 +165,23 @@ public:
     * TODO: enable information extraction from int32 DamageData, perhaps with a struct wrapper.
     */
     
-    //  Server function, called by the locally controlled client who identifies himself to have taken damage
-    UFUNCTION(reliable, Server, WithValidation, Category="GG|GGDamage")
+	void LocalReceiveDamage(int32 DamageData);
+	//  Server function, called by the locally controlled client who identifies himself to have taken damage
+private:
+	UFUNCTION(reliable, Server, WithValidation, Category="GG|GGDamage")
         void ServerReceiveDamage(int32 DamageData);
-        bool ServerReceiveDamage_Validate(int32 DamageData);
-        void ServerReceiveDamage_Implementation(int32 DamageData);
-    
-    //  Multicast function. called by server to let simulated proxies know this client has take damage
+	bool ServerReceiveDamage_Validate(int32 DamageData);
+    void ServerReceiveDamage_Implementation(int32 DamageData);
+       //  Multicast function. called by server to let simulated proxies know this client has take damage
     UFUNCTION(unreliable, NetMulticast, Category="GG|GGDamage")
         void MulticastReceiveDamage(int32 DamageData);
     void MulticastReceiveDamage_Implementation(int32 DamageData);
-    
+protected:
     virtual void ReceiveDamage(int32 DamageData);
     
     static FName BodyFlipbookComponentName;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
         UPaperFlipbookComponent* BodyFlipbookComponent;
-    
+public:
+	FTransform GetBodyTransform() const;
 };

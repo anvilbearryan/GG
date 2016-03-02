@@ -114,13 +114,12 @@ void UGGReconRifleComponent::InitiateAttack()
 		// if the ptr is valid, or not valid but set to be valid in Find
 		UGGPooledSpriteComponent* spriteInstance = SpritePool.Get()->CheckoutInstance();		
 		AGGCharacter* loc_Char = GetTypedOwner();
-		UPaperFlipbookComponent* loc_Flipbook = loc_Char->BodyFlipbookComponent;
-		if (LastUsedProjectileData && spriteInstance && loc_Char && loc_Flipbook)
+		if (LastUsedProjectileData && spriteInstance && loc_Char)
 		{
 			// initialize spriteInstance
 			spriteInstance->PreCheckout();
 			// set sprite transform, scale (face left / face right)  is copied from owning character's body directly
-			FTransform spriteTransform = loc_Flipbook->GetComponentToWorld();			
+			FTransform spriteTransform = loc_Char->GetBodyTransform();
 			FVector aimDirection = GetAimDirection(WeaponAimLevel);
 			if (aimDirection.Z != 0.f && LastUsedProjectileData->bVelocityDictatesRotation)
 			{

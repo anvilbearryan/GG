@@ -12,8 +12,6 @@ UGGNpcRangedAttackComponent::UGGNpcRangedAttackComponent()
 	// off to improve performance if you don't need them.
 	bWantsBeginPlay = false;
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 void UGGNpcRangedAttackComponent::LaunchProjectile(UGGProjectileData * InData, 

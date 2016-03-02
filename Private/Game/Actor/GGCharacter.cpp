@@ -355,6 +355,22 @@ FVector AGGCharacter::GetPlanarForwardVector() const
     return Right;
 }
 
+void AGGCharacter::LocalReceiveDamage(int32 DamageData)
+{
+	if (IsLocallyControlled())
+	{
+		ReceiveDamage(DamageData);
+		if (Role == ROLE_Authority)
+		{
+			MulticastReceiveDamage(DamageData);
+		}
+		else
+		{
+			ServerReceiveDamage(DamageData);
+		}
+	}
+}
+
 bool AGGCharacter::ServerReceiveDamage_Validate(int32 DamageData)
 {
     return true;
@@ -362,11 +378,9 @@ bool AGGCharacter::ServerReceiveDamage_Validate(int32 DamageData)
 
 void AGGCharacter::ServerReceiveDamage_Implementation(int32 DamageData)
 {
-    if (!IsLocallyControlled())
-    {
-        ReceiveDamage(DamageData);
-    }
-    MulticastReceiveDamage(DamageData);
+    
+	ReceiveDamage(DamageData);
+	MulticastReceiveDamage(DamageData);            
 }
 
 void AGGCharacter::MulticastReceiveDamage_Implementation(int32 DamageData)
@@ -380,9 +394,10 @@ void AGGCharacter::MulticastReceiveDamage_Implementation(int32 DamageData)
 void AGGCharacter::ReceiveDamage(int32 DamageData)
 {    
 	// chance here to do damage reduction and pasdive calculation
-    if (IsLocallyControlled())
-    {
-        ServerReceiveDamage(DamageData);
-    }
-	// Subclasses from here handles how to actually receive damage data
+    	
+}
+
+FTransform AGGCharacter::GetBodyTransform() const
+{
+	return !!BodyFlipbookComponent ? BodyFlipbookComponent->ComponentToWorld : FTransform();
 }
