@@ -20,17 +20,12 @@ void UGGDamageReceiveComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(UGGDamageReceiveComponent, Hp_Max);
 }
 
-int32 UGGDamageReceiveComponent::GetCurrentHp() const
-{
-	return Hp_Current;
-}
-
 void UGGDamageReceiveComponent::InitializeHpState()
 {
     Hp_Current = Hp_Max;
     Hp_CurrentEstimate = Hp_Current;
     Hp_Recoverable = Hp_Max;
-	SetActive(false);
+	SetComponentTickEnabled(false);
 }
 
 // Called every frame
@@ -45,7 +40,7 @@ void UGGDamageReceiveComponent::TickComponent( float DeltaTime, ELevelTick TickT
 	if (Hp_CurrentEstimate >= Hp_Recoverable)
     {
         Hp_Current = Hp_Recoverable;
-        SetActive(false);
+		SetComponentTickEnabled(false);
         if (Hp_Current == Hp_Max)
         {
             OnMaxedHp.Broadcast();
@@ -57,14 +52,7 @@ void UGGDamageReceiveComponent::TickComponent( float DeltaTime, ELevelTick TickT
     }
 }
 
-void UGGDamageReceiveComponent::HandleDamageData(int32 DamageData)
-{
-    FGGDamageInformation information = FGGDamageInformation::DecompressFromData(DamageData);
-    
-    ApplyDamageInformation(information);
-}
-
-void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageInformation& information)
+void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageReceivingInfo& information)
 {
     //  Set as decimal part of estimated hp
 	Hp_CurrentEstimate -= FMath::FloorToFloat(Hp_CurrentEstimate);;
@@ -86,6 +74,12 @@ void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageInformation& inf
     if (Hp_Current < Hp_Recoverable)
     {
         //  enable regen through tick
-		SetActive(true);
+		SetComponentTickEnabled(true);
     }
 }
+
+int32 UGGDamageReceiveComponent::GetCurrentHp() const
+{
+	return Hp_Current;
+}
+

@@ -34,6 +34,12 @@ public:
 		int32 Penetration;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		float Lifespan;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
+		int32 DirectionDamageLevel;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
+		int32 IndirectDamageLevel;
+	UPROPERTY(EditAnywhere)
+		TEnumAsByte<EGGDamageType::Type> Type;
 private:
 	FVector Gravity_Internal;
 	
@@ -43,5 +49,18 @@ public:
 	FORCEINLINE FVector GetGravityVector() const
 	{
 		return Gravity_Internal;
+	}
+	
+	FORCEINLINE int32 GetDirectDamageLevel()
+	{
+		return DirectionDamageLevel;
+	}
+	FORCEINLINE int32 GetIndirectDamageLevel()
+	{
+		return IndirectDamageLevel;
+	}
+	FORCEINLINE EGGDamageType::Type GetDamageType()
+	{
+		return Type;
 	}
 };

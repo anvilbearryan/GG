@@ -48,26 +48,7 @@ void UGGReconRifleComponent::LocalAttemptsAttack(bool InIsCharged, uint8 AimLeve
 
 void UGGReconRifleComponent::HitTarget(const FRangedHitNotify &InHitNotify)
 {
-	if (InHitNotify.HasValidData())
-	{
-		UE_LOG(GGMessage, Log, TEXT("calling receive damage to target"));
-		AGGMinionBase* loc_Minion = Cast<AGGMinionBase>(InHitNotify.Target);
-		if (loc_Minion)
-		{
-			FGGDamageInformation& loc_DmgInfo = loc_Minion->DamageNotify;
-			loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
-			loc_DmgInfo.IndirectValue = 0;
-			loc_DmgInfo.Type = InHitNotify.DamageCategory;
-			AGGCharacter* loc_Owner = GetTypedOwner();						
-			if (!!loc_Owner)
-			{
-				loc_DmgInfo.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(
-					loc_Minion->GetActorLocation() - InHitNotify.HitPosition);
-				loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
-			}
-			loc_Minion->ReceiveDamage(loc_DmgInfo);
-		}
-	}
+	Super::HitTarget(InHitNotify);
 }
 
 void UGGReconRifleComponent::PushAttackRequest()

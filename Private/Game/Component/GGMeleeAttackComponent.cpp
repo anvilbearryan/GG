@@ -4,6 +4,7 @@
 #include "Game/Component/GGMeleeAttackComponent.h"
 #include "Game/Actor/GGCharacter.h"
 #include "Net/UnrealNetwork.h"
+#include "Game/Actor/GGMinionBase.h"
 
 UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 {
@@ -30,7 +31,7 @@ void UGGMeleeAttackComponent::LocalHitTarget(const FMeleeHitNotify& InHitNotify)
 		{
 			//	If we are not server, also needs server to update to display effects 
 			ServerHitTarget(InHitNotify);
-		}		
+		}
 	}
 }
 
@@ -38,16 +39,52 @@ bool UGGMeleeAttackComponent::ServerHitTarget_Validate(FMeleeHitNotify OwnerHitN
 {
 	return true;
 }
-
+/** Only used if LocalHitTarget is called from a client */
 void UGGMeleeAttackComponent::ServerHitTarget_Implementation(FMeleeHitNotify OwnerHitNotify)
 {
 	// TODO Possibily some basic verification before caling HitTarget
 	HitTarget(OwnerHitNotify);
 }
-
+/** This method is called either on local owner or the server */
 void UGGMeleeAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 {
-	MostRecentHitNotify = InHitNotify;
+	if (InHitNotify.HasValidData()) 
+	{
+		MostRecentHitNotify = InHitNotify;
+		AGGMinionBase* loc_Minion = Cast<AGGMinionBase>(InHitNotify.Target);
+		if (loc_Minion)
+		{
+			FGGDamageDealingInfo loc_DmgInfo = TranslateNotify(InHitNotify);
+			if (GetOwnerRole() == ROLE_AutonomousProxy)
+			{
+				loc_Minion->ReceiveDamage(loc_DmgInfo);
+			}
+			else if (GetOwnerRole() == ROLE_Authority)
+			{
+				loc_Minion->MulticastReceiveDamage(loc_DmgInfo.GetCompressedData(), loc_DmgInfo.CauserPlayerState);
+			}
+		}
+	}
+}
+
+FGGDamageDealingInfo UGGMeleeAttackComponent::TranslateNotify(const FMeleeHitNotify& InHitNotify)
+{
+	// we trust InHitNotify has valid data at this point, as the caller should have exited if not
+	check(InHitNotify.HasValidData());
+	FGGDamageDealingInfo loc_DmgInfo;
+	loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
+	loc_DmgInfo.IndirectValue = 0;
+	loc_DmgInfo.Type = InHitNotify.DamageCategory;
+	AGGCharacter* loc_Owner = static_cast<AGGCharacter*>(GetOwner());
+	if (!!loc_Owner)
+	{
+		// We enter here already ensured target non-null
+		check(InHitNotify.Target != nullptr);
+		loc_DmgInfo.ImpactDirection = FGGDamageDealingInfo::ConvertDeltaPosition(
+			InHitNotify.Target->GetActorLocation() - GetOwner()->GetActorLocation());
+		loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
+	}
+	return loc_DmgInfo;
 }
 
 //********************************

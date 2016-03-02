@@ -34,8 +34,9 @@ void AGGShooterMinion::OnReachWalkingBound()
 	bReachedWalkingBound = true;
 }
 
-void AGGShooterMinion::ReceiveDamage(FGGDamageInformation & DamageInfo)
+void AGGShooterMinion::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 {
+	// takes care of damage receiving logic
 	Super::ReceiveDamage(DamageInfo);
 	// play damage taking event
 	FVector2D impactDirection = DamageInfo.GetImpactDirection();
@@ -53,7 +54,7 @@ void AGGShooterMinion::PlayDeathSequence()
 	UGGNpcLocomotionAnimComponent* animator = PrimitiveAnimator.Get();
 	if (flipbook && animator)
 	{
-		flipbook->SetFlipbook(animator->GetDeathFlipbook(DamageNotify.Type));
+		flipbook->SetFlipbook(animator->GetDeathFlipbook(Cache_DamageReceived.Type));
 		flipbook->SetLooping(false);
 		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGShooterMinion::CompleteDeath);
 		// plays death flipbook

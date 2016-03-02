@@ -7,18 +7,10 @@
 #include "GGMeleeAttackComponent.generated.h"
 
 /**
- * Base class representing a melee component, start with the simplest stab type with BP derived instance 
- * defining the trace area. Whole attack action with this component contains 3 stages, namely
- * StartUp, Active and Cooldown.
- * StartUp: broadcasts OnInitiateAttack delegate, supposingly this should makes the character immobile until  
- *			the move finishes caused by TimeLapsed passing the whole move duration.
- * Active:	during active, this component queries for overlap in tick, using the configured data in BP for 
- *			opposing entities. Results are added to an TArray for ignored entities.
- *			As such, we do not allow for multiple hit on same entity in same action.
- * Cooldown:Time at which this component does nothing, just ticking with TimeLapsed increment & wait for finish
- * The component does not check properly whether it is a local player, instead, whoever manages to call 
- * LocalInitiateAttack is considered as local player. In this project, it would be the owning player character
- * that has input enabled to reach this method.
+ *	Notifier struct sent around the network from owner to server who then uses it to generate the damage dealing struct
+ *	to actually do the damage to target minions on the network. The damage dealing struct contains the damage dealer's
+ *	APlayerState so that damage effect is not duplicated on the local owner who does the damage locally for immediate
+ *	response.
  */
 
 USTRUCT()
@@ -94,6 +86,7 @@ protected:
 	UFUNCTION()
 		virtual void HitTarget(const FMeleeHitNotify& InHitNotify);
 
+	virtual FGGDamageDealingInfo TranslateNotify(const FMeleeHitNotify& InHitNotify);
 	//********************************
 	// Launching attacks
 	UFUNCTION()

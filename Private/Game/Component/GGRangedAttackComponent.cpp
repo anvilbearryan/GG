@@ -3,7 +3,7 @@
 #include "GG.h"
 #include "Game/Component/GGRangedAttackComponent.h"
 #include "Game/Actor/GGCharacter.h"
-#include "Game/Component/GGDamageReceiveComponent.h"
+#include "Game/Actor/GGMinionBase.h"
 #include "Net/UnrealNetwork.h"
 
 UGGRangedAttackComponent::UGGRangedAttackComponent() : Super()
@@ -24,11 +24,14 @@ void UGGRangedAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 // Landing attacks
 void UGGRangedAttackComponent::LocalHitTarget(const FRangedHitNotify& InHitNotify)
 {
-	HitTarget(InHitNotify);
-	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	if (InHitNotify.HasValidData())
 	{
-		//	If we are not server, also needs server to update to display effects 
-		ServerHitTarget(InHitNotify);
+		HitTarget(InHitNotify);
+		if (GetOwnerRole() == ROLE_AutonomousProxy)
+		{
+			//	If we are not server, also needs server to update to display effects 
+			ServerHitTarget(InHitNotify);
+		}
 	}
 }
 
@@ -45,7 +48,40 @@ void UGGRangedAttackComponent::ServerHitTarget_Implementation(FRangedHitNotify L
 
 void UGGRangedAttackComponent::HitTarget(const FRangedHitNotify& InHitNotify)
 {
-	MostRecentHitNotify = InHitNotify;
+	if (InHitNotify.HasValidData())
+	{
+		MostRecentHitNotify = InHitNotify;
+		AGGMinionBase* loc_Minion = Cast<AGGMinionBase>(InHitNotify.Target);
+		if (loc_Minion)
+		{
+			FGGDamageDealingInfo loc_DmgInfo = TranslateNotify(InHitNotify);
+			if (GetOwnerRole() == ROLE_AutonomousProxy)
+			{
+				loc_Minion->ReceiveDamage(loc_DmgInfo);
+			}
+			else if (GetOwnerRole() == ROLE_Authority)
+			{
+				loc_Minion->MulticastReceiveDamage(loc_DmgInfo.GetCompressedData(), loc_DmgInfo.CauserPlayerState);
+			}
+		}
+	}
+}
+
+FGGDamageDealingInfo UGGRangedAttackComponent::TranslateNotify(const FRangedHitNotify& InHitNotify)
+{
+	// we trust InHitNotify has valid data at this point, as the caller should have exited if not
+	check(InHitNotify.HasValidData());
+	FGGDamageDealingInfo loc_DmgInfo;
+	loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
+	loc_DmgInfo.IndirectValue = 0;
+	loc_DmgInfo.Type = InHitNotify.DamageCategory;
+	AGGCharacter* loc_Owner = static_cast<AGGCharacter*>(GetOwner());
+	if (!!loc_Owner)
+	{
+		loc_DmgInfo.ImpactDirection = FGGDamageDealingInfo::ConvertDeltaPosition(InHitNotify.Target->GetActorLocation() - GetOwner()->GetActorLocation());
+		loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
+	}
+	return loc_DmgInfo;
 }
 
 //********************************

@@ -26,7 +26,7 @@ class UActorComponent;
 class UGGNpcLocomotionAnimComponent;
 class UGGAIMovementComponent;
 class UPaperFlipbookComponent;
-class UGGDamageReceiveComponent;
+class UGGNpcDamageReceiveComponent;
 
 UCLASS()
 class GG_API AGGMinionBase : public AActor
@@ -44,7 +44,7 @@ protected:
 	/** Defaults to the first flipbook component in the component hierarchy */
 	TWeakObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
 
-	TWeakObjectPtr<UGGDamageReceiveComponent> HealthComponent;
+	TWeakObjectPtr<UGGNpcDamageReceiveComponent> HealthComponent;
 	
 	TWeakObjectPtr<UGGCharacterSensingComponent> Sensor;
 
@@ -66,14 +66,11 @@ protected:
 	uint8 bReachedWalkingBound : 1;
 
 	//********************************
-	//	Damage notify state	
-public:
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_DamageNotify)
-		FGGDamageInformation DamageNotify;
+	//	Movement states    	
+	FGGDamageDealingInfo Cache_DamageReceived;
 
 	//********************************
 	//	Character sensing states	
-protected:
 	TWeakObjectPtr<AActor> Target;
 
 	//********************************
@@ -99,10 +96,11 @@ public:
 
 	//********************************
 	//	Damage interface	
+	UFUNCTION(NetMulticast, unreliable)
+		void MulticastReceiveDamage(uint32 Delta, APlayerState* InCauser);
+	void MulticastReceiveDamage_Implementation(uint32 Delta, APlayerState* InCauser);
 	UFUNCTION()
-		void OnRep_DamageNotify();
-	UFUNCTION()
-		virtual void ReceiveDamage(FGGDamageInformation& InDamageInfo);
+		virtual void ReceiveDamage(FGGDamageDealingInfo InDamageInfo);
 	UFUNCTION()
 		virtual void PlayDeathSequence();
 

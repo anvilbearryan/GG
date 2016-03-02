@@ -4,20 +4,18 @@
 #include "Game/Actor/GGCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Game/Component/GGCharacterMovementComponent.h"
-#include "Game/Component/GGAnimatorComponent.h"
 #include "PaperFlipbookComponent.h"
 
 FName AGGCharacter::BodyFlipbookComponentName(TEXT("BodyFlipbookComponent"));
+const FVector AGGCharacter::Right = FVector(0.f, 1.f, 0.f);
+const FVector AGGCharacter::Left = FVector(0.f, -1.f, 0.f);
 
-// Sets default values
 AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UGGCharacterMovementComponent>
 		(ACharacter::CharacterMovementComponentName))
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-	Right = FVector::RightVector;
-	Left = Right * -1.f;
+	PrimaryActorTick.bCanEverTick = true;	
     
     BodyFlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(AGGCharacter::BodyFlipbookComponentName);
     if (RootComponent)
@@ -33,23 +31,16 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(AGGCharacter, NormalWallJumpMaxHoldTimeLateral);
 }
 
-// Called when the game starts or when spawned
 void AGGCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();   
 }
 
-// Called every frame
 void AGGCharacter::Tick( float DeltaTime )
 {
     Super::Tick(DeltaTime);
-    /*
-	if (AnimatorComponent)
-    {
-        AnimatorComponent->ManualTick(DeltaTime);
-    }
-	*/
-	if (BodyFlipbookComponent)
+	
+	if (BodyFlipbookComponent && !bLockedFacing)
 	{
 		// turning sync
 		float YVel = GetVelocity().Y;
@@ -60,7 +51,9 @@ void AGGCharacter::Tick( float DeltaTime )
 	}
 }
 
-// Called to bind functionality to input
+//**************************
+
+// ****		Input		****
 void AGGCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
@@ -77,12 +70,55 @@ void AGGCharacter::SetupPlayerInputComponent(class UInputComponent* InputCompone
 
 void AGGCharacter::MoveRight(float AxisValue)
 {
-	AddMovementInput(Right, AxisValue);
+	if (bUseEnforcedMovement)
+	{
+		AddMovementInput(EnforcedMovementDirection, EnforcedMovementStrength);
+	}
+	else
+	{
+		AddMovementInput(Right, AxisValue);
+	}
 }
 
+void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bForce)
+{
+	//  We changes axis values from input based on wall jump condition
+	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
+	{
+		// cache non-zero input for possible retrievle
+		LastActualMovementInput = WorldDirection * ScaleValue;
+		if (CanWallJump())
+		{
+			if (bPressedWallJumpLeft)
+			{
+				ScaleValue = -1.f;
+			}
+			else if (bPressedWallJumpRight)
+			{
+				ScaleValue = 1.f;
+			}
+		}
+	}
+	else if (WallJumpLateralHoldTime < NormalWallJumpMinHoldTimeLateral)
+	{
+		if (bPressedWallJumpLeft)
+		{
+			ScaleValue = -1.f;
+		}
+		else if (bPressedWallJumpRight)
+		{
+			ScaleValue = 1.f;
+		}
+	}
+	Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
+}
+
+//**************************
+
+// ****	(Wall) Jump		****
 void AGGCharacter::Jump()
 {
-	if (!GetCharacterMovement())
+	if (!GetCharacterMovement() || bUseEnforcedMovement)
 	{
 		//	no character movement component
 		return;
@@ -171,8 +207,15 @@ bool AGGCharacter::IsJumpProvidingForce() const
 		&& JumpKeyHoldTime < (bModeWallJump ? GetWallJumpMaxHoldTimeVertical() : GetJumpMaxHoldTime());
 }
 
+//**************************
+
+// ****		Dash		****
 void AGGCharacter::Dash()
 {	
+	if (bUseEnforcedMovement)
+	{
+		return;
+	}
 	bIsDashKeyDown = true;
 	if (GetCharacterMovement() && GetCharacterMovement()->IsMovingOnGround())
 	{		
@@ -203,6 +246,9 @@ bool AGGCharacter::CanDashInternal_Implementation() const
 	return bPerformDashedAction && TimeDashedFor < GetDashMaxDuration();
 }
 
+//**************************
+
+// ****	Network movement****
 void AGGCharacter::CheckJumpInput(float DeltaTime)
 {
 	if (bPressedJump)
@@ -293,6 +339,9 @@ void AGGCharacter::ClearJumpInput()
 	}
 }
 
+//**************************
+
+// ****	Movement utility****
 float AGGCharacter::GetWallJumpMaxHoldTimeVertical() const
 {
 	return WallJumpMaxHoldTimeVertical;
@@ -313,88 +362,62 @@ float AGGCharacter::GetDashMaxDuration() const
 	return DashMaxDuration;
 }
 
-void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bForce)
-{
-    //  We changes axis values from input based on wall jump condition
-	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
-	{		
-		// cache non-zero input for possible retrievle
-		LastActualMovementInput = WorldDirection * ScaleValue;
-        if (CanWallJump())
-        {
-            if (bPressedWallJumpLeft)
-            {
-                ScaleValue = -1.f;
-            }
-            else if (bPressedWallJumpRight)
-            {
-                ScaleValue = 1.f;
-            }
-        }
-	}
-    else if (WallJumpLateralHoldTime < NormalWallJumpMinHoldTimeLateral)
-    {
-        if (bPressedWallJumpLeft)
-        {
-            ScaleValue = -1.f;
-        }
-        else if (bPressedWallJumpRight)
-        {
-            ScaleValue = 1.f;
-        }
-    }
-    Super::AddMovementInput(WorldDirection, ScaleValue, bForce);
-}
+//**************************
 
-FVector AGGCharacter::GetPlanarForwardVector() const
-{
-    if (BodyFlipbookComponent)
-    {
-        return BodyFlipbookComponent->RelativeScale3D.X < 0.f ? Left : Right;
-    }
-    return Right;
-}
-
-void AGGCharacter::LocalReceiveDamage(int32 DamageData)
+// ****		Damage		****
+void AGGCharacter::LocalReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {
 	if (IsLocallyControlled())
 	{
-		ReceiveDamage(DamageData);
+		ReceiveDamage(InDamageInfo);
 		if (Role == ROLE_Authority)
 		{
-			MulticastReceiveDamage(DamageData);
+			MulticastReceiveDamage(InDamageInfo.GetCompressedData());
 		}
 		else
 		{
-			ServerReceiveDamage(DamageData);
+			ServerReceiveDamage(InDamageInfo.GetCompressedData());
 		}
 	}
 }
 
-bool AGGCharacter::ServerReceiveDamage_Validate(int32 DamageData)
+bool AGGCharacter::ServerReceiveDamage_Validate(uint32 CompressedData)
 {
     return true;
 }
 
-void AGGCharacter::ServerReceiveDamage_Implementation(int32 DamageData)
-{
-    
-	ReceiveDamage(DamageData);
-	MulticastReceiveDamage(DamageData);            
+void AGGCharacter::ServerReceiveDamage_Implementation(uint32 CompressedData)
+{    
+	const FGGDamageReceivingInfo DamageInfo = FGGDamageReceivingInfo(CompressedData);
+	ReceiveDamage(DamageInfo);
+	MulticastReceiveDamage(CompressedData);
 }
 
-void AGGCharacter::MulticastReceiveDamage_Implementation(int32 DamageData)
+void AGGCharacter::MulticastReceiveDamage_Implementation(uint32 CompressedData)
 {
     if (Role == ROLE_SimulatedProxy)
     {
-        ReceiveDamage(DamageData);
+		const FGGDamageReceivingInfo DamageInfo = FGGDamageReceivingInfo(CompressedData);
+        ReceiveDamage(DamageInfo);
     }
 }
 
-void AGGCharacter::ReceiveDamage(int32 DamageData)
+void AGGCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {    
 	// chance here to do damage reduction and pasdive calculation
-    	
+    
+}
+
+//**************************
+
+// ****	General Utility	****
+FVector AGGCharacter::GetPlanarForwardVector() const
+{
+	if (BodyFlipbookComponent)
+	{
+		return BodyFlipbookComponent->RelativeScale3D.X < 0.f ? Left : Right;
+	}
+	return Right;
 }
 
 FTransform AGGCharacter::GetBodyTransform() const

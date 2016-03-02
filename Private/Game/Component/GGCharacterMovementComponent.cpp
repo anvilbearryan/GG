@@ -435,7 +435,9 @@ void UGGCharacterMovementComponent::HandleImpact(const FHitResult& Hit, float Ti
 	if (IsFalling())
 	{
 		//	IsFalling() does not mean Z velocity < 0, manual check
-		if (Velocity.Z < 0.f && Acceleration.Y * Hit.ImpactNormal.Y < 0.f)
+		AGGCharacter* ggChar = static_cast<AGGCharacter*>(CharacterOwner);
+		if (!ggChar->bUseEnforcedMovement &&
+			(Velocity.Z < 0.f && Acceleration.Y * Hit.ImpactNormal.Y < 0.f))
 		{			
 			bWantsWallSlide = 1;
 		}		

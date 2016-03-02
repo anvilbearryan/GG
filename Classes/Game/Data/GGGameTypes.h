@@ -3,7 +3,6 @@
 #pragma once
 
 #include "PaperFlipbook.h"
-#include "Game/Data/GGProjectileData.h"
 #include "GGGameTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -64,9 +63,10 @@ namespace EGGDamageType
 }
 
 USTRUCT(BlueprintType)
-struct FGGDamageInformation
+struct FGGDamageDealingInfo
 {
 	GENERATED_BODY()
+
 	// make it 10 with member0 == member5 so that they corresponds to numpad values and make sense
 	static const FVector2D Directions[10];
 	static const float HitMargin;
@@ -82,34 +82,16 @@ struct FGGDamageInformation
 		TEnumAsByte<EGGDamageType::Type> Type;
 	UPROPERTY()
 		APlayerState* CauserPlayerState;
-	FGGDamageInformation() {}
-
-	static FGGDamageInformation DecompressFromData(int32 DamageData)
-	{
-		FGGDamageInformation info = FGGDamageInformation();
-		const uint32 TypeBits = 15;
-		info.Type = (EGGDamageType::Type)(DamageData & TypeBits);
-
-		const uint32 ImpactDirectionBits = 15 << 4;
-		info.ImpactDirection = (DamageData & ImpactDirectionBits) >> 4;
-
-		const uint32 IndirectValueBits = 4095 << 8;
-		info.IndirectValue = (DamageData & IndirectValueBits) >> 8;
-
-		const uint32 DirectValueBits = 4095 << 20;
-		info.IndirectValue = (DamageData & DirectValueBits) >> 20;
-
-		return info;
-	}
+	
 	static uint8 ConvertDeltaPosition(const FVector& InDeltaPosition)
 	{
 		uint8 Out = 0;
-		if (InDeltaPosition.Z > FGGDamageInformation::HitMargin)
+		if (InDeltaPosition.Z > FGGDamageDealingInfo::HitMargin)
 		{
 			// case 123
 			Out = 7;
 		}
-		else if (InDeltaPosition.Z < -FGGDamageInformation::HitMargin)
+		else if (InDeltaPosition.Z < -FGGDamageDealingInfo::HitMargin)
 		{
 			// case 789
 			Out = 1;
@@ -119,11 +101,11 @@ struct FGGDamageInformation
 			// case 456
 			Out = 4;
 		}
-		if (InDeltaPosition.Y > FGGDamageInformation::HitMargin)
+		if (InDeltaPosition.Y > FGGDamageDealingInfo::HitMargin)
 		{
 			return Out;
 		}
-		else if (InDeltaPosition.Y < -FGGDamageInformation::HitMargin)
+		else if (InDeltaPosition.Y < -FGGDamageDealingInfo::HitMargin)
 		{
 			Out += 2;
 		}
@@ -133,18 +115,35 @@ struct FGGDamageInformation
 		}
 		return Out;
 	}
+	FGGDamageDealingInfo() {}
+	FGGDamageDealingInfo(uint32 DamageData, APlayerState* InPlayerState)
+	{		
+		const uint32 TypeBits = 15;
+		Type = (EGGDamageType::Type)(DamageData & TypeBits);
+
+		const uint32 ImpactDirectionBits = 15 << 4;
+		ImpactDirection = (DamageData & ImpactDirectionBits) >> 4;
+
+		const uint32 IndirectValueBits = 4095 << 8;
+		IndirectValue = (DamageData & IndirectValueBits) >> 8;
+
+		const uint32 DirectValueBits = 4095 << 20;
+		IndirectValue = (DamageData & DirectValueBits) >> 20;
+
+		CauserPlayerState = InPlayerState;
+	}
 	FVector2D GetImpactDirection()
 	{
 		if (ImpactDirection < 10)
 		{
-			return FGGDamageInformation::Directions[ImpactDirection];
+			return FGGDamageDealingInfo::Directions[ImpactDirection];
 		}
 		UE_LOG(GGWarning, Warning, TEXT("Invalid direction contained in DamageData struct! Array out of bounds!"));
 		return FVector2D();
 	}
-	int32 GetCompressedData()
+	uint32 GetCompressedData() const
 	{
-		int32 result = 0;
+		uint32 result = 0;
 		result |= DirectValue;
 		result = result << 12;
 		result |= IndirectValue;
@@ -156,22 +155,102 @@ struct FGGDamageInformation
 	}
 };
 
-/**
-******** BEGIN ANIMATION STATE MACHINE TYPES ********
-*/
-UENUM(BlueprintType)
-namespace EGGAnimationStateEndType
+USTRUCT(BlueprintType)
+struct FGGDamageReceivingInfo
 {
-	//  An entity may stay in the same animation state for longer than the duration of the animation itself, this enum denotes the choices of action in such scenario
-	enum Type
+	GENERATED_BODY()
+
+	// make it 10 with member0 == member5 so that they corresponds to numpad values and make sense
+	static const FVector2D Directions[10];
+	static const float HitMargin;
+	
+	// the default value of all types of damage if unspecified
+	static const int32 BasicDamageLevel = 100;
+	// Direct damage = the amount of red to red decrease in between taking damage
+	UPROPERTY(EditAnywhere)
+		int32 DirectValue;
+	// Indirect damage = the amount of red to green decrease in between taking damage
+	UPROPERTY(EditAnywhere)
+		int32 IndirectValue;
+	UPROPERTY()
+		uint8 ImpactDirection;
+	UPROPERTY(EditAnywhere)
+		TEnumAsByte<EGGDamageType::Type> Type;
+
+	static uint8 ConvertDeltaPosition(const FVector& InDeltaPosition)
 	{
-		Pause = 0,  // stay in the last frame of the animation, e.g. take damage, jumps
-		Loop = 1,   // loop..
-		Revert = 2, //  back to what we were previously doing, e.g. special idles, taunts
-		Exit = 3,   //  we quit this state with existing information to determine what follows
-		TYPES_COUNT
-	};
-}
+		uint8 Out = 0;
+		if (InDeltaPosition.Z > FGGDamageReceivingInfo::HitMargin)
+		{
+			// case 123
+			Out = 7;
+		}
+		else if (InDeltaPosition.Z < -FGGDamageReceivingInfo::HitMargin)
+		{
+			// case 789
+			Out = 1;
+		}
+		else
+		{
+			// case 456
+			Out = 4;
+		}
+		if (InDeltaPosition.Y > FGGDamageReceivingInfo::HitMargin)
+		{
+			return Out;
+		}
+		else if (InDeltaPosition.Y < -FGGDamageReceivingInfo::HitMargin)
+		{
+			Out += 2;
+		}
+		else
+		{
+			Out += 1;
+		}
+		return Out;
+	}
+	FGGDamageReceivingInfo() 
+	{
+		DirectValue = FGGDamageReceivingInfo::BasicDamageLevel;
+		IndirectValue = 0;
+		Type = EGGDamageType::Standard;
+	}
+	FGGDamageReceivingInfo(uint32 DamageData)
+	{
+		const uint32 TypeBits = 15;
+		Type = (EGGDamageType::Type)(DamageData & TypeBits);
+
+		const uint32 ImpactDirectionBits = 15 << 4;
+		ImpactDirection = (DamageData & ImpactDirectionBits) >> 4;
+
+		const uint32 IndirectValueBits = 4095 << 8;
+		IndirectValue = (DamageData & IndirectValueBits) >> 8;
+
+		const uint32 DirectValueBits = 4095 << 20;
+		IndirectValue = (DamageData & DirectValueBits) >> 20;
+	}
+	FVector2D GetImpactDirection()
+	{
+		if (ImpactDirection < 10)
+		{
+			return FGGDamageReceivingInfo::Directions[ImpactDirection];
+		}
+		UE_LOG(GGWarning, Warning, TEXT("Invalid direction contained in DamageData struct! Array out of bounds!"));
+		return FVector2D();
+	}
+	uint32 GetCompressedData() const
+	{
+		uint32 result = 0;
+		result |= DirectValue;
+		result = result << 12;
+		result |= IndirectValue;
+		result = result << 12;
+		result |= ImpactDirection;
+		result = result << 4;
+		result |= Type;
+		return result;
+	}
+};
 
 UENUM(BlueprintType)
 namespace EGGActionCategory
@@ -190,93 +269,6 @@ namespace EGGActionCategory
 		TYPES_COUNT
 	};
 }
-
-UENUM(BlueprintType)
-namespace EGGActionMode
-{
-	// used within Animator to represent which mode we are in, multiplied in determing the "specific category" state to be used
-	enum Type
-	{
-		Mode0 = 0,
-		Mode1 = 1,
-		Mode2 = 2,
-		Mode3 = 3,
-		Mode4 = 4,
-		Mode5 = 5,
-		Mode6 = 6,
-		Mode7 = 7,
-		TYPES_COUNT
-	};
-}
-
-/** A combination of ActionMode and blend space direction, use in Editor for configuration convinience */
-UENUM(BlueprintType)
-namespace EGGActionCategorySpecific
-{
-	// Specific states contains all combination of EGGActionMode and horizontal / vertical mode
-	enum Type
-	{
-		Mode0_Horizontal = 0,
-		Mode0_Vertical = 1,
-		Mode1_Horizontal = 2,
-		Mode1_Vertical = 3,
-		Mode2_Horizontal = 4,
-		Mode2_Vertical = 5,
-		Mode3_Horizontal = 6,
-		Mode3_Vertical = 7,
-		Mode4_Horizontal = 8,
-		Mode4_Vertical = 9,
-		Mode5_Horizontal = 10,
-		Mode5_Vertical = 11,
-		Mode6_Horizontal = 12,
-		Mode6_Vertical = 13,
-		Mode7_Horizontal = 14,
-		Mode7_Vertical = 15,
-		NotSpecified = 16,   // Case for which we should have information to figure out from elsewhere, specifically reserved
-		TYPES_COUNT = 17
-	};
-}
-
-/** 1D Digital blend space state */
-USTRUCT(BlueprintType)
-struct FGGAnimationState
-{
-	GENERATED_BODY()
-		/** Picker enum for convinience to replicate the blend spaces through an index, also indicates blend direction */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		TEnumAsByte<EGGActionCategorySpecific::Type> SecondaryState;
-	// Used to determine whether we should blend playback position when changing inter-state
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		uint8 bMustPlayTillEnd : 1;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		TEnumAsByte<EGGAnimationStateEndType::Type> StateEndType;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		UPaperFlipbook* NeutralFlipbook;
-	/** Leave empty (=null) if we do not wish to make this a blend-space state*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		UPaperFlipbook* PositiveFlipbook;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		UPaperFlipbook* NegativeFlipbook;
-
-	FORCEINLINE bool ShouldBlendHorizontal()
-	{
-		return (SecondaryState % 2) == 0;
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FGGAnimationStateArray
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		TEnumAsByte<EGGActionCategory::Type> PrimaryState;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		TArray<FGGAnimationState> States;
-};
-/**
-******** END ANIMATION STATE MACHINE TYPES ********
-*/
 
 /**
 ******** BEGIN ENEMY AI TYPES ********
@@ -376,6 +368,7 @@ struct FGGBox2D
 */
 
 class UGGPooledSpriteComponent;
+class UGGProjectileData;
 /** Contains information necessary in updating projectile's state and handling events*/
 USTRUCT()
 struct FLaunchedProjectile
@@ -405,20 +398,7 @@ struct FLaunchedProjectile
 		SpawnTime = 0;
 	}
 
-	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data, float time)
-		: LaunchDirection(direction), CurrentCollisionCount(0)
-	{
-		SpriteBody = body;
-		ProjectileData = data;
-		if (data != nullptr)
-		{
-			ContinualAcceleration = data->GetGravityVector();
-			ContinualAcceleration.Y = FMath::Sign(LaunchDirection.Y) * ContinualAcceleration.Y;
-			CurrentVelocity = LaunchDirection * data->LaunchSpeed;
-			SpawnTime = time;
-			Lifespan = data->Lifespan;
-		}
-	}
+	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data, float time);	
 };
 
 UCLASS()

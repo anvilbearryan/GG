@@ -168,14 +168,14 @@ UGGLocomotionAnimComponent* AGGReconCharacter::GetActiveLocAnimComponent() const
 	return LocomotionAnimComponent_Neutral.Get();
 }
 
-void AGGReconCharacter::ReceiveDamage(int32 DamageData)
+void AGGReconCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {
-	Super::ReceiveDamage(DamageData);
+	Super::ReceiveDamage(InDamageInfo);
 	// ask damage receiving component to handle it
 	UGGDamageReceiveComponent* loc_Hp = HealthComponent.Get();
 	if (loc_Hp)
 	{
-		loc_Hp->HandleDamageData(DamageData);
+		//loc_Hp->HandleDamageData(DamageData);
 	}
 	// should flash flipbook component
 }
@@ -245,6 +245,7 @@ void AGGReconCharacter::AddAimInput(float ScaleValue)
 		InputAimLevel_RepQuan = locProposedAimLevel;
 	}
 }
+
 bool AGGReconCharacter::ServerUpdateAim_Validate(uint8 NewAimLevel)
 {
 	return true;
@@ -257,6 +258,11 @@ void AGGReconCharacter::ServerUpdateAim_Implementation(uint8 NewAimLevel)
 
 void AGGReconCharacter::OnPressedAttack()
 {
+	if (bUseEnforcedMovement)
+	{
+		return;
+	}
+	
 	UGGReconRifleComponent* loc_RifleComponent = RifleComponent.Get();
 	if (loc_RifleComponent)
 	{

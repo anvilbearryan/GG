@@ -51,7 +51,7 @@ public:
 	UGGLocomotionAnimComponent* GetActiveLocAnimComponent() const;
 
 	// Recon character passive: dodge
-	virtual void ReceiveDamage(int32 DamageData) override;
+	virtual void ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo) override;
 	
 	UFUNCTION()
 		void OnBeginShoot();

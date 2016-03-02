@@ -5,7 +5,7 @@
 #include "Game/Component/GGCharacterSensingComponent.h"
 #include "Game/Component/GGAIMovementComponent.h"
 #include "PaperFlipbookComponent.h"
-#include "Game/Component/GGDamageReceiveComponent.h"
+#include "Game/Component/GGNpcDamageReceiveComponent.h"
 #include "Game/Component/GGNpcLocomotionAnimComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -25,8 +25,6 @@ AGGMinionBase::AGGMinionBase()
 void AGGMinionBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AGGMinionBase, DamageNotify);
 	DOREPLIFETIME(AGGMinionBase, ActionState);
 }
 
@@ -43,11 +41,10 @@ void AGGMinionBase::PostInitializeComponents()
 
 	FlipbookComponent = FindComponentByClass<UPaperFlipbookComponent>();    
 
-	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
+	HealthComponent = FindComponentByClass<UGGNpcDamageReceiveComponent>();
 	if (HealthComponent.IsValid())
 	{
-		HealthComponent.Get()->InitializeHpState();
-		HealthComponent.Get()->OnZeroedHp.AddDynamic(this, &AGGMinionBase::PlayDeathSequence);
+		HealthComponent.Get()->InitializeHpState();		
 	}
 
 	/** Bind pawn sensing delegates */
@@ -105,19 +102,20 @@ void AGGMinionBase::OnReachWalkingBound()
 
 //********************************
 //	Damage interface
-void AGGMinionBase::OnRep_DamageNotify()
+void AGGMinionBase::MulticastReceiveDamage_Implementation(uint32 Data, APlayerState* InCauser)
 {
 	// the local causer do not rely on the OnRep to display the damage, hence the check for duplication
 	// suffice as the server does not fire OnReps
 	APlayerController* localPlayerController = GetWorld()->GetFirstPlayerController();
-	if (localPlayerController && DamageNotify.CauserPlayerState != localPlayerController->PlayerState)
+	if (localPlayerController && InCauser != localPlayerController->PlayerState)
 	{
-		ReceiveDamage(DamageNotify);
+		ReceiveDamage(FGGDamageDealingInfo(Data, InCauser));
 	}
 }
 
-void AGGMinionBase::ReceiveDamage(FGGDamageInformation& DamageInfo)
+void AGGMinionBase::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 {
+	Cache_DamageReceived = DamageInfo;
 	if (HealthComponent.IsValid())
 	{
 		HealthComponent.Get()->ApplyDamageInformation(DamageInfo);

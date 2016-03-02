@@ -7,14 +7,68 @@
 UGGNpcCollisionBoxComponent::UGGNpcCollisionBoxComponent()
 {
 	bGenerateOverlapEvents = true;
+	PrimaryComponentTick.bCanEverTick = true;
+	bReplicates = false;
+}
 
+void UGGNpcCollisionBoxComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+	OnComponentBeginOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::BeginOverlapToggle);
+	OnComponentEndOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::EndOverlapToggle);
+}
+
+void UGGNpcCollisionBoxComponent::BeginOverlapToggle(AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+	AGGCharacter* OtherCharacter = Cast<AGGCharacter>(OtherActor);
+	if (OtherCharacter && OtherCharacter->IsLocallyControlled()) 
+	{		
+		SetActive(true);
+		// continually check for overlap so we don't miss any damage dealing chances
+		OverlappeddCharacter = OtherCharacter;
+		OverlappedCharacterHitbox = OtherComp;
+		OnOverlapCharacter(OtherCharacter);
+	}
+}
+
+void UGGNpcCollisionBoxComponent::EndOverlapToggle(AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
+{
+	AGGCharacter* OtherCharacter = Cast<AGGCharacter>(OtherActor);
+	if (OtherCharacter && OtherCharacter->IsLocallyControlled())
+	{
+		OverlappeddCharacter = nullptr;
+		OverlappedCharacterHitbox = nullptr;
+		SetActive(false);
+	}
 }
 
 void UGGNpcCollisionBoxComponent::OnOverlapCharacter(AGGCharacter* InCharacter)
 {
-	if (InCharacter)
+	if (IsActive() && InCharacter)
 	{
 		// take damage
-		InCharacter->LocalReceiveDamage(0);
+		FGGDamageReceivingInfo info;
+		info.DirectValue = FMath::RoundToInt(info.DirectValue * CollisionDamageStrength_Multiplicative) 
+			+ CollisionDamageStrength_Additive;
+		info.ImpactDirection = FGGDamageReceivingInfo::ConvertDeltaPosition(
+			InCharacter->GetActorLocation() - GetComponentLocation());
+		InCharacter->LocalReceiveDamage(info);
+	}
+}
+
+void UGGNpcCollisionBoxComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (OverlappedCharacterHitbox.IsValid())
+	{
+		// double-check the overlap
+		if (IsOverlappingComponent(OverlappedCharacterHitbox.Get()))
+		{
+			// mess with OtherCharacter.Get()
+		}
+	}
+	else
+	{
+		SetActive(false);
 	}
 }

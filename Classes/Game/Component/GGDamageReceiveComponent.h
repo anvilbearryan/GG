@@ -43,13 +43,9 @@ public:
 	// Called every frame
 	virtual void TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction ) override;
 
-    /** Entry method for other classes to call, translates the received compressed data to FGGDamageInformation for handling */
-    UFUNCTION()
-		void HandleDamageData(int32 DamageData);
-
     /**  Process damage information struct into this entity */
     UFUNCTION()
-		void ApplyDamageInformation(FGGDamageInformation& information);
+		void ApplyDamageInformation(FGGDamageReceivingInfo& information);
 
 	/** Handy hp getter */
 	UFUNCTION(BlueprintPure, BlueprintCallable, Category = "GG|Damage")

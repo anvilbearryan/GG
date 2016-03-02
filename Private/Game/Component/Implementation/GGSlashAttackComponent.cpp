@@ -65,28 +65,12 @@ void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsCharged, bool InIsMob
 	}
 }
 
-/** Function is called on both causer client and the server */
+/**  */
 void UGGSlashAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 {
-	if (InHitNotify.HasValidData())
-	{
-		UE_LOG(GGMessage, Log, TEXT("calling receive damage to target"));
-		AGGMinionBase* loc_Minion = Cast<AGGMinionBase>(InHitNotify.Target);
-		if (loc_Minion)
-		{
-			FGGDamageInformation& loc_DmgInfo = loc_Minion->DamageNotify;
-			loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
-			loc_DmgInfo.IndirectValue = 0;
-			loc_DmgInfo.Type = InHitNotify.DamageCategory;						
-			AGGCharacter* loc_Owner= static_cast<AGGCharacter*>(GetOwner());
-			if (!!loc_Owner)
-			{
-				loc_DmgInfo.ImpactDirection = FGGDamageInformation::ConvertDeltaPosition(loc_Minion->GetActorLocation() - GetOwner()->GetActorLocation());
-				loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
-			}			
-			loc_Minion->ReceiveDamage(loc_DmgInfo);
-		}
-	}	
+	// base class method deals with the damage dealing logic
+	Super::HitTarget(InHitNotify);
+	// subclass overrides primarily for additional visual effects that should be played, note function is called only on causer client and the server		
 }
 
 void UGGSlashAttackComponent::PushAttackRequest()

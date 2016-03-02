@@ -78,7 +78,7 @@ public:
 
 	virtual void OnReachWalkingBound() override;
 	
-	virtual void ReceiveDamage(FGGDamageInformation& DamageInfo) override;
+	virtual void ReceiveDamage(FGGDamageDealingInfo DamageInfo) override;
 	virtual void PlayDeathSequence() override;
 	UFUNCTION()
 		void CompleteDeath();
@@ -116,6 +116,4 @@ public:
 	void SequenceTurnFacingDirection(float TotalTimeToTake, float FlipDelay);
 	UFUNCTION()
 		void FlipFlipbookComponent();
-	
-
 };

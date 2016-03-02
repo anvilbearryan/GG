@@ -61,10 +61,6 @@ public:
 
 	UGGRangedAttackComponent();
 
-	//============
-	// Netwokring interface
-	//============
-
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
@@ -85,6 +81,7 @@ protected:
 	UFUNCTION()
 		virtual void HitTarget(const FRangedHitNotify &InHitNotify);
 
+	virtual FGGDamageDealingInfo TranslateNotify(const FRangedHitNotify& InHitNotify);
 	//********************************
 	// Launching attacks
 	

@@ -91,14 +91,14 @@ void AGGAssaultCharacter::Tick(float DeltaSeconds)
 	}
 }
 
-void AGGAssaultCharacter::ReceiveDamage(int32 DamageData)
+void AGGAssaultCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {
-	Super::ReceiveDamage(DamageData);
+	Super::ReceiveDamage(InDamageInfo);
 	// ask damage receiving component to handle it
 	UGGDamageReceiveComponent* loc_Hp = HealthComponent.Get();
 	if (loc_Hp)
 	{
-		loc_Hp->HandleDamageData(DamageData);
+
 	}
 	// should flash flipbook component
 }
@@ -144,6 +144,10 @@ void AGGAssaultCharacter::OnFinishWeaponEffectAnimation()
 
 void AGGAssaultCharacter::OnPressedAttack()
 {
+	if (bUseEnforcedMovement)
+	{
+		return;
+	}
 	UGGSlashAttackComponent* loc_AttackComponent = NormalSlashAttackComponent.Get();
 	if (loc_AttackComponent && GetCharacterMovement())
 	{

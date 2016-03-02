@@ -38,7 +38,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	// Assault character passive: no interrupt
-	virtual void ReceiveDamage(int32 DamageData) override;
+	virtual void ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo) override;
 
 	UFUNCTION()
 		void OnUseSlashAttack();

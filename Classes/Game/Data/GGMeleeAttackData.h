@@ -57,7 +57,11 @@ private:
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
 		UPaperFlipbook* EffectAnimation;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
-		FGGDamageInformation DamageData;
+		int32 DirectionDamageLevel;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
+		int32 IndirectDamageLevel;
+	UPROPERTY(EditAnywhere)
+		TEnumAsByte<EGGDamageType::Type> Type;
 	/** Private caches for state calculation through TimeStamp arguement */
 	float SumActiveDuration;
 	float TimeMark_EndStartup;
@@ -152,11 +156,16 @@ public:
 		return EffectAnimation;
 	}
 
-	/** Copy this DataAsset's damage information to the supplied reference */
-	FORCEINLINE void GetDamageInformation(FGGDamageInformation& OutDamageInformation) const
+	FORCEINLINE int32 GetDirectDamageLevel()
 	{
-		OutDamageInformation.IndirectValue = DamageData.IndirectValue;
-		OutDamageInformation.Type = DamageData.Type;
-		OutDamageInformation.DirectValue = DamageData.DirectValue;
+		return DirectionDamageLevel;
+	}
+	FORCEINLINE int32 GetIndirectDamageLevel()
+	{
+		return IndirectDamageLevel;
+	}
+	FORCEINLINE EGGDamageType::Type GetDamageType()
+	{
+		return Type;
 	}
 };
