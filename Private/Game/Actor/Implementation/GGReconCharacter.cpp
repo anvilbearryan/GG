@@ -228,6 +228,10 @@ void AGGReconCharacter::OnFinishWeaponEffectAnimation()
 
 void AGGReconCharacter::AddAimInput(float ScaleValue)
 {
+	if (bActionInputDisabled)
+	{
+		return;
+	}
 	uint8 locProposedAimLevel = 0;
 	if (ScaleValue > SMALL_DECIMAL_RECON)
 	{
@@ -263,7 +267,7 @@ void AGGReconCharacter::ServerUpdateAim_Implementation(uint8 NewAimLevel)
 
 void AGGReconCharacter::OnPressedAttack()
 {
-	if (bUseEnforcedMovement)
+	if (bActionInputDisabled)
 	{
 		return;
 	}

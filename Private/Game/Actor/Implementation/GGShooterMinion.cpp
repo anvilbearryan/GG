@@ -9,6 +9,7 @@
 #include "Game/Component/GGNpcRangedAttackComponent.h"
 #include "Game/Data/GGProjectileData.h"
 #include "Game/Framework/GGGameState.h"
+#include "Game/Component/GGFlipbookFlashHandler.h"
 
 void AGGShooterMinion::PostInitializeComponents()
 {
@@ -27,6 +28,12 @@ void AGGShooterMinion::PostInitializeComponents()
 	{
 		AttackProjectileData->RecalculateCaches();
 	}
+
+	FlashHandler = FindComponentByClass<UGGFlipbookFlashHandler>();
+	if (FlashHandler.IsValid())
+	{
+		UE_LOG(GGMessage, Log, TEXT("%s has no flashy flipbook handler"), *GetName());
+	}
 }
 
 void AGGShooterMinion::OnReachWalkingBound()
@@ -38,6 +45,7 @@ void AGGShooterMinion::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 {
 	// takes care of damage receiving logic
 	Super::ReceiveDamage(DamageInfo);
+	UE_LOG(GGMessage, Log, TEXT("%s receive damage"), *GetName());
 	// play damage taking event
 	FVector2D impactDirection = DamageInfo.GetImpactDirection();
 	float forwardY = GetPlanarForwardVector().Y;
@@ -45,6 +53,11 @@ void AGGShooterMinion::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 	if (impactDirection.X * forwardY > 0.f)
 	{
 		FlipFlipbookComponent();
+	}
+	if (FlashHandler.IsValid())
+	{
+		UE_LOG(GGMessage, Log, TEXT("%s Flashes"), *GetName());
+		FlashHandler.Get()->SetFlashSchedule(FlipbookComponent.Get(), SecondsFlashesOnReceiveDamage);
 	}
 }
 

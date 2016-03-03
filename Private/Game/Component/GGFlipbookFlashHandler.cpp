@@ -22,10 +22,12 @@ void UGGFlipbookFlashHandler::SetFlashSchedule(UPaperFlipbookComponent* InUpdate
 		Timemark = 0.f;
 		FrameCount = 0;
 		SetActive(true);
+		SetComponentTickEnabled(true);
 	}
 	else
 	{
 		SetActive(false);
+		SetComponentTickEnabled(true);
 	}
 }
 

@@ -134,7 +134,7 @@ void AGGAssaultCharacter::OnFinishWeaponEffectAnimation()
 
 void AGGAssaultCharacter::OnPressedAttack()
 {
-	if (bUseEnforcedMovement)
+	if (bActionInputDisabled)
 	{
 		return;
 	}

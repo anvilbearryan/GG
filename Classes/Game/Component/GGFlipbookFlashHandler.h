@@ -6,14 +6,13 @@
 #include "GGFlipbookFlashHandler.generated.h"
 
 class UPaperFlipbookComponent;
-UCLASS()
+UCLASS(meta = (BlueprintSpawnableComponent))
 class GG_API UGGFlipbookFlashHandler : public UActorComponent
 {
 	GENERATED_BODY()
 
 protected:
-	TWeakObjectPtr<UPaperFlipbookComponent> UpdatedComponent;
-	
+	TWeakObjectPtr<UPaperFlipbookComponent> UpdatedComponent;	
 	float Timemark;
 	float Duration;
 	uint32 FrameCount;

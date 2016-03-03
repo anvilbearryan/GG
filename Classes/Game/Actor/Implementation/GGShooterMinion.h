@@ -7,6 +7,7 @@
 
 class UGGNpcRangedAttackComponent;
 class UGGProjectileData;
+class UGGFlipbookFlashHandler;
 
 UCLASS()
 class GG_API AGGShooterMinion : public AGGMinionBase
@@ -14,7 +15,10 @@ class GG_API AGGShooterMinion : public AGGMinionBase
 	GENERATED_BODY()
 
 public:
-	
+
+	// ********************************
+	// Patrol properties 	
+
 	/** Patrol properties
 	*	A "patrol" is the action of wandering without a specific target.
 	*	In a patrol, the entity travels in the same direction until it reaches a wall where it can no longer go forward.
@@ -38,7 +42,10 @@ public:
 	UPROPERTY(Category = "GGAI|PrepareAttack", EditAnywhere)
 		float TurnPauseAim;
 
-	/** Evasion phase properties */
+	// ********************************
+
+	// Evasion properties 	
+
 	// Range to trigger evasion, should be smaller than EvadeSafeRange
 	UPROPERTY(Category = "GGAI|Evade", EditAnywhere)
 		FVector2D EvasionTriggerRange;
@@ -49,8 +56,11 @@ public:
 		float TurnPauseEvade;
 	uint32 bIsInActiveEvasionMode : 1;
 	float TimeEvadedFor;
-
-	/** Attack properties */	
+	
+	// ********************************
+	
+	// Attack properties 		
+	
 	// = Duration of Evasion phase
 	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
 		float AttackCooldown;
@@ -73,6 +83,14 @@ public:
 	/** This action handle controls possible interrupts, this way no matter what state we are in we only need to clear this timer */
 	FTimerHandle ActionHandle;
 	int32 CurrentAttackCount;
+
+	// ********************************
+	
+	// Receive damage properties 	
+	// TODO: Do minions have damage immune?
+	UPROPERTY(EditAnywhere, Category = "GG|Damage")
+		float SecondsFlashesOnReceiveDamage;
+	TWeakObjectPtr<UGGFlipbookFlashHandler> FlashHandler;
 
 	virtual void PostInitializeComponents() override;
 

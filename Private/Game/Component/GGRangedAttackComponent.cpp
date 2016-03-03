@@ -2,7 +2,6 @@
 
 #include "GG.h"
 #include "Game/Component/GGRangedAttackComponent.h"
-#include "Game/Actor/GGCharacter.h"
 #include "Game/Actor/GGMinionBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -55,11 +54,12 @@ void UGGRangedAttackComponent::HitTarget(const FRangedHitNotify& InHitNotify)
 		if (loc_Minion)
 		{
 			FGGDamageDealingInfo loc_DmgInfo = TranslateNotify(InHitNotify);
-			if (GetOwnerRole() == ROLE_AutonomousProxy)
+			APawn* loc_Owner = static_cast<APawn*>(GetOwner());
+			if (loc_Owner->IsLocallyControlled())
 			{
 				loc_Minion->ReceiveDamage(loc_DmgInfo);
 			}
-			else if (GetOwnerRole() == ROLE_Authority)
+			if (GetOwnerRole() == ROLE_Authority)
 			{
 				loc_Minion->MulticastReceiveDamage(loc_DmgInfo.GetCompressedData(), loc_DmgInfo.CauserPlayerState);
 			}
@@ -75,7 +75,7 @@ FGGDamageDealingInfo UGGRangedAttackComponent::TranslateNotify(const FRangedHitN
 	loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
 	loc_DmgInfo.IndirectValue = 0;
 	loc_DmgInfo.Type = InHitNotify.DamageCategory;
-	AGGCharacter* loc_Owner = static_cast<AGGCharacter*>(GetOwner());
+	APawn* loc_Owner = static_cast<APawn*>(GetOwner());
 	if (!!loc_Owner)
 	{
 		loc_DmgInfo.ImpactDirection = FGGDamageDealingInfo::ConvertDeltaPosition(InHitNotify.Target->GetActorLocation() - GetOwner()->GetActorLocation());
