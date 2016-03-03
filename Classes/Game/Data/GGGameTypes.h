@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "PaperFlipbook.h"
 #include "GGGameTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -229,7 +228,7 @@ struct FGGDamageReceivingInfo
 		const uint32 DirectValueBits = 4095 << 20;
 		IndirectValue = (DamageData & DirectValueBits) >> 20;
 	}
-	FVector2D GetImpactDirection()
+	FVector2D GetImpactDirection() const
 	{
 		if (ImpactDirection < 10)
 		{

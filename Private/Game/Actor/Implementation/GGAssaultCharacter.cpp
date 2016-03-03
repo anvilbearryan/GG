@@ -4,7 +4,7 @@
 #include "Game/Actor/Implementation/GGAssaultCharacter.h"
 #include "Game/Component/Implementation/GGSlashAttackComponent.h"
 #include "Game/Component/Implementation/GGLocomotionAnimComponent.h"
-#include "Game/Component/GGDamageReceiveComponent.h"
+
 #include "PaperFlipbookComponent.h"
 
 FName AGGAssaultCharacter::WeaponEffectComponentName = TEXT("WeaponEffectComponent");
@@ -30,10 +30,9 @@ void AGGAssaultCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();	
 
 	NormalSlashAttackComponent = FindComponentByClass<UGGSlashAttackComponent>();
-	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
+	
 	LocomotionAnimComponent = FindComponentByClass<UGGLocomotionAnimComponent>();
 	/** TODO: handle game save loading */
-
 	
 	UGGSlashAttackComponent* loc_SlashComp = NormalSlashAttackComponent.Get();
 	if (loc_SlashComp)
@@ -47,11 +46,7 @@ void AGGAssaultCharacter::PostInitializeComponents()
 	{
 		WeaponEffectComponent->OnFinishedPlaying.AddDynamic(this, &AGGAssaultCharacter::OnFinishWeaponEffectAnimation);
 	}
-	/** Apply saved data to components*/
-	if (HealthComponent.IsValid())
-	{
-		HealthComponent.Get()->InitializeHpState();
-	}
+	/** Apply saved data to components*/	
 }
 
 void AGGAssaultCharacter::Tick(float DeltaSeconds)
@@ -93,14 +88,9 @@ void AGGAssaultCharacter::Tick(float DeltaSeconds)
 
 void AGGAssaultCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {
-	Super::ReceiveDamage(InDamageInfo);
-	// ask damage receiving component to handle it
-	UGGDamageReceiveComponent* loc_Hp = HealthComponent.Get();
-	if (loc_Hp)
-	{
-
-	}
-	// should flash flipbook component
+	// base class method takes care of applying the damage information and flashese the body flipbook
+	Super::ReceiveDamage(InDamageInfo);	
+	// AssaultCharacters do not recoil, return
 }
 
 void AGGAssaultCharacter::OnUseSlashAttack()

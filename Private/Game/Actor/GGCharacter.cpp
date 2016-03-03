@@ -5,8 +5,11 @@
 #include "Net/UnrealNetwork.h"
 #include "Game/Component/GGCharacterMovementComponent.h"
 #include "PaperFlipbookComponent.h"
+#include "Game/Component/GGFlipbookFlashHandler.h"
+#include "Game/Component/GGDamageReceiveComponent.h"
 
 FName AGGCharacter::BodyFlipbookComponentName(TEXT("BodyFlipbookComponent"));
+FName AGGCharacter::FlipbookFlashHandlerName(TEXT("FlipbookFlashHandler"));
 const FVector AGGCharacter::Right = FVector(0.f, 1.f, 0.f);
 const FVector AGGCharacter::Left = FVector(0.f, -1.f, 0.f);
 
@@ -22,6 +25,14 @@ AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
     {
         BodyFlipbookComponent->AttachTo(RootComponent);
     }
+
+	FlipbookFlashHandler = CreateDefaultSubobject<UGGFlipbookFlashHandler>(AGGCharacter::FlipbookFlashHandlerName);
+
+	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
+	if (HealthComponent.IsValid())
+	{
+		HealthComponent.Get()->InitializeHpState();
+	}
 }
 
 void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -33,7 +44,19 @@ void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 void AGGCharacter::PostInitializeComponents()
 {
-	Super::PostInitializeComponents();   
+	Super::PostInitializeComponents();
+	if (BodyFlipbookComponent == nullptr)
+	{
+		UE_LOG(GGWarning, Warning, TEXT("No Flipbook component on character"));
+	}
+	if (FlipbookFlashHandler == nullptr)
+	{
+		UE_LOG(GGWarning, Warning, TEXT("No FlipbookFlashHandler on character"));
+	}
+	else
+	{
+		FlipbookFlashHandler->SetActive(false);
+	}
 }
 
 void AGGCharacter::Tick( float DeltaTime )
@@ -118,7 +141,7 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
 // ****	(Wall) Jump		****
 void AGGCharacter::Jump()
 {
-	if (!GetCharacterMovement() || bUseEnforcedMovement)
+	if (!GetCharacterMovement() || bUseEnforcedMovement || bActionInputDisabled)
 	{
 		//	no character movement component
 		return;
@@ -212,7 +235,7 @@ bool AGGCharacter::IsJumpProvidingForce() const
 // ****		Dash		****
 void AGGCharacter::Dash()
 {	
-	if (bUseEnforcedMovement)
+	if (bUseEnforcedMovement || bActionInputDisabled)
 	{
 		return;
 	}
@@ -367,7 +390,8 @@ float AGGCharacter::GetDashMaxDuration() const
 // ****		Damage		****
 void AGGCharacter::LocalReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {
-	if (IsLocallyControlled())
+	if (IsLocallyControlled() && 
+		!FlipbookFlashHandler->IsActive()) // ugly damage immunity check
 	{
 		ReceiveDamage(InDamageInfo);
 		if (Role == ROLE_Authority)
@@ -404,8 +428,40 @@ void AGGCharacter::MulticastReceiveDamage_Implementation(uint32 CompressedData)
 
 void AGGCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {    
-	// chance here to do damage reduction and pasdive calculation
-    
+	// damage applying calculation
+	if (HealthComponent.IsValid())
+	{
+		HealthComponent.Get()->ApplyDamageInformation(InDamageInfo);
+	}
+	// flash flipbook
+	if (FlipbookFlashHandler) 
+	{
+		FlipbookFlashHandler->SetFlashSchedule(BodyFlipbookComponent, SecondsImmuneOnReceiveDamage);
+	}
+	// interrupt
+	if (SecondsDisabledOnReceiveDamage > 0.f) 
+	{
+		bUseEnforcedMovement = true;
+		bActionInputDisabled = true;
+		StopJumping();
+		StopDashing();		
+		GetWorld()->GetTimerManager().SetTimer(DamageReactHandle, this,
+			&AGGCharacter::OnCompleteDamageReceiveReaction, SecondsDisabledOnReceiveDamage);
+	}
+	else
+	{
+		OnCompleteDamageReceiveReaction();
+	}
+}
+
+//**************************
+
+// ****	Damage reaction	****
+void AGGCharacter::OnCompleteDamageReceiveReaction()
+{
+	bUseEnforcedMovement = false;
+	bActionInputDisabled = false;
+	EnforcedMovementStrength = 0.f;
 }
 
 //**************************

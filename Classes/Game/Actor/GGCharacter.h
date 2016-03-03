@@ -8,6 +8,8 @@
 
 /** TODO: create interface for clients to set server data from game save */
 class UPaperFlipbookComponent;
+class UGGDamageReceiveComponent;
+class UGGFlipbookFlashHandler;
 
 UCLASS()
 class GG_API AGGCharacter : public ACharacter
@@ -162,12 +164,9 @@ public:
     * to deal damage to, which will be here for the case of character. Consequently, the AActor level object (Character)
     * passes on such an event to the damage handling component, networked.
     * TODO: enable information extraction from int32 DamageData, perhaps with a struct wrapper.
-    */
-    
-	uint8 bLockedFacing : 1;
-	uint8 bUseEnforcedMovement : 1;
-	FVector EnforcedMovementDirection;
-	float EnforcedMovementStrength;
+    */	
+	TWeakObjectPtr<UGGDamageReceiveComponent> HealthComponent;
+
 	void LocalReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo);
 	//  Server function, called by the locally controlled client who identifies himself to have taken damage
 private:
@@ -184,12 +183,37 @@ protected:
     
 	//**************************
 
+	// ****	Damage reaction	****
+	static FName FlipbookFlashHandlerName;
+public:
+	// Specification
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Damage")
+		UGGFlipbookFlashHandler* FlipbookFlashHandler;
+	UPROPERTY(EditAnywhere, Category = "GG|Damage")
+		float SecondsImmuneOnReceiveDamage;
+	UPROPERTY(EditAnywhere, Category = "GG|Damage")
+		float SecondsDisabledOnReceiveDamage;
+	
+	// States
+	uint8 bUseEnforcedMovement : 1;		// governs movement direction
+protected:	
+	uint8 bLockedFacing : 1;			// governs sprite facing
+	uint8 bActionInputDisabled : 1;		// governs movement abilities
+	FVector EnforcedMovementDirection;
+	float EnforcedMovementStrength;
+	FTimerHandle DamageReactHandle;
+
+	UFUNCTION()
+		virtual void OnCompleteDamageReceiveReaction();
+	//**************************
+
 	// ****	General Utility	****
 
     static FName BodyFlipbookComponentName;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
         UPaperFlipbookComponent* BodyFlipbookComponent;
 public:
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "GG|View")
 		FVector GetPlanarForwardVector() const;
 

@@ -45,7 +45,7 @@ public:
 
     /**  Process damage information struct into this entity */
     UFUNCTION()
-		void ApplyDamageInformation(FGGDamageReceivingInfo& information);
+		void ApplyDamageInformation(const FGGDamageReceivingInfo& information);
 
 	/** Handy hp getter */
 	UFUNCTION(BlueprintPure, BlueprintCallable, Category = "GG|Damage")

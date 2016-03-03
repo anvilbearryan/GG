@@ -10,7 +10,6 @@
  * 
  */
 class UGGSlashAttackComponent;
-class UGGDamageReceiveComponent;
 class UGGLocomotionAnimComponent;
 class UPaperFlipbookComponent;
 
@@ -25,8 +24,7 @@ public:
 
 	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent;
 	TWeakObjectPtr<UGGSlashAttackComponent> NormalSlashAttackComponent;	
-	TWeakObjectPtr<UGGDamageReceiveComponent> HealthComponent;
-	
+		
 	TEnumAsByte<EGGActionCategory::Type> ActionState;
 
 	AGGAssaultCharacter(const FObjectInitializer& ObjectInitializer);

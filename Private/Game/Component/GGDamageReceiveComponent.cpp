@@ -52,7 +52,7 @@ void UGGDamageReceiveComponent::TickComponent( float DeltaTime, ELevelTick TickT
     }
 }
 
-void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageReceivingInfo& information)
+void UGGDamageReceiveComponent::ApplyDamageInformation(const FGGDamageReceivingInfo& information)
 {
     //  Set as decimal part of estimated hp
 	Hp_CurrentEstimate -= FMath::FloorToFloat(Hp_CurrentEstimate);;

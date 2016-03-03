@@ -6,9 +6,7 @@
 #include "Game/Data/GGGameTypes.h"
 #include "GGTriggerAnimData.generated.h"
 
-/**
- * 
- */
+class UPaperFlipbook;
 UCLASS()
 class GG_API UGGTriggerAnimData : public UDataAsset
 {

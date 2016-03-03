@@ -16,6 +16,7 @@ void UGGNpcCollisionBoxComponent::InitializeComponent()
 	Super::InitializeComponent();
 	OnComponentBeginOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::BeginOverlapToggle);
 	OnComponentEndOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::EndOverlapToggle);
+	SetActive(false);
 }
 
 void UGGNpcCollisionBoxComponent::BeginOverlapToggle(AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
@@ -26,8 +27,7 @@ void UGGNpcCollisionBoxComponent::BeginOverlapToggle(AActor * OtherActor, UPrimi
 		SetActive(true);
 		// continually check for overlap so we don't miss any damage dealing chances
 		OverlappeddCharacter = OtherCharacter;
-		OverlappedCharacterHitbox = OtherComp;
-		OnOverlapCharacter(OtherCharacter);
+		OverlappedCharacterHitbox = OtherComp;		
 	}
 }
 
@@ -64,7 +64,7 @@ void UGGNpcCollisionBoxComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		// double-check the overlap
 		if (IsOverlappingComponent(OverlappedCharacterHitbox.Get()))
 		{
-			// mess with OtherCharacter.Get()
+			OnOverlapCharacter(OverlappeddCharacter.Get());
 		}
 	}
 	else

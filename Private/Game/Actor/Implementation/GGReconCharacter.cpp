@@ -3,7 +3,6 @@
 #include "GG.h"
 #include "Game/Actor/Implementation/GGReconCharacter.h"
 #include "Game/Component/Implementation/GGLocomotionAnimComponent.h"
-#include "Game/Component/GGDamageReceiveComponent.h"
 #include "Game/Component/Implementation/GGReconRifleComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -32,7 +31,6 @@ void AGGReconCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
 	RifleComponent = FindComponentByClass<UGGReconRifleComponent>();
 	TInlineComponentArray<UGGLocomotionAnimComponent*> LocoComponents;
 	GetComponents(LocoComponents);
@@ -69,10 +67,6 @@ void AGGReconCharacter::PostInitializeComponents()
 		WeaponEffectComponent->OnFinishedPlaying.AddDynamic(this, &AGGReconCharacter::OnFinishWeaponEffectAnimation);
 	}
 	/** Apply saved data to components*/
-	if (HealthComponent.IsValid())
-	{
-		HealthComponent.Get()->InitializeHpState();
-	}
 }
 
 void AGGReconCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -130,7 +124,7 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 				}				
 			}
 		}
-		break;
+		break;		
 		}
 	}
 	else
@@ -170,14 +164,25 @@ UGGLocomotionAnimComponent* AGGReconCharacter::GetActiveLocAnimComponent() const
 
 void AGGReconCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 {
+	// base class method takes care of applying the damage information and flashese the body flipbook
 	Super::ReceiveDamage(InDamageInfo);
-	// ask damage receiving component to handle it
-	UGGDamageReceiveComponent* loc_Hp = HealthComponent.Get();
-	if (loc_Hp)
-	{
-		//loc_Hp->HandleDamageData(DamageData);
-	}
-	// should flash flipbook component
+	
+	// Recon characters do typical platformer nudge moving damage reaction, default implementation stands still
+	EnforcedMovementStrength = 0.5f;
+	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
+	EnforcedMovementDirection = FVector(0.f, impactDirection.X, impactDirection.Y);
+
+	ActionState = EGGActionCategory::Damaged;
+	BodyFlipbookComponent->SetLooping(true);
+	BodyFlipbookComponent->SetFlipbook(ReceiveDamageFlipbook);
+	BodyFlipbookComponent->Play();
+}
+
+void AGGReconCharacter::OnCompleteDamageReceiveReaction()
+{
+	Super::OnCompleteDamageReceiveReaction();
+	bUseEnforcedMovement = false;
+	ActionState = EGGActionCategory::Locomotion;
 }
 
 void AGGReconCharacter::OnBeginShoot()

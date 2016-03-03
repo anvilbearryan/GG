@@ -6,7 +6,6 @@
 #include "Game/Data/GGGameTypes.h"
 #include "GGReconCharacter.generated.h"
 
-class UGGDamageReceiveComponent;
 class UGGLocomotionAnimComponent;
 class UGGReconRifleComponent;
 class UPaperFlipbookComponent;
@@ -21,13 +20,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
 		UPaperFlipbookComponent* WeaponEffectComponent;
 	
-	TWeakObjectPtr<UGGDamageReceiveComponent> HealthComponent;
 	TWeakObjectPtr<UGGReconRifleComponent> RifleComponent;
 
 	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent_Neutral;
 	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent_Up;
 	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent_Down;
 
+	// Specification
+	UPROPERTY(EditAnywhere, Category = "GG|Animation")
+		class UPaperFlipbook* ReceiveDamageFlipbook;
 	// States
 	TEnumAsByte<EGGActionCategory::Type> ActionState;	
 	uint8 bOverridePlaybackPosition: 1;
@@ -53,6 +54,8 @@ public:
 	// Recon character passive: dodge
 	virtual void ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo) override;
 	
+	virtual void OnCompleteDamageReceiveReaction() override;
+
 	UFUNCTION()
 		void OnBeginShoot();
 	UFUNCTION()

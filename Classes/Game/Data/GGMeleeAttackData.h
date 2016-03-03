@@ -26,6 +26,8 @@ struct FGGMeleeHitDefinition
 	FGGMeleeHitDefinition() {}
 };
 
+class UPaperFlipbook;
+
 UCLASS(Blueprintable, BlueprintType, ClassGroup=GGAttack)
 class GG_API UGGMeleeAttackData : public UDataAsset
 {
