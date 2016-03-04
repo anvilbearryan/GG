@@ -7,6 +7,7 @@
 #include "PaperFlipbookComponent.h"
 #include "Game/Component/GGFlipbookFlashHandler.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
+#include "Game/Framework/GGGamePlayerController.h"
 
 FName AGGCharacter::BodyFlipbookComponentName(TEXT("BodyFlipbookComponent"));
 FName AGGCharacter::FlipbookFlashHandlerName(TEXT("FlipbookFlashHandler"));
@@ -401,7 +402,7 @@ void AGGCharacter::LocalReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo
 		else
 		{
 			ServerReceiveDamage(InDamageInfo.GetCompressedData());
-		}
+		}		
 	}
 }
 
@@ -443,6 +444,7 @@ void AGGCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 	{
 		bUseEnforcedMovement = true;
 		bActionInputDisabled = true;
+		bLockedFacing = true;
 		StopJumping();
 		StopDashing();		
 		GetWorld()->GetTimerManager().SetTimer(DamageReactHandle, this,
@@ -452,6 +454,23 @@ void AGGCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 	{
 		OnCompleteDamageReceiveReaction();
 	}
+	if (IsLocallyControlled())
+	{
+		AGGGamePlayerController* locController = Cast<AGGGamePlayerController>(Controller);
+		if (locController)
+		{
+			locController->OnLocalCharacterReceiveDamage();
+		}
+	}
+	else
+	{
+		AGGGamePlayerController* locController = Cast<AGGGamePlayerController>(
+			GetWorld()->GetFirstPlayerController());
+		if (locController)
+		{
+			locController->OnRemoteCharacterReceiveDamage();
+		}
+	}
 }
 
 //**************************
@@ -459,6 +478,7 @@ void AGGCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 // ****	Damage reaction	****
 void AGGCharacter::OnCompleteDamageReceiveReaction()
 {
+	bLockedFacing = false;
 	bUseEnforcedMovement = false;
 	bActionInputDisabled = false;
 	EnforcedMovementStrength = 0.f;

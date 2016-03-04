@@ -158,13 +158,14 @@ USTRUCT(BlueprintType)
 struct FGGDamageReceivingInfo
 {
 	GENERATED_BODY()
-
+private:
 	// make it 10 with member0 == member5 so that they corresponds to numpad values and make sense
 	static const FVector2D Directions[10];
 	static const float HitMargin;
 	
 	// the default value of all types of damage if unspecified
 	static const int32 BasicDamageLevel = 100;
+public:
 	// Direct damage = the amount of red to red decrease in between taking damage
 	UPROPERTY(EditAnywhere)
 		int32 DirectValue;

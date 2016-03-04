@@ -168,7 +168,7 @@ void AGGReconCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo
 	Super::ReceiveDamage(InDamageInfo);
 	
 	// Recon characters do typical platformer nudge moving damage reaction, default implementation stands still
-	EnforcedMovementStrength = 0.5f;
+	EnforcedMovementStrength = 0.35f;
 	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
 	EnforcedMovementDirection = FVector(0.f, impactDirection.X, impactDirection.Y);
 

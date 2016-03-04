@@ -22,12 +22,10 @@ void UGGFlipbookFlashHandler::SetFlashSchedule(UPaperFlipbookComponent* InUpdate
 		Timemark = 0.f;
 		FrameCount = 0;
 		SetActive(true);
-		SetComponentTickEnabled(true);
 	}
 	else
 	{
 		SetActive(false);
-		SetComponentTickEnabled(true);
 	}
 }
 
@@ -59,6 +57,11 @@ void UGGFlipbookFlashHandler::TickComponent( float DeltaTime, ELevelTick TickTyp
 	}
 	else
 	{
+		if (updatedFlipbook) 
+		{
+			updatedFlipbook->SetSpriteColor(FLinearColor(0.f, 0.f, 0.f));
+			UpdatedComponent = nullptr;
+		}
 		SetActive(false);
 	}
 }

@@ -4,6 +4,7 @@
 #include "Game/Component/GGRangedAttackComponent.h"
 #include "Game/Actor/GGMinionBase.h"
 #include "Net/UnrealNetwork.h"
+#include "Game/Framework/GGGamePlayerController.h"
 
 UGGRangedAttackComponent::UGGRangedAttackComponent() : Super()
 {
@@ -20,6 +21,7 @@ void UGGRangedAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 }
 
 //********************************
+
 // Landing attacks
 void UGGRangedAttackComponent::LocalHitTarget(const FRangedHitNotify& InHitNotify)
 {
@@ -58,6 +60,12 @@ void UGGRangedAttackComponent::HitTarget(const FRangedHitNotify& InHitNotify)
 			if (loc_Owner->IsLocallyControlled())
 			{
 				loc_Minion->ReceiveDamage(loc_DmgInfo);
+
+				AGGGamePlayerController* locController = Cast<AGGGamePlayerController>(loc_Owner ->Controller);
+				if (locController)
+				{
+					locController->OnLocalCharacterDealDamage();
+				}
 			}
 			if (GetOwnerRole() == ROLE_Authority)
 			{
@@ -85,6 +93,7 @@ FGGDamageDealingInfo UGGRangedAttackComponent::TranslateNotify(const FRangedHitN
 }
 
 //********************************
+
 // Launching attacks
 void UGGRangedAttackComponent::OnRep_AttackQueue(int32 OldValue)
 {

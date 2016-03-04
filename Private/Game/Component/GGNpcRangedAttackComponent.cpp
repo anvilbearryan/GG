@@ -4,6 +4,7 @@
 #include "Game/Component/GGNpcRangedAttackComponent.h"
 #include "Game/Component/GGPooledSpriteComponent.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Game/Data/GGGameTypes.h"
 
 // Sets default values for this component's properties
 UGGNpcRangedAttackComponent::UGGNpcRangedAttackComponent()
@@ -42,7 +43,6 @@ void UGGNpcRangedAttackComponent::LaunchProjectile(UGGProjectileData * InData,
 	}
 }
 
-
 // Called every frame
 void UGGNpcRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -50,56 +50,66 @@ void UGGNpcRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 	for (int32 i = UpdatedProjectiles.Num() - 1; i >= 0; --i)
 	{
+		FLaunchedProjectile& projectle = UpdatedProjectiles[i];
 		// no substepping, lazy!
 		// sweep component
-		FVector delta = UpdatedProjectiles[i].CurrentVelocity * DeltaTime + UpdatedProjectiles[i].ContinualAcceleration * DeltaTime * DeltaTime * 0.5f;
+		FVector delta = projectle.CurrentVelocity * DeltaTime + projectle.ContinualAcceleration * DeltaTime * DeltaTime * 0.5f;
 		FHitResult hitResult;
-		UpdatedProjectiles[i].SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
+		projectle.SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
 		// inefficient since it may not be necessary, but makes code cleaner doing so here collision handling
-		UpdatedProjectiles[i].CurrentVelocity += UpdatedProjectiles[i].ContinualAcceleration * DeltaTime;
+		projectle.CurrentVelocity += projectle.ContinualAcceleration * DeltaTime;
 		if (hitResult.bBlockingHit)
 		{	
-			// damage check by everyone		
-			UpdatedProjectiles[i].CurrentCollisionCount++;		
+			// damage check by everyone			
 			AGGCharacter* target = Cast<AGGCharacter>(hitResult.GetActor());
+			// need check immunity for consumption for accurate collision count
+			projectle.CurrentCollisionCount++;
 			if (target && target->IsLocallyControlled())
 			{
-				UE_LOG(GGMessage, Log, TEXT("local player takes damage"));
-			}
-			
+				target->LocalReceiveDamage(TranslateHitResult(projectle, hitResult));
+			}			
 		}
 		// handle impact effects
 
 		// check collision cleanup for everyone		
-		if (UpdatedProjectiles[i].CurrentCollisionCount > UpdatedProjectiles[i].ProjectileData->Penetration)
+		if (projectle.CurrentCollisionCount > projectle.ProjectileData->Penetration)
 		{
 			// cleanup
-			UpdatedProjectiles[i].SpriteBody->PreCheckin();
+			projectle.SpriteBody->PreCheckin();
 			// no longer needs update				
 			if (SpritePool.IsValid())
 			{
-				SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
+				SpritePool.Get()->CheckinInstance(projectle.SpriteBody);
 			}
 			else
 			{
-				UpdatedProjectiles[i].SpriteBody->DestroyComponent();
+				projectle.SpriteBody->DestroyComponent();
 			}
 			UpdatedProjectiles.RemoveAtSwap(i, 1, false);
 		}
-		else if (CurrentTime > UpdatedProjectiles[i].Lifespan + UpdatedProjectiles[i].SpawnTime)
+		else if (CurrentTime > projectle.Lifespan + projectle.SpawnTime)
 		{	// check lifespan cleanup for everyone			
-			UpdatedProjectiles[i].SpriteBody->PreCheckin();
+			projectle.SpriteBody->PreCheckin();
 			// no longer needs update				
 			if (SpritePool.IsValid())
 			{
-				SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
+				SpritePool.Get()->CheckinInstance(projectle.SpriteBody);
 			}
 			else
 			{
-				UpdatedProjectiles[i].SpriteBody->DestroyComponent();
+				projectle.SpriteBody->DestroyComponent();
 			}
 			UpdatedProjectiles.RemoveAtSwap(i, 1, false);
 		}
 	}	
 }
 
+FGGDamageReceivingInfo UGGNpcRangedAttackComponent::TranslateHitResult(const FLaunchedProjectile& InProjectile, const FHitResult& InHitResult) const
+{
+	FGGDamageReceivingInfo result;
+	result.ImpactDirection = FGGDamageReceivingInfo ::ConvertDeltaPosition(InHitResult.ImpactPoint - InProjectile.SpriteBody->GetComponentLocation());
+	//result.Type = 
+	//result.DirectValue =
+	//result.IndirectValue =
+	return result;
+}

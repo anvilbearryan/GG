@@ -171,12 +171,13 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 	for (int32 i = UpdatedProjectiles.Num() - 1; i >=0; --i)
 	{
+		auto&  projectile = UpdatedProjectiles[i];
 		// no substepping, lazy!
 		// sweep component
-		FVector delta = UpdatedProjectiles[i].CurrentVelocity * DeltaTime + UpdatedProjectiles[i].ContinualAcceleration * DeltaTime * DeltaTime * 0.5f;
+		FVector delta = projectile.CurrentVelocity * DeltaTime + projectile.ContinualAcceleration * DeltaTime * DeltaTime * 0.5f;
 		FHitResult hitResult;
-		UpdatedProjectiles[i].SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
-		UpdatedProjectiles[i].CurrentVelocity += UpdatedProjectiles[i].ContinualAcceleration * DeltaTime; // inefficient since it may not be necessary, but makes code cleaner doing so here
+		projectile.SpriteBody->AddWorldOffset(delta, true, &hitResult, ETeleportType::None);
+		projectile.CurrentVelocity += projectile.ContinualAcceleration * DeltaTime; // inefficient since it may not be necessary, but makes code cleaner doing so here
 		// collision handling
 		if (hitResult.bBlockingHit)
 		{
@@ -185,41 +186,41 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 				FRangedHitNotify notifier;
 				notifier.Target = hitResult.Actor.Get();
 				notifier.DamageDealt = 100;
-				notifier.HitPosition = UpdatedProjectiles[i].SpriteBody->GetComponentLocation();
+				notifier.HitPosition = projectile.SpriteBody->GetComponentLocation();
 				notifier.DamageCategory = EGGDamageType::Standard;
 				LocalHitTarget(notifier);
 			}
 			// handle impact effects
 
 			// check collision cleanup for everyone
-			UpdatedProjectiles[i].CurrentCollisionCount++;
-			if (UpdatedProjectiles[i].CurrentCollisionCount > UpdatedProjectiles[i].ProjectileData->Penetration)
+			projectile.CurrentCollisionCount++;
+			if (projectile.CurrentCollisionCount > projectile.ProjectileData->Penetration)
 			{
 				// cleanup
-				UpdatedProjectiles[i].SpriteBody->PreCheckin();
+				projectile.SpriteBody->PreCheckin();
 				// no longer needs update				
 				if (SpritePool.IsValid())
 				{
-					SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
+					SpritePool.Get()->CheckinInstance(projectile.SpriteBody);
 				}
 				else
 				{
-					UpdatedProjectiles[i].SpriteBody->DestroyComponent();
+					projectile.SpriteBody->DestroyComponent();
 				}
 				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
 			}			
 		}
-		else if (CurrentTime > UpdatedProjectiles[i].Lifespan + UpdatedProjectiles[i].SpawnTime)
+		else if (CurrentTime > projectile.Lifespan + projectile.SpawnTime)
 		{	// check lifespan cleanup for everyone			
-			UpdatedProjectiles[i].SpriteBody->PreCheckin();
+			projectile.SpriteBody->PreCheckin();
 			// no longer needs update				
 			if (SpritePool.IsValid())
 			{
-				SpritePool.Get()->CheckinInstance(UpdatedProjectiles[i].SpriteBody);
+				SpritePool.Get()->CheckinInstance(projectile.SpriteBody);
 			}
 			else
 			{
-				UpdatedProjectiles[i].SpriteBody->DestroyComponent();
+				projectile.SpriteBody->DestroyComponent();
 			}
 			UpdatedProjectiles.RemoveAtSwap(i, 1, false);
 		}

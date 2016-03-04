@@ -5,6 +5,7 @@
 #include "Game/Actor/GGCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Game/Actor/GGMinionBase.h"
+#include "Game/Framework/GGGamePlayerController.h"
 
 UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 {
@@ -21,6 +22,7 @@ void UGGMeleeAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 }
 
 ////********************************
+
 // Landing attacks
 void UGGMeleeAttackComponent::LocalHitTarget(const FMeleeHitNotify& InHitNotify)
 {
@@ -39,12 +41,14 @@ bool UGGMeleeAttackComponent::ServerHitTarget_Validate(FMeleeHitNotify OwnerHitN
 {
 	return true;
 }
+
 /** Only used if LocalHitTarget is called from a client */
 void UGGMeleeAttackComponent::ServerHitTarget_Implementation(FMeleeHitNotify OwnerHitNotify)
 {
 	// TODO Possibily some basic verification before caling HitTarget
 	HitTarget(OwnerHitNotify);
 }
+
 /** This method is called either on local owner or the server */
 void UGGMeleeAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 {
@@ -55,11 +59,18 @@ void UGGMeleeAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 		if (loc_Minion)
 		{
 			FGGDamageDealingInfo loc_DmgInfo = TranslateNotify(InHitNotify);
-			if (GetOwnerRole() == ROLE_AutonomousProxy)
+			APawn* loc_Owner = static_cast<APawn*>(GetOwner());
+			if (loc_Owner->IsLocallyControlled())
 			{
 				loc_Minion->ReceiveDamage(loc_DmgInfo);
+
+				AGGGamePlayerController* locController = Cast<AGGGamePlayerController>(loc_Owner->Controller);
+				if (locController)
+				{
+					locController->OnLocalCharacterDealDamage();
+				}
 			}
-			else if (GetOwnerRole() == ROLE_Authority)
+			if (GetOwnerRole() == ROLE_Authority)
 			{
 				loc_Minion->MulticastReceiveDamage(loc_DmgInfo.GetCompressedData(), loc_DmgInfo.CauserPlayerState);
 			}
@@ -88,6 +99,7 @@ FGGDamageDealingInfo UGGMeleeAttackComponent::TranslateNotify(const FMeleeHitNot
 }
 
 //********************************
+
 // Launching attacks
 
 void UGGMeleeAttackComponent::OnRep_AttackToggle()
@@ -119,6 +131,7 @@ void UGGMeleeAttackComponent::ServerInitiateAttack_Implementation(uint8 Identifi
 }
 
 //********************************
+
 // Implementation details
 void UGGMeleeAttackComponent::InitiateAttack()
 {
@@ -134,6 +147,7 @@ void UGGMeleeAttackComponent::FinalizeAttack()
 }
 
 //********************************
+
 // Utilities
 void UGGMeleeAttackComponent::SetControllerIgnoreMoveInput()
 {

@@ -8,6 +8,7 @@
 #include "Game/Component/GGNpcDamageReceiveComponent.h"
 #include "Game/Component/GGNpcLocomotionAnimComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Game/Framework/GGGamePlayerController.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
 
@@ -62,6 +63,7 @@ void AGGMinionBase::PostInitializeComponents()
 }
 
 //********************************
+
 //	Movement callbacks
 void AGGMinionBase::SetMovementBase(UPrimitiveComponent* NewBaseComponent, UActorComponent* InMovementComponent)
 {
@@ -101,15 +103,17 @@ void AGGMinionBase::OnReachWalkingBound()
 }
 
 //********************************
+
 //	Damage interface
 void AGGMinionBase::MulticastReceiveDamage_Implementation(uint32 Data, APlayerState* InCauser)
 {
 	// the local causer do not rely on the OnRep to display the damage, hence the check for duplication
 	// suffice as the server does not fire OnReps
-	APlayerController* localPlayerController = GetWorld()->GetFirstPlayerController();
+	AGGGamePlayerController* localPlayerController = Cast<AGGGamePlayerController>(GetWorld()->GetFirstPlayerController());
 	if (localPlayerController && InCauser != localPlayerController->PlayerState)
 	{
 		ReceiveDamage(FGGDamageDealingInfo(Data, InCauser));
+		localPlayerController->OnRemoteCharacterDealDamage();
 	}
 }
 
@@ -128,6 +132,7 @@ void AGGMinionBase::PlayDeathSequence()
 }
 
 //********************************
+
 //	Sensing callbacks
 void AGGMinionBase::OnSensorActivate_Implementation()
 {
@@ -148,6 +153,7 @@ void AGGMinionBase::OnSensorDeactivate_Implementation()
 }
 
 //********************************
+
 //	Npc generic behaviour interface
 void AGGMinionBase::Tick( float DeltaSeconds)
 {
@@ -240,6 +246,7 @@ void AGGMinionBase::TickEvade(float DeltaSeconds)
 }
 
 //********************************
+
 //	Npc generic attack interface
 void AGGMinionBase::MulticastAttack_Implementation(uint8 InInstruction)
 {
@@ -252,6 +259,7 @@ void AGGMinionBase::MinionAttack_Internal(uint8 InInstruction)
 }
 
 //********************************
+
 //	General utilities 
 FVector AGGMinionBase::GGGetTargetLocation() const
 {

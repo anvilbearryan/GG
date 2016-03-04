@@ -10,7 +10,7 @@
  *	Independent of needing a minion owner so we might also be able to use it for damage volumes.
  */
 class AGGCharacter;
-UCLASS()
+UCLASS(meta = (BlueprintSpawnableComponent))
 class GG_API UGGNpcCollisionBoxComponent : public UBoxComponent
 {
 	GENERATED_BODY()

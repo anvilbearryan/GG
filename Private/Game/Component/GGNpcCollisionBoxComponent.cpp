@@ -6,6 +6,7 @@
 
 UGGNpcCollisionBoxComponent::UGGNpcCollisionBoxComponent()
 {
+	bWantsInitializeComponent = true;
 	bGenerateOverlapEvents = true;
 	PrimaryComponentTick.bCanEverTick = true;
 	bReplicates = false;
@@ -17,13 +18,17 @@ void UGGNpcCollisionBoxComponent::InitializeComponent()
 	OnComponentBeginOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::BeginOverlapToggle);
 	OnComponentEndOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::EndOverlapToggle);
 	SetActive(false);
+	//SetComponentTickEnabled(false);
 }
 
 void UGGNpcCollisionBoxComponent::BeginOverlapToggle(AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	AGGCharacter* OtherCharacter = Cast<AGGCharacter>(OtherActor);
+	//UE_LOG(GGMessage, Log, TEXT("Begin overlap"));
 	if (OtherCharacter && OtherCharacter->IsLocallyControlled()) 
-	{		
+	{	
+		//UE_LOG(GGMessage, Log, TEXT("Begin overlap inner"));
+		//SetComponentTickEnabled(true);
 		SetActive(true);
 		// continually check for overlap so we don't miss any damage dealing chances
 		OverlappeddCharacter = OtherCharacter;
@@ -38,6 +43,7 @@ void UGGNpcCollisionBoxComponent::EndOverlapToggle(AActor * OtherActor, UPrimiti
 	{
 		OverlappeddCharacter = nullptr;
 		OverlappedCharacterHitbox = nullptr;
+		//SetComponentTickEnabled(false);
 		SetActive(false);
 	}
 }
