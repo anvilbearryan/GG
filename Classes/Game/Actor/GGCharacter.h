@@ -167,7 +167,7 @@ public:
     */	
 	TWeakObjectPtr<UGGDamageReceiveComponent> HealthComponent;
 
-	void LocalReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo);
+	void LocalReceiveDamage(FGGDamageReceivingInfo& InDamageInfo);
 	//  Server function, called by the locally controlled client who identifies himself to have taken damage
 private:
 	UFUNCTION(reliable, Server, WithValidation, Category="GG|GGDamage")
@@ -179,7 +179,7 @@ private:
         void MulticastReceiveDamage(uint32 CompressedData);
     void MulticastReceiveDamage_Implementation(uint32 CompressedData);
 protected:
-    virtual void ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo);
+    virtual void ReceiveDamage(FGGDamageReceivingInfo& InDamageInfo);
     
 	//**************************
 
@@ -203,8 +203,13 @@ protected:
 	float EnforcedMovementStrength;
 	FTimerHandle DamageReactHandle;
 
+	/** Separate from ReceiveeDamage so that we have a chance in ReceiveDamage to determine function route depending on whether this is a fatal damage */
+	virtual void CommenceDamageReaction(const FGGDamageReceivingInfo& InDamageInfo);
 	UFUNCTION()
-		virtual void OnCompleteDamageReceiveReaction();
+		virtual void OnCompleteDamageReaction();
+	virtual void CommenceDeathReaction(const FGGDamageReceivingInfo& InDamageInfo);
+	UFUNCTION()
+		virtual void OnCompleteDeathReaction();
 	//**************************
 
 	// ****	General Utility	****

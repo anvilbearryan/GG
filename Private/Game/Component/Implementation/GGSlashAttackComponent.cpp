@@ -183,8 +183,9 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 					{
 						FMeleeHitNotify notifier;
 						notifier.Target = AffectedEntities[i];
-						notifier.DamageCategory = EGGDamageType::Slash;
-						notifier.DamageDealt = 67;
+						notifier.DamageCategory = UpdatedAttack->GetDamageType();
+						notifier.DamageLevels = FMeleeHitNotify ::CompressedDamageLevels(
+							UpdatedAttack->GetDirectDamageLevel(), UpdatedAttack->GetIndirectDamageLevel());
 						LocalHitTarget(notifier);						
 					}
 				}

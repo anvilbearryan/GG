@@ -17,7 +17,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category=DamageEvents)
 		void OnLocalCharacterDealDamage();
 	UFUNCTION(BlueprintImplementableEvent, Category = DamageEvents)
-		void OnLocalCharacterReceiveDamage();
+		void OnLocalCharacterReceiveDamage(int32 InDamageReceived, int32 NewRemainingHp, int32 NewMaxHp);
 	UFUNCTION(BlueprintImplementableEvent, Category = DamageEvents)
 		void OnRemoteCharacterDealDamage();
 	UFUNCTION(BlueprintImplementableEvent, Category = DamageEvents)

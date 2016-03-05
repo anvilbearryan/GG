@@ -171,7 +171,7 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 	for (int32 i = UpdatedProjectiles.Num() - 1; i >=0; --i)
 	{
-		auto&  projectile = UpdatedProjectiles[i];
+		auto& projectile = UpdatedProjectiles[i];
 		// no substepping, lazy!
 		// sweep component
 		FVector delta = projectile.CurrentVelocity * DeltaTime + projectile.ContinualAcceleration * DeltaTime * DeltaTime * 0.5f;
@@ -181,11 +181,14 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		// collision handling
 		if (hitResult.bBlockingHit)
 		{
-			if (bIsLocalInstruction)
+			if (bIsLocalInstruction && projectile.ProjectileData)
 			{// handle damage only if local
 				FRangedHitNotify notifier;
 				notifier.Target = hitResult.Actor.Get();
-				notifier.DamageDealt = 100;
+				notifier.DamageLevels = FRangedHitNotify::CompressedDamageLevels(
+					projectile.ProjectileData->GetDirectDamageLevel(), 
+					projectile.ProjectileData->GetIndirectDamageLevel());
+
 				notifier.HitPosition = projectile.SpriteBody->GetComponentLocation();
 				notifier.DamageCategory = EGGDamageType::Standard;
 				LocalHitTarget(notifier);

@@ -13,25 +13,34 @@ class GG_API UGGDamageReceiveComponent : public UActorComponent
 	GENERATED_BODY()
 
     DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHpEventSignature);
-	
-	UPROPERTY(replicated)
-		int32 Hp_Current;
-    float Hp_CurrentEstimate;
-	int32 Hp_Recoverable;
-
-    int32 StandardHpRegenPerSecond_Buff;
-    int32 StandardHpRegenPerSecond_Debuff;
-
+		 
 public:
     UPROPERTY(EditAnywhere, replicated, Category="GG|Damage", meta=(DisplayName="Max Hp"))
         int32 Hp_Max;
     UPROPERTY(EditAnywhere, Category="GG|Damage", meta=(DisplayName="Base Hp regen per second"))
         int32 StandardHpRegenPerSecond_Base;
-    UPROPERTY(BlueprintAssignable)
-        FHpEventSignature OnMaxedHp;
-    UPROPERTY(BlueprintAssignable)
-        FHpEventSignature OnZeroedHp;
-    
+	UPROPERTY(EditAnywhere, replicated, Category = "GG|Damage", meta = (DisplayName = "Defense by value"))
+		int32 Defense_Subtractive;
+	UPROPERTY(EditAnywhere, replicated, Category = "GG|Damage", meta = (DisplayName = "Defense by percent"))
+		int32 Defense_Multiplicative;
+
+	UPROPERTY(BlueprintAssignable)
+		FHpEventSignature OnMaxedHp;
+	UPROPERTY(BlueprintAssignable)
+		FHpEventSignature OnZeroedHp;
+
+private:
+	UPROPERTY(replicated, Transient)
+		int32 Hp_Current;
+	float Hp_CurrentEstimate;
+	int32 Hp_Recoverable;
+
+	int32 StandardHpRegenPerSecond_Buff;
+	int32 StandardHpRegenPerSecond_Debuff;
+
+	FGGDamageReceivingInfo Cache_LastReceivedDamage;
+
+public:	
 	// Sets default values for this component's properties
 	UGGDamageReceiveComponent();
 
@@ -45,7 +54,7 @@ public:
 
     /**  Process damage information struct into this entity */
     UFUNCTION()
-		void ApplyDamageInformation(const FGGDamageReceivingInfo& information);
+		void ApplyDamageInformation(FGGDamageReceivingInfo& information);
 
 	/** Handy hp getter */
 	UFUNCTION(BlueprintPure, BlueprintCallable, Category = "GG|Damage")

@@ -66,7 +66,8 @@ void UGGNpcRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick Tick
 			projectle.CurrentCollisionCount++;
 			if (target && target->IsLocallyControlled())
 			{
-				target->LocalReceiveDamage(TranslateHitResult(projectle, hitResult));
+				FGGDamageReceivingInfo locInfo = TranslateHitResult(projectle, hitResult);
+				target->LocalReceiveDamage(locInfo);
 			}			
 		}
 		// handle impact effects

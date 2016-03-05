@@ -21,24 +21,31 @@ void UGGNpcDamageReceiveComponent::InitializeHpState()
 	UE_LOG(GGMessage, Log, TEXT("NpcDamage: Initializing HpState for minion"));
 	if (bIsAlive_Rep) 
 	{
-		HpCurrent = HpMax;
+		Hp_Current = Hp_Max;
 		// need to inform owner to "get alive"
 	}
 	else
 	{
-		HpCurrent = 0;		
+		Hp_Current = 0;		
 		// need to inform owner to "snap to death"
 	}
 	HpDebuffer = 0;
 }
 
-void UGGNpcDamageReceiveComponent::ApplyDamageInformation(FGGDamageDealingInfo & Information)
+void UGGNpcDamageReceiveComponent::ApplyDamageInformation(FGGDamageDealingInfo & information)
 {
-	HpCurrent -= HpDebuffer;
-	HpCurrent -= Information.DirectValue;
-	HpDebuffer = Information.IndirectValue;
+	// adjustment
+	information.DirectValue -= Defense_Subtractive;
+	information.DirectValue = FMath::RoundToInt((information.DirectValue * Defense_Multiplicative) / 100.f);
 
-	if (HpCurrent <= 0 && GetOwnerRole() == ROLE_Authority)
+	information.IndirectValue -= Defense_Subtractive;
+	information.IndirectValue = FMath::RoundToInt((information.IndirectValue * Defense_Multiplicative) / 100.f);
+
+	Hp_Current -= HpDebuffer;
+	Hp_Current -= information.DirectValue;
+	HpDebuffer = information.IndirectValue;
+
+	if (Hp_Current <= 0 && GetOwnerRole() == ROLE_Authority)
 	{
 		bIsAlive_Local = false;
 		bIsAlive_Rep = false;
@@ -56,5 +63,5 @@ void UGGNpcDamageReceiveComponent::OnRep_IsAlive()
 
 int32 UGGNpcDamageReceiveComponent::GetCurrentHealth() const
 {
-	return HpCurrent;
+	return Hp_Current;
 }

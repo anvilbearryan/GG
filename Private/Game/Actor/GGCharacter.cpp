@@ -389,7 +389,7 @@ float AGGCharacter::GetDashMaxDuration() const
 //**************************
 
 // ****		Damage		****
-void AGGCharacter::LocalReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
+void AGGCharacter::LocalReceiveDamage(FGGDamageReceivingInfo& InDamageInfo)
 {
 	if (IsLocallyControlled() && 
 		!FlipbookFlashHandler->IsActive()) // ugly damage immunity check
@@ -413,7 +413,7 @@ bool AGGCharacter::ServerReceiveDamage_Validate(uint32 CompressedData)
 
 void AGGCharacter::ServerReceiveDamage_Implementation(uint32 CompressedData)
 {    
-	const FGGDamageReceivingInfo DamageInfo = FGGDamageReceivingInfo(CompressedData);
+	FGGDamageReceivingInfo DamageInfo = FGGDamageReceivingInfo(CompressedData);
 	ReceiveDamage(DamageInfo);
 	MulticastReceiveDamage(CompressedData);
 }
@@ -422,44 +422,62 @@ void AGGCharacter::MulticastReceiveDamage_Implementation(uint32 CompressedData)
 {
     if (Role == ROLE_SimulatedProxy)
     {
-		const FGGDamageReceivingInfo DamageInfo = FGGDamageReceivingInfo(CompressedData);
+		FGGDamageReceivingInfo DamageInfo = FGGDamageReceivingInfo(CompressedData);
         ReceiveDamage(DamageInfo);
     }
 }
 
-void AGGCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
+void AGGCharacter::ReceiveDamage(FGGDamageReceivingInfo& InDamageInfo)
 {    
 	// damage applying calculation
-	if (HealthComponent.IsValid())
-	{
-		HealthComponent.Get()->ApplyDamageInformation(InDamageInfo);
-	}
-	// flash flipbook
-	if (FlipbookFlashHandler) 
+	UGGDamageReceiveComponent* locHealthComp = HealthComponent.Get();
+	if (locHealthComp)
+	{		
+		locHealthComp->ApplyDamageInformation(InDamageInfo);
+		if (locHealthComp->GetCurrentHp() > 0) 
+		{
+			CommenceDamageReaction(InDamageInfo);
+		}
+		else
+		{
+			CommenceDeathReaction(InDamageInfo);
+		}
+	}	
+}
+
+//**************************
+
+// ****	Damage reaction	****
+void AGGCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamageInfo)
+{
+	// Setting Character to react to damage
+	if (FlipbookFlashHandler)
 	{
 		FlipbookFlashHandler->SetFlashSchedule(BodyFlipbookComponent, SecondsImmuneOnReceiveDamage);
 	}
 	// interrupt
-	if (SecondsDisabledOnReceiveDamage > 0.f) 
+	if (SecondsDisabledOnReceiveDamage > 0.f)
 	{
 		bUseEnforcedMovement = true;
 		bActionInputDisabled = true;
 		bLockedFacing = true;
 		StopJumping();
-		StopDashing();		
+		StopDashing();
 		GetWorld()->GetTimerManager().SetTimer(DamageReactHandle, this,
-			&AGGCharacter::OnCompleteDamageReceiveReaction, SecondsDisabledOnReceiveDamage);
+			&AGGCharacter::OnCompleteDamageReaction, SecondsDisabledOnReceiveDamage);
 	}
 	else
 	{
-		OnCompleteDamageReceiveReaction();
+		OnCompleteDamageReaction();
 	}
 	if (IsLocallyControlled())
 	{
 		AGGGamePlayerController* locController = Cast<AGGGamePlayerController>(Controller);
-		if (locController)
+		UGGDamageReceiveComponent* locHealth = HealthComponent.Get();
+		if (locController && locHealth)
 		{
-			locController->OnLocalCharacterReceiveDamage();
+			locController->OnLocalCharacterReceiveDamage(
+				InDamageInfo.DirectValue, locHealth->GetCurrentHp(), locHealth->Hp_Max);
 		}
 	}
 	else
@@ -473,15 +491,22 @@ void AGGCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
 	}
 }
 
-//**************************
-
-// ****	Damage reaction	****
-void AGGCharacter::OnCompleteDamageReceiveReaction()
+void AGGCharacter::OnCompleteDamageReaction()
 {
 	bLockedFacing = false;
 	bUseEnforcedMovement = false;
 	bActionInputDisabled = false;
 	EnforcedMovementStrength = 0.f;
+}
+
+void AGGCharacter::CommenceDeathReaction(const FGGDamageReceivingInfo& InDamageInfo)
+{
+
+}
+
+void AGGCharacter::OnCompleteDeathReaction()
+{
+
 }
 
 //**************************

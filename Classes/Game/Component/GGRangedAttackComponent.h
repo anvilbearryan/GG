@@ -18,17 +18,31 @@ struct FRangedHitNotify
 	UPROPERTY()
 		AActor* Target;
 	UPROPERTY()
-		int16 DamageDealt;
+		uint16 DamageLevels;
 	/** So that simulated clients can receives all damage info */
 	UPROPERTY()
 		TEnumAsByte<EGGDamageType::Type> DamageCategory;
 	UPROPERTY()
 		FVector_NetQuantize HitPosition;
 
+	static FORCEINLINE uint16 CompressedDamageLevels(int32 DirectDamageLevel, int32 IndirectDamageLevel)
+	{
+		uint16 result = (DirectDamageLevel & 255);
+		result |= (IndirectDamageLevel & 255) << 8;
+		return result;
+	}
 	FORCEINLINE bool HasValidData() const
 	{
-		return Target != nullptr && DamageDealt > 0;
-	}	
+		return Target != nullptr && DamageLevels != 0;
+	}
+	FORCEINLINE int32 GetDirectDamageLevel() const
+	{
+		return (DamageLevels & 255);
+	}
+	FORCEINLINE int32 GetIndirectDamageLevel() const
+	{
+		return (DamageLevels >> 8) & 255;
+	}
 };
 
 class UGGPooledSpriteComponent;

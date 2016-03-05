@@ -162,11 +162,9 @@ UGGLocomotionAnimComponent* AGGReconCharacter::GetActiveLocAnimComponent() const
 	return LocomotionAnimComponent_Neutral.Get();
 }
 
-void AGGReconCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
+void AGGReconCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamageInfo)
 {
-	// base class method takes care of applying the damage information and flashese the body flipbook
-	Super::ReceiveDamage(InDamageInfo);
-	
+	Super::CommenceDamageReaction(InDamageInfo);
 	// Recon characters do typical platformer nudge moving damage reaction, default implementation stands still
 	EnforcedMovementStrength = 0.35f;
 	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
@@ -178,9 +176,9 @@ void AGGReconCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo
 	BodyFlipbookComponent->Play();
 }
 
-void AGGReconCharacter::OnCompleteDamageReceiveReaction()
+void AGGReconCharacter::OnCompleteDamageReaction()
 {
-	Super::OnCompleteDamageReceiveReaction();
+	Super::OnCompleteDamageReaction();
 	bUseEnforcedMovement = false;
 	ActionState = EGGActionCategory::Locomotion;
 }

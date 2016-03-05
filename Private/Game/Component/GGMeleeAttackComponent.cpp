@@ -83,8 +83,8 @@ FGGDamageDealingInfo UGGMeleeAttackComponent::TranslateNotify(const FMeleeHitNot
 	// we trust InHitNotify has valid data at this point, as the caller should have exited if not
 	check(InHitNotify.HasValidData());
 	FGGDamageDealingInfo loc_DmgInfo;
-	loc_DmgInfo.DirectValue = InHitNotify.DamageDealt;
-	loc_DmgInfo.IndirectValue = 0;
+	loc_DmgInfo.DirectValue = InHitNotify.GetDirectDamageLevel();
+	loc_DmgInfo.IndirectValue = InHitNotify.GetIndirectDamageLevel();
 	loc_DmgInfo.Type = InHitNotify.DamageCategory;
 	AGGCharacter* loc_Owner = static_cast<AGGCharacter*>(GetOwner());
 	if (!!loc_Owner)

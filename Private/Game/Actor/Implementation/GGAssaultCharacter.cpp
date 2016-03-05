@@ -86,10 +86,10 @@ void AGGAssaultCharacter::Tick(float DeltaSeconds)
 	}
 }
 
-void AGGAssaultCharacter::ReceiveDamage(const FGGDamageReceivingInfo& InDamageInfo)
+void AGGAssaultCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamageInfo)
 {
 	// base class method takes care of applying the damage information and flashese the body flipbook
-	Super::ReceiveDamage(InDamageInfo);	
+	Super::CommenceDamageReaction(InDamageInfo);
 	// AssaultCharacters do not recoil, return
 }
 
