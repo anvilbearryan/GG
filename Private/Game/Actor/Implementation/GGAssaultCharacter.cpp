@@ -15,7 +15,7 @@ AGGAssaultCharacter::AGGAssaultCharacter(const FObjectInitializer& ObjectInitial
 	if (WeaponEffectComponent)
 	{
 		WeaponEffectComponent->AttachTo(BodyFlipbookComponent);
-	}
+	}	
 }
 
 void AGGAssaultCharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
@@ -82,6 +82,11 @@ void AGGAssaultCharacter::Tick(float DeltaSeconds)
 			}
 		}
 		break;
+		}
+
+		if (bWallSlidedThisTick)
+		{
+			bWallSlidedThisTick = false;
 		}
 	}
 }

@@ -17,7 +17,9 @@ UCLASS()
 class GG_API AGGAssaultCharacter : public AGGCharacter
 {
 	GENERATED_BODY()
+		
 public:
+
 	static FName WeaponEffectComponentName;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GG|Animation")
 		UPaperFlipbookComponent* WeaponEffectComponent;

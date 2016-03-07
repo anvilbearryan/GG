@@ -28,7 +28,7 @@ UPaperFlipbook* UGGLocomotionAnimComponent::GetCurrentAnimation() const
 		{
 			FVector loc_Velocity = loc_OwningCharacter->GetVelocity();
 			bool loc_bOnGround = loc_CharacterMovement->IsMovingOnGround();
-			bool loc_bWallSlide = loc_CharacterMovement->bWantsWallSlide;
+			bool loc_bWallSlide = loc_OwningCharacter->bWallSlidedThisTick;
 			bool loc_IsDashing = loc_OwningCharacter->bPerformDashedAction;
 			// we have all the conditions enough to deduce the locomotion substate
 			if (loc_bOnGround)

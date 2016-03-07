@@ -140,6 +140,9 @@ protected:
 
 	// ****	Network movement****
 public:
+	// NOTE: requires child classes to explicitly consume this flag or it will stay true
+	uint8 bWallSlidedThisTick : 1;
+
 	/** Super trigger jump if jump button has been pressed, override to also check other abilities */
 	virtual void CheckJumpInput(float DeltaTime) override;
 

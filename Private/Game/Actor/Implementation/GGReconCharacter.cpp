@@ -126,6 +126,11 @@ void AGGReconCharacter::Tick(float DeltaSeconds)
 		}
 		break;		
 		}
+		
+		if (bWallSlidedThisTick)
+		{
+			bWallSlidedThisTick = false;
+		}
 	}
 	else
 	{

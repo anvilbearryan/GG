@@ -440,6 +440,7 @@ void UGGCharacterMovementComponent::HandleImpact(const FHitResult& Hit, float Ti
 			(Velocity.Z < 0.f && Acceleration.Y * Hit.ImpactNormal.Y < 0.f))
 		{			
 			bWantsWallSlide = 1;
+			ggChar->bWallSlidedThisTick = true;
 		}		
 	}
 	Super::HandleImpact(Hit, TimeSlice, MoveDelta);
