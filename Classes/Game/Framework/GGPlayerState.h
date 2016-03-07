@@ -12,8 +12,10 @@ UCLASS()
 class GG_API AGGPlayerState : public APlayerState
 {
 	GENERATED_BODY()
-	
-	
+
+public:
+	UPROPERTY(Transient, ReplicaedUsing = OnRep_Score)
+	int32 CurrentScore;
 	
 	
 };

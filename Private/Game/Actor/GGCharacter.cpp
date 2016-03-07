@@ -27,13 +27,7 @@ AGGCharacter::AGGCharacter(const FObjectInitializer& ObjectInitializer)
         BodyFlipbookComponent->AttachTo(RootComponent);
     }
 
-	FlipbookFlashHandler = CreateDefaultSubobject<UGGFlipbookFlashHandler>(AGGCharacter::FlipbookFlashHandlerName);
-
-	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
-	if (HealthComponent.IsValid())
-	{
-		HealthComponent.Get()->InitializeHpState();
-	}
+	FlipbookFlashHandler = CreateDefaultSubobject<UGGFlipbookFlashHandler>(AGGCharacter::FlipbookFlashHandlerName);	
 }
 
 void AGGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -57,6 +51,12 @@ void AGGCharacter::PostInitializeComponents()
 	else
 	{
 		FlipbookFlashHandler->SetActive(false);
+	}
+
+	HealthComponent = FindComponentByClass<UGGDamageReceiveComponent>();
+	if (HealthComponent.IsValid())
+	{
+		HealthComponent.Get()->InitializeHpState();
 	}
 }
 
@@ -449,13 +449,9 @@ void AGGCharacter::ReceiveDamage(FGGDamageReceivingInfo& InDamageInfo)
 
 // ****	Damage reaction	****
 void AGGCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamageInfo)
-{
-	// Setting Character to react to damage
-	if (FlipbookFlashHandler)
-	{
-		FlipbookFlashHandler->SetFlashSchedule(BodyFlipbookComponent, SecondsImmuneOnReceiveDamage);
-	}
-	// interrupt
+{	
+	// ********************************
+	// State reaction
 	if (SecondsDisabledOnReceiveDamage > 0.f)
 	{
 		bUseEnforcedMovement = true;
@@ -470,14 +466,23 @@ void AGGCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamage
 	{
 		OnCompleteDamageReaction();
 	}
+	// ********************************
+	// Model reaction
+	if (FlipbookFlashHandler)
+	{
+		// Flash sprite
+		FlipbookFlashHandler->SetFlashSchedule(BodyFlipbookComponent, SecondsImmuneOnReceiveDamage);
+	}
+	// ********************************
+	// UI reaction
 	if (IsLocallyControlled())
 	{
 		AGGGamePlayerController* locController = Cast<AGGGamePlayerController>(Controller);
 		UGGDamageReceiveComponent* locHealth = HealthComponent.Get();
 		if (locController && locHealth)
 		{
-			locController->OnLocalCharacterReceiveDamage(
-				InDamageInfo.DirectValue, locHealth->GetCurrentHp(), locHealth->Hp_Max);
+			locController->UpdateHealthDisplay(locHealth->GetCurrentHp(), locHealth->Hp_Max);
+			locController->OnLocalCharacterReceiveDamage(InDamageInfo.DirectValue);
 		}
 	}
 	else
@@ -486,7 +491,7 @@ void AGGCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamage
 			GetWorld()->GetFirstPlayerController());
 		if (locController)
 		{
-			locController->OnRemoteCharacterReceiveDamage();
+			locController->OnRemoteCharacterReceiveDamage(InDamageInfo.DirectValue);
 		}
 	}
 }

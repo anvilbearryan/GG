@@ -141,7 +141,7 @@ void AGGAssaultCharacter::OnPressedAttack()
 	UGGSlashAttackComponent* loc_AttackComponent = NormalSlashAttackComponent.Get();
 	if (loc_AttackComponent && GetCharacterMovement())
 	{
-		loc_AttackComponent->LocalAttemptsAttack(false, GetVelocity().Y != 0.f);
+		loc_AttackComponent->LocalAttemptsAttack(false, FMath::Abs(GetVelocity().Y) > 25.f);
 	}
 }
 

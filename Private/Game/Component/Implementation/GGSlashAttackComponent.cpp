@@ -65,7 +65,6 @@ void UGGSlashAttackComponent::LocalAttemptsAttack(bool InIsCharged, bool InIsMob
 	}
 }
 
-/**  */
 void UGGSlashAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 {
 	// base class method deals with the damage dealing logic
