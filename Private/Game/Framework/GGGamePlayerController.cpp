@@ -4,6 +4,7 @@
 #include "Game/Framework/GGGamePlayerController.h"
 #include "Game/Framework/GGModeInGame.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
+#include "Game/Actor/GGCharacter.h"
 
 // ********************************
 

@@ -5,6 +5,7 @@
 #include "Game/Actor/GGMinionBase.h"
 #include "Game/Data/GGGameTypes.h"
 #include "Game/Data/GGNpcAnimBlendspaceData.h"
+#include "Game/Component/GGAIMovementComponent.h"
 
 // Sets default values for this component's properties
 UGGNpcLocomotionAnimComponent::UGGNpcLocomotionAnimComponent()
@@ -41,7 +42,7 @@ UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetCurrentAnimation() const
 	return nullptr;
 }
 
-UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetDeathFlipbook(EGGDamageType::Type type) const
+UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetDeathFlipbook(uint8 type) const
 {
 	if (LocomotionData)
 	{

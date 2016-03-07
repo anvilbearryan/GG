@@ -8,9 +8,9 @@
 #include "Game/Utility/GGFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
-void UGGSlashAttackComponent::PostInitProperties()
+void UGGSlashAttackComponent::InitializeComponent()
 {
-	Super::PostInitProperties();
+	Super::InitializeComponent();
 	for (auto a : GroundNormalAttacks)
 	{
 		if (a) a->RecalculateCaches();		

@@ -14,6 +14,7 @@ class UGGTriggerAnimData;
 class UCharacterMovementComponent;
 class AGGSpritePool;
 class AGGCharacter;
+class UPaperFlipbook;
 
 UCLASS()
 class GG_API UGGReconRifleComponent : public UGGRangedAttackComponent

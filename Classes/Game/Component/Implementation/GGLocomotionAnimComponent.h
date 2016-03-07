@@ -8,6 +8,7 @@
 
 /** A Self aware component that requires no replication to tell which flipbook the owning CHARACTER should play */
 class UGGAnimBlendspaceData;
+class UPaperFlipbook;
 UCLASS(Blueprintable,  ClassGroup=(GGAnimation), meta=(BlueprintSpawnableComponent) )
 class GG_API UGGLocomotionAnimComponent : public UActorComponent
 {

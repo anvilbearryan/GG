@@ -55,7 +55,7 @@ protected:
 public:	
 	TWeakObjectPtr<UCharacterMovementComponent> OwnerMovement;
 
-	virtual void PostInitProperties() override;
+	virtual void InitializeComponent() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	//********************************

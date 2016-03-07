@@ -3,20 +3,17 @@
 #pragma once
 
 #include "Game/Actor/GGMinionBase.h"
-#include "GGShooterMinion.generated.h"
+#include "GGPunchMinion.generated.h"
 
-class UGGNpcRangedAttackComponent;
-class UGGProjectileData;
 class UGGFlipbookFlashHandler;
+class UGGNpcMeleeAttackComponent;
 class UPaperFlipbook;
 
 UCLASS()
-class GG_API AGGShooterMinion : public AGGMinionBase
+class GG_API AGGPunchMinion : public AGGMinionBase
 {
 	GENERATED_BODY()
-
-public:
-
+	
 	// ********************************
 	// Patrol properties 	
 
@@ -47,46 +44,32 @@ public:
 
 	// Evasion properties 	
 
-	// Range to trigger evasion, should be smaller than EvadeSafeRange
+	// Start moving towards target if target is further than this range (stop target getting too far away)
 	UPROPERTY(Category = "GGAI|Evade", EditAnywhere)
 		FVector2D EvasionTriggerRange;
-	// Range when triggered evasion is turned off, should be larger than EvadeTriggerRange
+	// Range when we consider target is close enough and stop chasing him in evasion range
 	UPROPERTY(Category = "GGAI|Evade", EditAnywhere)
 		FVector2D EvasionSafeRange;
 	UPROPERTY(Category = "GGAI|Evade", EditAnywhere)
 		float TurnPauseEvade;
 	uint32 bIsInActiveEvasionMode : 1;
 	float TimeEvadedFor;
-	
+
 	// ********************************
-	
+
 	// Attack properties 		
-	
+
 	// = Duration of Evasion phase
 	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
 		float AttackCooldown;
 	/** The delay from changing animation to shooting the first projectile */
 	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
-		float ShootStartupDelay;
-	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
-		int32 NumberOfShotsPerAttack;		
-	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
-		float DelayBetweenShots;
-	/** Default transform faces right */
-	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
-		FVector ShootOffset;
-
-	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
-		UGGProjectileData* AttackProjectileData;
+		float StartupDelay;
 	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
 		UPaperFlipbook* AttackFlipbook;
-	TWeakObjectPtr<UGGNpcRangedAttackComponent> RangedAttackComponent;
-	/** This action handle controls possible interrupts, this way no matter what state we are in we only need to clear this timer */
-	FTimerHandle ActionHandle;
-	int32 CurrentAttackCount;
-
+	TWeakObjectPtr<UGGNpcMeleeAttackComponent> AttackComponent;
 	// ********************************
-	
+
 	// Receive damage properties 	
 	// TODO: Do minions have damage immune?
 	UPROPERTY(EditAnywhere, Category = "GG|Damage")
@@ -96,9 +79,10 @@ public:
 	virtual void PostInitializeComponents() override;
 
 	virtual void OnReachWalkingBound() override;
-	
+
 	virtual void ReceiveDamage(FGGDamageDealingInfo DamageInfo) override;
 	virtual void PlayDeathSequence() override;
+	
 	UFUNCTION()
 		void CompleteDeath();
 	virtual void OnSensorActivate_Implementation() override;
@@ -111,14 +95,12 @@ public:
 	virtual void TickPatrol(float DeltaSeconds) override;
 	virtual void TickPrepareAttack(float DeltaSeconds) override;
 	virtual void TickEvade(float DeltaSeconds) override;
-		
+
 	/**	For 1-directional behaviour */
 	void SyncFlipbookComponentWithTravelDirection();
 
 	virtual void MinionAttack_Internal(uint8 InInstruction) override;
 
-	UFUNCTION()
-		void ShootForward();
 	UFUNCTION()
 		void CompleteAttack();
 

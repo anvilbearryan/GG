@@ -10,9 +10,10 @@
 UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
 {
 	//	BeginPlay is needed to shut off component tick before we begin
-	bWantsBeginPlay = true;
+	bWantsBeginPlay = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	bIsLocalInstruction = false;
+	bWantsInitializeComponent = true;
 }
 
 void UGGMeleeAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

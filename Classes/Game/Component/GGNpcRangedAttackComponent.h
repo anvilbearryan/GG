@@ -12,6 +12,8 @@
  *	instead of within the component unlike those for character. instead, launch function with more parametres for
  *	specification is used and called by the owning actor.
  */
+class AGGSpritePool;
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GG_API UGGNpcRangedAttackComponent : public UActorComponent
 {

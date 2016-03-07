@@ -5,6 +5,8 @@
 #include "Game/Component/GGPooledSpriteComponent.h"
 #include "Game/Actor/GGCharacter.h"
 #include "Game/Data/GGGameTypes.h"
+#include "Game/Data/GGProjectileData.h"
+#include "Game/Actor/GGSpritePool.h"
 
 // Sets default values for this component's properties
 UGGNpcRangedAttackComponent::UGGNpcRangedAttackComponent()

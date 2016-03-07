@@ -3,11 +3,9 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGProjectileData.generated.h"
 
-/**
- * 
- */
 class UPaperFlipbook;
 class UPaperSprite;
 UCLASS()

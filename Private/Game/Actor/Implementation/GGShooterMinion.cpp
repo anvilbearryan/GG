@@ -10,6 +10,7 @@
 #include "Game/Data/GGProjectileData.h"
 #include "Game/Framework/GGGameState.h"
 #include "Game/Component/GGFlipbookFlashHandler.h"
+#include "Game/Actor/GGSpritePool.h"
 
 void AGGShooterMinion::PostInitializeComponents()
 {
@@ -19,9 +20,10 @@ void AGGShooterMinion::PostInitializeComponents()
 	if (RangedAttackComponent.IsValid())
 	{
 		AGGGameState* loc_GS = GetWorld()->GetGameState<AGGGameState>();
+		UGGNpcRangedAttackComponent* locRangedAtk = RangedAttackComponent.Get();
 		if (loc_GS)
 		{
-			RangedAttackComponent.Get()->SpritePool = loc_GS->GetSpritePool();
+			locRangedAtk->SpritePool = loc_GS->GetSpritePool();
 		}
 	}
 	if (AttackProjectileData)
@@ -279,7 +281,6 @@ void AGGShooterMinion::SyncFlipbookComponentWithTravelDirection()
 
 void AGGShooterMinion::MinionAttack_Internal(uint8 InInstruction)
 {
-	UE_LOG(GGMessage, Log, TEXT("Entity: uses attack"));
 	ActionState = EGGAIActionState::Attack;
 	UGGNpcRangedAttackComponent* locRAComp = RangedAttackComponent.Get();
 	if (locRAComp)
@@ -292,7 +293,7 @@ void AGGShooterMinion::MinionAttack_Internal(uint8 InInstruction)
 	if (flipbook)
 	{		
 		flipbook->SetLooping(false);
-		flipbook->SetFlipbook(AttackFlipbook);				
+		flipbook->SetFlipbook(AttackFlipbook);
 		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGShooterMinion::CompleteAttack);
 		// plays attack flipbook
 		flipbook->PlayFromStart();
@@ -327,6 +328,7 @@ void AGGShooterMinion::CompleteAttack()
 		flipbook->Play();
 	}
 	ActionState = EGGAIActionState::Evade;
+	bIsInActiveEvasionMode = false;
 	EnableBehaviourTick();
 }
 

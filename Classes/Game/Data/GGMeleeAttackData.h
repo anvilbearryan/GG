@@ -6,9 +6,7 @@
 #include "Game/Data/GGGameTypes.h"
 #include "GGMeleeAttackData.generated.h"
 
-/**
- * 
- */
+
 USTRUCT(BlueprintType)
 struct FGGMeleeHitDefinition
 {
