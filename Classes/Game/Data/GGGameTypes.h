@@ -65,56 +65,37 @@ USTRUCT(BlueprintType)
 struct FGGDamageDealingInfo
 {
 	GENERATED_BODY()
-
+private:
 	// make it 10 with member0 == member5 so that they corresponds to numpad values and make sense
 	static const FVector2D Directions[10];
 	static const float HitMargin;
-	// Direct damage = the amount of red to red decrease in between taking damage
-	UPROPERTY(EditAnywhere)
-		int32 DirectValue;
-	// Indirect damage = the amount of red to green decrease in between taking damage
-	UPROPERTY(EditAnywhere)
-		int32 IndirectValue;
+	static const int32 DirectDamageBaseMultiplier = 35;
+	static const int32 IndirectDamageBaseMultiplier = 10;
+public:
 	UPROPERTY()
 		uint8 ImpactDirection;
-	UPROPERTY(EditAnywhere)
-		TEnumAsByte<EGGDamageType::Type> Type;
+	UPROPERTY()
+		TEnumAsByte<EGGDamageType::Type> Type;	
+	
+	uint8 Direct_BaseMultiplier;	
+	uint8 Direct_PrecisionMultiplier;	
+	uint8 Direct_Unit;
+		
+	uint8 Indirect_BaseMultiplier;
+	uint8 Indirect_PrecisionMultiplier;
+	uint8 Indirect_Unit;
+
 	UPROPERTY()
 		APlayerState* CauserPlayerState;
-	
-	static uint8 ConvertDeltaPosition(const FVector& InDeltaPosition)
+
+	static uint8 ConvertDeltaPosition(const FVector& InDeltaPosition);
+	static int32 PrecisionMultiplierToPercent(uint8 InMultiplier);
+	static int32 UnitToValue(uint8 FromUnit);
+
+	FGGDamageDealingInfo()
 	{
-		uint8 Out = 0;
-		if (InDeltaPosition.Z > FGGDamageDealingInfo::HitMargin)
-		{
-			// case 123
-			Out = 7;
-		}
-		else if (InDeltaPosition.Z < -FGGDamageDealingInfo::HitMargin)
-		{
-			// case 789
-			Out = 1;
-		}
-		else
-		{
-			// case 456
-			Out = 4;
-		}
-		if (InDeltaPosition.Y > FGGDamageDealingInfo::HitMargin)
-		{
-			return Out;
-		}
-		else if (InDeltaPosition.Y < -FGGDamageDealingInfo::HitMargin)
-		{
-			Out += 2;
-		}
-		else
-		{
-			Out += 1;
-		}
-		return Out;
+		Type = EGGDamageType::Standard;
 	}
-	FGGDamageDealingInfo() {}
 	FGGDamageDealingInfo(uint32 DamageData, APlayerState* InPlayerState)
 	{		
 		const uint32 TypeBits = 15;
@@ -123,15 +104,19 @@ struct FGGDamageDealingInfo
 		const uint32 ImpactDirectionBits = 15 << 4;
 		ImpactDirection = (DamageData & ImpactDirectionBits) >> 4;
 
-		const uint32 IndirectValueBits = 4095 << 8;
-		IndirectValue = (DamageData & IndirectValueBits) >> 8;
+		const uint32 IndirectBits = ((4095 << 8) & DamageData) >> 8;
+		Indirect_BaseMultiplier = (IndirectBits & 255);
+		Indirect_PrecisionMultiplier = (IndirectBits & (3 << 8)) >> 8;
+		Indirect_Unit = (IndirectBits & (3 << 10)) >> 10;
 
-		const uint32 DirectValueBits = 4095 << 20;
-		IndirectValue = (DamageData & DirectValueBits) >> 20;
+		const uint32 DirectBits = ((4095 << 20) & DamageData) >> 20;
+		Direct_BaseMultiplier = (DirectBits & 255);
+		Direct_PrecisionMultiplier = (DirectBits & (3 << 8)) >> 8;
+		Direct_Unit = (DirectBits & (3 << 10)) >> 10;
 
 		CauserPlayerState = InPlayerState;
 	}
-	FVector2D GetImpactDirection()
+	FORCEINLINE FVector2D GetImpactDirection() const
 	{
 		if (ImpactDirection < 10)
 		{
@@ -140,17 +125,35 @@ struct FGGDamageDealingInfo
 		UE_LOG(GGWarning, Warning, TEXT("Invalid direction contained in DamageData struct! Array out of bounds!"));
 		return FVector2D();
 	}
-	uint32 GetCompressedData() const
+	FORCEINLINE uint32 GetCompressedData() const
 	{
 		uint32 result = 0;
-		result |= DirectValue;
+		result |= Direct_BaseMultiplier;
+		result |= (Direct_PrecisionMultiplier << 8);
+		result |= (Direct_Unit << 10);
 		result = result << 12;
-		result |= IndirectValue;
+		
+		result |= Indirect_BaseMultiplier;
+		result |= (Indirect_PrecisionMultiplier << 8);
+		result |= (Indirect_Unit << 10);
 		result = result << 12;
+
 		result |= ImpactDirection;
 		result = result << 4;
 		result |= Type;
 		return result;
+	}
+	FORCEINLINE int32 GetDirectDamage() const
+	{
+		return (FGGDamageDealingInfo::DirectDamageBaseMultiplier * Direct_BaseMultiplier
+			* FGGDamageDealingInfo::PrecisionMultiplierToPercent(Direct_PrecisionMultiplier)) / 100
+			+ FGGDamageDealingInfo::UnitToValue(Direct_Unit);
+	}
+	FORCEINLINE int32 GetIndirectDamage() const
+	{
+		return (FGGDamageDealingInfo::IndirectDamageBaseMultiplier * Indirect_BaseMultiplier
+			* FGGDamageDealingInfo::PrecisionMultiplierToPercent(Indirect_PrecisionMultiplier)) / 100
+			+ FGGDamageDealingInfo::UnitToValue(Indirect_Unit);
 	}
 };
 
@@ -162,58 +165,37 @@ private:
 	// make it 10 with member0 == member5 so that they corresponds to numpad values and make sense
 	static const FVector2D Directions[10];
 	static const float HitMargin;
-	
-	// the default value of all types of damage if unspecified
-	static const int32 BasicDamageLevel = 100;
-public:
-	// Direct damage = the amount of red to red decrease in between taking damage
-	UPROPERTY(EditAnywhere)
-		int32 DirectValue;
-	// Indirect damage = the amount of red to green decrease in between taking damage
-	UPROPERTY(EditAnywhere)
-		int32 IndirectValue;
+	static const int32 DirectDamageBaseMultiplier = 35;
+	static const int32 IndirectDamageBaseMultiplier = 10;
+
+public:	
 	UPROPERTY()
 		uint8 ImpactDirection;
 	UPROPERTY(EditAnywhere)
 		TEnumAsByte<EGGDamageType::Type> Type;
 
-	static uint8 ConvertDeltaPosition(const FVector& InDeltaPosition)
+	uint8 Direct_BaseMultiplier;
+	uint8 Direct_PrecisionMultiplier;
+	uint8 Direct_Unit;
+
+	uint8 Indirect_BaseMultiplier;
+	uint8 Indirect_PrecisionMultiplier;
+	uint8 Indirect_Unit;
+
+	static uint8 ConvertDeltaPosition(const FVector& InDeltaPosition);
+	static int32 PrecisionMultiplierToPercent(uint8 InMultiplier);
+	static int32 UnitToValue(uint8 FromUnit);
+
+	FGGDamageReceivingInfo()
 	{
-		uint8 Out = 0;
-		if (InDeltaPosition.Z > FGGDamageReceivingInfo::HitMargin)
-		{
-			// case 123
-			Out = 7;
-		}
-		else if (InDeltaPosition.Z < -FGGDamageReceivingInfo::HitMargin)
-		{
-			// case 789
-			Out = 1;
-		}
-		else
-		{
-			// case 456
-			Out = 4;
-		}
-		if (InDeltaPosition.Y > FGGDamageReceivingInfo::HitMargin)
-		{
-			return Out;
-		}
-		else if (InDeltaPosition.Y < -FGGDamageReceivingInfo::HitMargin)
-		{
-			Out += 2;
-		}
-		else
-		{
-			Out += 1;
-		}
-		return Out;
-	}
-	FGGDamageReceivingInfo() 
-	{
-		DirectValue = FGGDamageReceivingInfo::BasicDamageLevel;
-		IndirectValue = 0;
 		Type = EGGDamageType::Standard;
+		Direct_BaseMultiplier = 0;
+		Direct_PrecisionMultiplier = 0;
+		Direct_Unit = 0;
+
+		Indirect_BaseMultiplier = 0;
+		Indirect_PrecisionMultiplier = 0;
+		Indirect_Unit = 0;
 	}
 	FGGDamageReceivingInfo(uint32 DamageData)
 	{
@@ -223,11 +205,15 @@ public:
 		const uint32 ImpactDirectionBits = 15 << 4;
 		ImpactDirection = (DamageData & ImpactDirectionBits) >> 4;
 
-		const uint32 IndirectValueBits = 4095 << 8;
-		IndirectValue = (DamageData & IndirectValueBits) >> 8;
+		const uint32 IndirectBits = ((4095 << 8) & DamageData) >> 8;
+		Indirect_BaseMultiplier = (IndirectBits & 255);
+		Indirect_PrecisionMultiplier = (IndirectBits & (3 << 8)) >> 8;
+		Indirect_Unit = (IndirectBits & (3 << 10)) >> 10;
 
-		const uint32 DirectValueBits = 4095 << 20;
-		IndirectValue = (DamageData & DirectValueBits) >> 20;
+		const uint32 DirectBits = ((4095 << 20) & DamageData) >> 20;
+		Direct_BaseMultiplier = (DirectBits & 255);
+		Direct_PrecisionMultiplier = (DirectBits & (3 << 8)) >> 8;
+		Direct_Unit = (DirectBits & (3 << 10)) >> 10;
 	}
 	FVector2D GetImpactDirection() const
 	{
@@ -241,14 +227,33 @@ public:
 	uint32 GetCompressedData() const
 	{
 		uint32 result = 0;
-		result |= DirectValue;
+		result |= Direct_BaseMultiplier;
+		result |= (Direct_PrecisionMultiplier << 8);
+		result |= (Direct_Unit << 10);
 		result = result << 12;
-		result |= IndirectValue;
+
+		result |= Indirect_BaseMultiplier;
+		result |= (Indirect_PrecisionMultiplier << 8);
+		result |= (Indirect_Unit << 10);
 		result = result << 12;
+
 		result |= ImpactDirection;
 		result = result << 4;
 		result |= Type;
 		return result;
+	}
+
+	FORCEINLINE int32 GetDirectDamage() const
+	{
+		return (FGGDamageReceivingInfo::DirectDamageBaseMultiplier * Direct_BaseMultiplier
+			* FGGDamageReceivingInfo::PrecisionMultiplierToPercent(Direct_PrecisionMultiplier)) / 100
+			+ FGGDamageReceivingInfo::UnitToValue(Direct_Unit);
+	}
+	FORCEINLINE int32 GetIndirectDamage() const
+	{
+		return (FGGDamageReceivingInfo::IndirectDamageBaseMultiplier * Indirect_BaseMultiplier
+			* FGGDamageReceivingInfo::PrecisionMultiplierToPercent(Indirect_PrecisionMultiplier)) / 100
+			+ FGGDamageReceivingInfo::UnitToValue(Indirect_Unit);
 	}
 };
 

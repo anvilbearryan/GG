@@ -183,9 +183,10 @@ void UGGSlashAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType
 						FMeleeHitNotify notifier;
 						notifier.Target = AffectedEntities[i];
 						notifier.DamageCategory = UpdatedAttack->GetDamageType();
-						notifier.DamageLevels = FMeleeHitNotify ::CompressedDamageLevels(
-							UpdatedAttack->GetDirectDamageLevel(), UpdatedAttack->GetIndirectDamageLevel());
-						LocalHitTarget(notifier);						
+						notifier.DamageBaseMultipliers = FMeleeHitNotify ::CompressedDamageLevels(
+							DirectWeaponDamageBase + UpdatedAttack->GetDirectionDamageBase(), 
+							IndirectWeaponDamageBase + UpdatedAttack->GetIndirectionDamageBase());
+						LocalHitTarget(notifier);
 					}
 				}
 			}

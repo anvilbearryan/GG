@@ -35,15 +35,17 @@ void UGGNpcDamageReceiveComponent::InitializeHpState()
 void UGGNpcDamageReceiveComponent::ApplyDamageInformation(FGGDamageDealingInfo & information)
 {
 	// adjustment
-	information.DirectValue -= Defense_Subtractive;
-	information.DirectValue = FMath::RoundToInt((information.DirectValue * Defense_Multiplicative) / 100.f);
+	int32 DirectDamage = information.GetDirectDamage();
+	DirectDamage -= Defense_Subtractive;
+	DirectDamage = FMath::RoundToInt((DirectDamage * Defense_Multiplicative) / 100.f);
 
-	information.IndirectValue -= Defense_Subtractive;
-	information.IndirectValue = FMath::RoundToInt((information.IndirectValue * Defense_Multiplicative) / 100.f);
+	int32 IndirectDamage = information.GetIndirectDamage();
+	IndirectDamage -= Defense_Subtractive;
+	IndirectDamage = FMath::RoundToInt((IndirectDamage * Defense_Multiplicative) / 100.f);
 
 	Hp_Current -= HpDebuffer;
-	Hp_Current -= information.DirectValue;
-	HpDebuffer = information.IndirectValue;
+	Hp_Current -= DirectDamage;
+	HpDebuffer = IndirectDamage;
 
 	if (Hp_Current <= 0 && GetOwnerRole() == ROLE_Authority)
 	{

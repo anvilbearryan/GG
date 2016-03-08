@@ -176,15 +176,17 @@ void AGGReconCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InD
 	EnforcedMovementDirection = FVector(0.f, impactDirection.X, impactDirection.Y);
 
 	ActionState = EGGActionCategory::Damaged;
-	BodyFlipbookComponent->SetLooping(true);
-	BodyFlipbookComponent->SetFlipbook(ReceiveDamageFlipbook);
-	BodyFlipbookComponent->Play();
+	if (BodyFlipbookComponent) 
+	{
+		BodyFlipbookComponent->SetLooping(true);
+		BodyFlipbookComponent->SetFlipbook(ReceiveDamageFlipbook);
+		BodyFlipbookComponent->Play();
+	}
 }
 
 void AGGReconCharacter::OnCompleteDamageReaction()
 {
 	Super::OnCompleteDamageReaction();
-	bUseEnforcedMovement = false;
 	ActionState = EGGActionCategory::Locomotion;
 }
 

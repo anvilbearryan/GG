@@ -279,12 +279,7 @@ void UGGAIMovementComponent::InitializeComponent()
     Super::InitializeComponent();
     
     MovementMode = EMovementMode::MOVE_Falling;
-    /*
-    TArray<TEnumAsByte<ECollisionChannel>> channels;
-    GroundQueryParams = FCollisionObjectQueryParams(channels);
-    */
     GroundQueryParams.AddIgnoredActor(GetOwner());
-    GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Cyan, TEXT("Initialize"));
 
 }
 

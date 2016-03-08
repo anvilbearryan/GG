@@ -185,11 +185,11 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 			{// handle damage only if local
 				FRangedHitNotify notifier;
 				notifier.Target = hitResult.Actor.Get();
-				notifier.DamageLevels = FRangedHitNotify::CompressedDamageLevels(
-					projectile.ProjectileData->GetDirectDamageLevel(), 
-					projectile.ProjectileData->GetIndirectDamageLevel());
+				notifier.DamageBaseMultipliers = FRangedHitNotify::CompressedDamageLevels(
+					DirectWeaponDamageBase + projectile.ProjectileData->GetDirectDamageBase(),
+					IndirectWeaponDamageBase + projectile.ProjectileData->GetIndirectDamageBase());
 
-				notifier.HitPosition = projectile.SpriteBody->GetComponentLocation();
+				notifier.HitVelocity = projectile.CurrentVelocity;
 				notifier.DamageCategory = EGGDamageType::Standard;
 				LocalHitTarget(notifier);
 			}

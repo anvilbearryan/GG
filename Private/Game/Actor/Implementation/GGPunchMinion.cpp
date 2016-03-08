@@ -8,7 +8,6 @@
 #include "Game/Component/GGNpcLocomotionAnimComponent.h"
 #include "Game/Component/GGCharacterSensingComponent.h"
 
-
 void AGGPunchMinion::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -18,7 +17,6 @@ void AGGPunchMinion::PostInitializeComponents()
 	{
 		UE_LOG(GGMessage, Log, TEXT("%s has no attack component"), *GetName());
 	}
-
 	FlashHandler = FindComponentByClass<UGGFlipbookFlashHandler>();
 	if (!FlashHandler.IsValid())
 	{
@@ -311,7 +309,3 @@ void AGGPunchMinion::FlipFlipbookComponent()
 		FlipbookComponent.Get()->SetRelativeScale3D(NewScale);
 	}
 }
-
-
-
-

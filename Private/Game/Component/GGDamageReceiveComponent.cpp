@@ -54,19 +54,20 @@ void UGGDamageReceiveComponent::TickComponent( float DeltaTime, ELevelTick TickT
 
 void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageReceivingInfo& information)
 {
-	// adjust based on the component's stats
-	information.DirectValue -= Defense_Subtractive;
-	information.DirectValue = FMath::RoundToInt((information.DirectValue * Defense_Multiplicative) / 100.f);
+	int32 DirectDamage = information.GetDirectDamage();
+	DirectDamage -= Defense_Subtractive;
+	DirectDamage = FMath::RoundToInt((DirectDamage * Defense_Multiplicative) / 100.f);
 
-	information.IndirectValue -= Defense_Subtractive;
-	information.IndirectValue = FMath::RoundToInt((information.IndirectValue * Defense_Multiplicative) / 100.f);
-
+	int32 IndirectDamage = information.GetIndirectDamage();
+	IndirectDamage -= Defense_Subtractive;
+	IndirectDamage = FMath::RoundToInt((IndirectDamage * Defense_Multiplicative) / 100.f);
+		
 	Cache_LastReceivedDamage = information;
     //  Set as decimal part of estimated hp
 	Hp_CurrentEstimate -= FMath::FloorToFloat(Hp_CurrentEstimate);;
     
-    Hp_Recoverable = Hp_Current - information.IndirectValue;
-    Hp_Current = Hp_Recoverable - information.DirectValue;
+    Hp_Recoverable = Hp_Current - information.GetIndirectDamage();
+    Hp_Current = Hp_Recoverable - information.GetDirectDamage();
     
     if (Hp_Current <= 0)
     {

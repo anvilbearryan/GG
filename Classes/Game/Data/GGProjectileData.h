@@ -33,9 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Ranged")
 		float Lifespan;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
-		int32 DirectionDamageLevel;
+		int32 DirectionDamageBase;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
-		int32 IndirectDamageLevel;
+		int32 IndirectDamageBase;
 	UPROPERTY(EditAnywhere)
 		TEnumAsByte<EGGDamageType::Type> Type;
 private:
@@ -49,13 +49,13 @@ public:
 		return Gravity_Internal;
 	}
 	
-	FORCEINLINE int32 GetDirectDamageLevel()
+	FORCEINLINE int32 GetDirectDamageBase()
 	{
-		return DirectionDamageLevel;
+		return DirectionDamageBase;
 	}
-	FORCEINLINE int32 GetIndirectDamageLevel()
+	FORCEINLINE int32 GetIndirectDamageBase()
 	{
-		return IndirectDamageLevel;
+		return IndirectDamageBase;
 	}
 	FORCEINLINE EGGDamageType::Type GetDamageType()
 	{

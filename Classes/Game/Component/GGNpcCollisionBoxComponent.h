@@ -16,11 +16,10 @@ class GG_API UGGNpcCollisionBoxComponent : public UBoxComponent
 	GENERATED_BODY()
 	/** The additive adjustment for collision damage based on default damage level */
 	UPROPERTY(EditDefaultsOnly, Category = "GG|Damage")
-		int32 CollisionDamageStrength_Additive;	
-	/** The multiplicative adjustment for collision damage based on default damage level */
+		int32 DirectCollisionDamageBase;
 	UPROPERTY(EditDefaultsOnly, Category = "GG|Damage")
-		float CollisionDamageStrength_Multiplicative;
-	
+		int32 IndirectCollisionDamageBase;
+
 	TWeakObjectPtr<AGGCharacter> OverlappeddCharacter;
 	TWeakObjectPtr<UPrimitiveComponent> OverlappedCharacterHitbox;
 	

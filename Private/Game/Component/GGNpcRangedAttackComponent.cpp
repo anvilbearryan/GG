@@ -110,9 +110,11 @@ void UGGNpcRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick Tick
 FGGDamageReceivingInfo UGGNpcRangedAttackComponent::TranslateHitResult(const FLaunchedProjectile& InProjectile, const FHitResult& InHitResult) const
 {
 	FGGDamageReceivingInfo result;
-	result.ImpactDirection = FGGDamageReceivingInfo ::ConvertDeltaPosition(InHitResult.ImpactPoint - InProjectile.SpriteBody->GetComponentLocation());
-	//result.Type = 
-	//result.DirectValue =
-	//result.IndirectValue =
+	result.Direct_BaseMultiplier = InProjectile.ProjectileData->GetDirectDamageBase() + DirectWeaponDamageBase;
+	result.Indirect_BaseMultiplier = InProjectile.ProjectileData->GetIndirectDamageBase()
+		+ IndirectWeaponDamageBase;
+
+	result.ImpactDirection = FGGDamageReceivingInfo ::ConvertDeltaPosition(InProjectile.CurrentVelocity);
+	result.Type = InProjectile.ProjectileData->Type;
 	return result;
 }

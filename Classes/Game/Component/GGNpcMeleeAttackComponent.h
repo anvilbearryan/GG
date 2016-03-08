@@ -20,9 +20,9 @@ struct FGGNpcHitBoxData
 	UPROPERTY(EditAnywhere, Category = "GGAttack|NpcMelee")
 		float End;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|NpcMelee")
-		int32 DirectionDamageLevel;
+		int32 DirectDamageBase;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|NpcMelee")
-		int32 IndirectDamageLevel;
+		int32 IndirectDamageBase;
 	UPROPERTY(EditAnywhere)
 		TEnumAsByte<EGGDamageType::Type> Type;
 
@@ -38,11 +38,14 @@ class GG_API UGGNpcMeleeAttackComponent : public UActorComponent
 	GENERATED_BODY()
 	
 public:	
-	UPROPERTY(EditAnywhere, Category="NpcMelee")
+	UPROPERTY(EditAnywhere, Category="GGAttack|Specification")
 		TArray<FGGNpcHitBoxData> AttackHitbox_0;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		TEnumAsByte<ECollisionChannel> DamageChannel;
-
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 DirectWeaponDamageBase;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 IndirectWeaponDamageBase;
 private:
 	TArray<AActor*, TInlineAllocator<4>> AffectedEntities;
 	float CurrentTimeStamp;

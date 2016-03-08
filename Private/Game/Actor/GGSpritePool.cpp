@@ -14,7 +14,7 @@ AGGSpritePool::AGGSpritePool()
 	for (int32 i = 0; i < 24; i++)
 	{
 		UGGPooledSpriteComponent* sprite = CreateDefaultSubobject<UGGPooledSpriteComponent>(FName("PooledSprites", i));
-		sprite->AttachTo(RootComponent);
+		//sprite->AttachTo(RootComponent);
 		sprite->SetAbsolute(true, true, true);
 	}
 }

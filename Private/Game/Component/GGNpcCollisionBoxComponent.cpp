@@ -18,7 +18,6 @@ void UGGNpcCollisionBoxComponent::InitializeComponent()
 	OnComponentBeginOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::BeginOverlapToggle);
 	OnComponentEndOverlap.AddDynamic(this, &UGGNpcCollisionBoxComponent::EndOverlapToggle);
 	SetActive(false);
-	//SetComponentTickEnabled(false);
 }
 
 void UGGNpcCollisionBoxComponent::BeginOverlapToggle(AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
@@ -54,8 +53,10 @@ void UGGNpcCollisionBoxComponent::OnOverlapCharacter(AGGCharacter* InCharacter)
 	{
 		// take damage
 		FGGDamageReceivingInfo info;
-		info.DirectValue = FMath::RoundToInt(info.DirectValue * CollisionDamageStrength_Multiplicative) 
-			+ CollisionDamageStrength_Additive;
+		info.Direct_BaseMultiplier = DirectCollisionDamageBase;
+		info.Indirect_BaseMultiplier = IndirectCollisionDamageBase;
+		// TODO: set variance
+
 		info.ImpactDirection = FGGDamageReceivingInfo::ConvertDeltaPosition(
 			InCharacter->GetActorLocation() - GetComponentLocation());
 		InCharacter->LocalReceiveDamage(info);

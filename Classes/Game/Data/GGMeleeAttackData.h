@@ -57,9 +57,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Melee")
 		UPaperFlipbook* EffectAnimation;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
-		int32 DirectionDamageLevel;
+		int32 DirectionDamageBase;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
-		int32 IndirectDamageLevel;
+		int32 IndirectionDamageBase;
 	UPROPERTY(EditAnywhere)
 		TEnumAsByte<EGGDamageType::Type> Type;
 	/** Private caches for state calculation through TimeStamp arguement */
@@ -84,7 +84,6 @@ public:
 	{
 		return InTimeStamp >= TimeMark_EndStartup && InTimeStamp < TimeMark_EndActive;
 	}
-	
 	FORCEINLINE const FGGMeleeHitDefinition* GetActiveDefinition(float InTimeStamp) const
 	{
 		InTimeStamp -= TimeMark_EndStartup;
@@ -119,22 +118,18 @@ public:
 		}
 		return false;
 	}
-
 	FORCEINLINE bool IsInComboWindow(float InTimeStamp) const
 	{
 		return InTimeStamp < TimeMark_EndComboable && InTimeStamp >= TimeMark_BeginComboable;
 	}
-
 	FORCEINLINE bool HasPastHardCooldown(float InTimeStamp) const
 	{
 		return InTimeStamp >= TimeMark_MinDuration;
 	}
-
 	FORCEINLINE bool HasPastSoftCooldown(float InTimeStamp) const
 	{
 		return InTimeStamp >= TimeMark_FullDuration;
 	}
-
 	FORCEINLINE float TimeToLaunchCombo(float InTimeStamp) const
 	{
 		return TimeMark_MinDuration - InTimeStamp;
@@ -150,19 +145,18 @@ public:
 	{
 		return AttackAnimation;
 	}
-
 	FORCEINLINE UPaperFlipbook* GetEffectAnimation() const
 	{
 		return EffectAnimation;
 	}
 
-	FORCEINLINE int32 GetDirectDamageLevel()
+	FORCEINLINE int32 GetDirectionDamageBase()
 	{
-		return DirectionDamageLevel;
+		return DirectionDamageBase;
 	}
-	FORCEINLINE int32 GetIndirectDamageLevel()
+	FORCEINLINE int32 GetIndirectionDamageBase()
 	{
-		return IndirectDamageLevel;
+		return IndirectionDamageBase;
 	}
 	FORCEINLINE EGGDamageType::Type GetDamageType()
 	{

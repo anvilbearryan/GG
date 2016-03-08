@@ -25,6 +25,10 @@ protected:
 		TArray<TEnumAsByte<ECollisionChannel>> TargetObjectTypes;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		TEnumAsByte<ECollisionChannel> ProjectileObjectType;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 DirectWeaponDamageBase;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 IndirectWeaponDamageBase;
 	/** sprites updated by this component */
 	TArray<FLaunchedProjectile, TInlineAllocator<8>> UpdatedProjectiles;
 public:	

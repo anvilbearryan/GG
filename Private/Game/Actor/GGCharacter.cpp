@@ -108,12 +108,9 @@ void AGGCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bo
 {
 	//  We changes axis values from input based on wall jump condition
 	if (ScaleValue != 0.f && WorldDirection != FVector::ZeroVector)
-	{
-		// cache non-zero input for possible retrievle, only when voluntary from player
-		if (!bActionInputDisabled)
-		{
-			LastActualMovementInput = WorldDirection * ScaleValue;
-		}
+	{		
+		LastActualMovementInput = WorldDirection * ScaleValue;
+		
 		if (CanWallJump())
 		{
 			if (bPressedWallJumpLeft)
@@ -485,7 +482,7 @@ void AGGCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamage
 		if (locController && locHealth)
 		{
 			locController->UpdateHealthDisplay(locHealth->GetCurrentHp(), locHealth->Hp_Max);
-			locController->OnLocalCharacterReceiveDamage(InDamageInfo.DirectValue);
+			locController->OnLocalCharacterReceiveDamage(InDamageInfo.GetDirectDamage());
 		}
 	}
 	else
@@ -494,7 +491,7 @@ void AGGCharacter::CommenceDamageReaction(const FGGDamageReceivingInfo& InDamage
 			GetWorld()->GetFirstPlayerController());
 		if (locController)
 		{
-			locController->OnRemoteCharacterReceiveDamage(InDamageInfo.DirectValue);
+			locController->OnRemoteCharacterReceiveDamage(InDamageInfo.GetDirectDamage());
 		}
 	}
 }

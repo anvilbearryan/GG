@@ -4,6 +4,7 @@
 #include "Game/Component/GGNpcMeleeAttackComponent.h"
 #include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Actor/GGMinionBase.h"
+#include "Game/Actor/GGCharacter.h"
 
 // Sets default values for this component's properties
 UGGNpcMeleeAttackComponent::UGGNpcMeleeAttackComponent()
@@ -52,7 +53,7 @@ void UGGNpcMeleeAttackComponent::TickComponent( float DeltaTime, ELevelTick Tick
 	
 	AGGMinionBase* locOwner = static_cast<AGGMinionBase*>(GetOwner());
 	if (InstructionId == 0 && locOwner)
-	{		
+	{
 		FVector locOwnerLocation = locOwner->GetActorLocation();
 		FVector locOwnerDirection = locOwner->GetPlanarForwardVector();
 		for (auto& hitbox : AttackHitbox_0)
@@ -72,6 +73,17 @@ void UGGNpcMeleeAttackComponent::TickComponent( float DeltaTime, ELevelTick Tick
 					for (int32 i = Length; i < NewLength; i++)
 					{
 						// Hit code
+						AGGCharacter* character = Cast<AGGCharacter>(AffectedEntities[i]);
+						if (character && character->IsLocallyControlled())
+						{
+							FGGDamageReceivingInfo locInfo;
+							locInfo.ImpactDirection = FGGDamageReceivingInfo::ConvertDeltaPosition(
+								character->GetActorLocation() - loc_TraceCentre);
+							locInfo.Type = hitbox.Type;
+							locInfo.Direct_BaseMultiplier = hitbox.DirectDamageBase + DirectWeaponDamageBase;
+							locInfo.Indirect_BaseMultiplier = hitbox.IndirectDamageBase + IndirectWeaponDamageBase;
+							character->LocalReceiveDamage(locInfo);
+						}
 					}
 				}
 			}

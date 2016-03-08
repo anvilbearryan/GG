@@ -18,12 +18,12 @@ struct FRangedHitNotify
 	UPROPERTY()
 		AActor* Target;
 	UPROPERTY()
-		uint16 DamageLevels;
+		uint16 DamageBaseMultipliers;
 	/** So that simulated clients can receives all damage info */
 	UPROPERTY()
 		TEnumAsByte<EGGDamageType::Type> DamageCategory;
 	UPROPERTY()
-		FVector_NetQuantize HitPosition;
+		FVector_NetQuantize HitVelocity;
 
 	static FORCEINLINE uint16 CompressedDamageLevels(int32 DirectDamageLevel, int32 IndirectDamageLevel)
 	{
@@ -33,15 +33,15 @@ struct FRangedHitNotify
 	}
 	FORCEINLINE bool HasValidData() const
 	{
-		return Target != nullptr && DamageLevels != 0;
+		return Target != nullptr && DamageBaseMultipliers != 0;
 	}
-	FORCEINLINE int32 GetDirectDamageLevel() const
+	FORCEINLINE uint8 GetDirectBaseMultiplier() const
 	{
-		return (DamageLevels & 255);
+		return (DamageBaseMultipliers & 255);
 	}
-	FORCEINLINE int32 GetIndirectDamageLevel() const
+	FORCEINLINE uint8 GetIndirectBaseMultiplier() const
 	{
-		return (DamageLevels >> 8) & 255;
+		return (DamageBaseMultipliers >> 8) & 255;
 	}
 };
 
@@ -60,6 +60,11 @@ public:
 		TArray<TEnumAsByte<ECollisionChannel>> TargetObjectTypes;
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		TEnumAsByte<ECollisionChannel> ProjectileObjectType;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 DirectWeaponDamageBase;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 IndirectWeaponDamageBase;
+protected:
 	//********************************
 	//	States
 	UPROPERTY(Transient)
@@ -72,7 +77,7 @@ public:
 	uint8 AttackIdentifier;
 	/** Cache indicates whether this component has hit test responsibility */
 	uint8 bIsLocalInstruction : 1;
-
+public:
 	UGGRangedAttackComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

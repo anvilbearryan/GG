@@ -19,9 +19,10 @@ struct FMeleeHitNotify
 	GENERATED_BODY();
 	/** The target receiving the damage*/
 	UPROPERTY()
-		AActor* Target;	
+		AActor* Target;
+	/***/
 	UPROPERTY()
-		uint16 DamageLevels;
+		uint16 DamageBaseMultipliers;
 	/** So that simulated clients can receives all damage info */
 	UPROPERTY()
 		TEnumAsByte<EGGDamageType::Type> DamageCategory;
@@ -34,15 +35,15 @@ struct FMeleeHitNotify
 	}
 	FORCEINLINE bool HasValidData() const
 	{
-		return Target != nullptr && DamageLevels != 0;
+		return Target != nullptr && DamageBaseMultipliers != 0;
 	}
-	FORCEINLINE int32 GetDirectDamageLevel() const
+	FORCEINLINE uint8 GetDirectBaseMultiplier() const
 	{
-		return (DamageLevels & 255);
+		return (DamageBaseMultipliers & 255);
 	}
-	FORCEINLINE int32 GetIndirectDamageLevel() const
+	FORCEINLINE uint8 GetIndirectBaseMultiplier() const
 	{
-		return (DamageLevels >> 8) & 255;
+		return (DamageBaseMultipliers >> 8) & 255;
 	}
 };
 
@@ -56,11 +57,17 @@ class GG_API UGGMeleeAttackComponent : public UActorComponent
 
 public:
 	//********************************
+
 	//	Specification
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
 		TEnumAsByte<ECollisionChannel> DamageChannel;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 DirectWeaponDamageBase;
+	UPROPERTY(EditAnywhere, Category = "GGAttack|Specification")
+		int32 IndirectWeaponDamageBase;
 protected:
 	//********************************
+
 	//	States	
 	/** Cache containing what we last hit. Note: Only valid on owner and server */
 	UPROPERTY(Transient)
@@ -84,6 +91,7 @@ public:
 
 protected:
 	//********************************
+
 	// Landing attacks
 	/**
 	* Hit detection is done in owning client for co-op smooth experience and reports to the server to handle
@@ -102,6 +110,7 @@ protected:
 
 	virtual FGGDamageDealingInfo TranslateNotify(const FMeleeHitNotify& InHitNotify);
 	//********************************
+
 	// Launching attacks
 	UFUNCTION()
 		void OnRep_AttackToggle();
@@ -134,6 +143,7 @@ public:
 
 protected:
 	//********************************
+
 	// General utilities
 	/** UFUNCTION, so that timers can be set */
 	UFUNCTION()
