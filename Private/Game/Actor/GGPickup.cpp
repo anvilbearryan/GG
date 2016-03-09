@@ -15,6 +15,12 @@ AGGPickup::AGGPickup()
 	bReplicates = true;
 }
 
+void AGGPickup::PostInitializeComponents()
+{
+	ViewComponent = FindComponentByClass<UMeshComponent>();
+	FlashComponent = FindComponentByClass<UGGFlipbookFlashHandler>();
+}
+
 void AGGPickup::BeginPlay()
 {
 	Super::BeginPlay();

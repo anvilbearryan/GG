@@ -53,6 +53,8 @@ public:
 	// Sets default values for this actor's properties
 	AGGPickup();
 	
+	virtual void PostInitializeComponents() override;
+
 	virtual void BeginPlay() override;
 
 	virtual void NotifyActorBeginOverlap(AActor* Other) override;
