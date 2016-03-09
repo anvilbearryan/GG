@@ -61,7 +61,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
 		int32 IndirectionDamageBase;
 	UPROPERTY(EditAnywhere)
-		TEnumAsByte<EGGDamageType::Type> Type;
+		EGGDamageType Type;
 	/** Private caches for state calculation through TimeStamp arguement */
 	float SumActiveDuration;
 	float TimeMark_EndStartup;
@@ -158,7 +158,7 @@ public:
 	{
 		return IndirectionDamageBase;
 	}
-	FORCEINLINE EGGDamageType::Type GetDamageType()
+	FORCEINLINE EGGDamageType GetDamageType()
 	{
 		return Type;
 	}

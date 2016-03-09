@@ -26,8 +26,6 @@ void UGGNpcCollisionBoxComponent::BeginOverlapToggle(AActor * OtherActor, UPrimi
 	//UE_LOG(GGMessage, Log, TEXT("Begin overlap"));
 	if (OtherCharacter && OtherCharacter->IsLocallyControlled()) 
 	{	
-		//UE_LOG(GGMessage, Log, TEXT("Begin overlap inner"));
-		//SetComponentTickEnabled(true);
 		SetActive(true);
 		// continually check for overlap so we don't miss any damage dealing chances
 		OverlappeddCharacter = OtherCharacter;

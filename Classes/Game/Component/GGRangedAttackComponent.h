@@ -21,7 +21,7 @@ struct FRangedHitNotify
 		uint16 DamageBaseMultipliers;
 	/** So that simulated clients can receives all damage info */
 	UPROPERTY()
-		TEnumAsByte<EGGDamageType::Type> DamageCategory;
+		EGGDamageType DamageCategory;
 	UPROPERTY()
 		FVector_NetQuantize HitVelocity;
 

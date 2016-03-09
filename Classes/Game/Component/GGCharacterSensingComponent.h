@@ -4,7 +4,6 @@
 
 #include "Components/ActorComponent.h"
 #include "Game/Actor/GGCharacter.h"
-//#include "Game/Utility/GGFunctionLibrary.h"
 #include "Game/Data/GGGameTypes.h"
 #include "GGCharacterSensingComponent.generated.h"
 /**
@@ -19,12 +18,12 @@ class GG_API UGGCharacterSensingComponent : public UActorComponent
     DECLARE_DYNAMIC_DELEGATE(FSensingEvent);
 public:
     UPROPERTY(Category ="GGAI|Sensing", EditAnywhere, BlueprintReadOnly)
-    FVector2D ActiveZone;
+		FVector2D ActiveZone;
     UPROPERTY(Category ="GGAI|Sensing", EditAnywhere, BlueprintReadOnly)
-    FVector2D AlertZone;
+		FVector2D AlertZone;
     /** Active sensing is not done per frame to save cpu, however alertness is to ensure entites look responsive */
     UPROPERTY(Category ="GGAI|Sensing", EditAnywhere, BlueprintReadOnly)
-    float ActiveSensingInterval;
+		float ActiveSensingInterval;
     
     float TimeUntilNextActiveSenseCheck;
     
@@ -33,8 +32,8 @@ public:
     FSensingEvent OnUnalert;
     FSensingEvent OnDeactivate;
     
-    UPROPERTY(VisibleAnywhere, Category ="GGAI|Sensing")
-    TEnumAsByte<EGGAISensingState::Type> SensingState;
+    UPROPERTY(VisibleAnywhere, Transient, Category ="GGAI|Sensing")
+		EGGAISensingState SensingState;
     TWeakObjectPtr<AGGCharacter> Target;
     
     // Sets default values for this component's properties

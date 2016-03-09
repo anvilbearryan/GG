@@ -30,7 +30,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "GG|Animation")
 		class UPaperFlipbook* ReceiveDamageFlipbook;
 	// States
-	TEnumAsByte<EGGActionCategory::Type> ActionState;	
+	EGGActionCategory ActionState;	
 	uint8 bOverridePlaybackPosition: 1;
 	
 	UGGLocomotionAnimComponent* LastActiveLocoAnimComponent;

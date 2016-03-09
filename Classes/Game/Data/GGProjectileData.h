@@ -37,7 +37,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "GGAttack|Damage")
 		int32 IndirectDamageBase;
 	UPROPERTY(EditAnywhere)
-		TEnumAsByte<EGGDamageType::Type> Type;
+		EGGDamageType Type;
 private:
 	FVector Gravity_Internal;
 	
@@ -57,7 +57,7 @@ public:
 	{
 		return IndirectDamageBase;
 	}
-	FORCEINLINE EGGDamageType::Type GetDamageType()
+	FORCEINLINE EGGDamageType GetDamageType()
 	{
 		return Type;
 	}

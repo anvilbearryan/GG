@@ -42,7 +42,7 @@ UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetCurrentAnimation() const
 	return nullptr;
 }
 
-UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetDeathFlipbook(uint8 type) const
+UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetDeathFlipbook(EGGDamageType type) const
 {
 	if (LocomotionData)
 	{

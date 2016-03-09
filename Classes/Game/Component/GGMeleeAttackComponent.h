@@ -25,7 +25,7 @@ struct FMeleeHitNotify
 		uint16 DamageBaseMultipliers;
 	/** So that simulated clients can receives all damage info */
 	UPROPERTY()
-		TEnumAsByte<EGGDamageType::Type> DamageCategory;
+		EGGDamageType DamageCategory;
 
 	static FORCEINLINE uint16 CompressedDamageLevels(int32 DirectDamageLevel, int32 IndirectDamageLevel)
 	{

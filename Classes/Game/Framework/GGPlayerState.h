@@ -14,9 +14,10 @@ class GG_API AGGPlayerState : public APlayerState
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_Score)
-	int32 CurrentScore;
+	/** Score in parent class is a float... */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_PlayerScore)
+	int32 PlayerScore;
 	
 	UFUNCTION()
-		void OnRep_Score();
+		void OnRep_PlayerScore();
 };

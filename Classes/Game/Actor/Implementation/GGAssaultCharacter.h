@@ -27,7 +27,7 @@ public:
 	TWeakObjectPtr<UGGLocomotionAnimComponent> LocomotionAnimComponent;
 	TWeakObjectPtr<UGGSlashAttackComponent> NormalSlashAttackComponent;	
 		
-	TEnumAsByte<EGGActionCategory::Type> ActionState;
+	EGGActionCategory ActionState;
 
 	AGGAssaultCharacter(const FObjectInitializer& ObjectInitializer);
 

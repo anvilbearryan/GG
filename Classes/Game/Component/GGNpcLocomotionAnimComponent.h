@@ -4,6 +4,7 @@
 
 #include "Components/ActorComponent.h"
 #include "Game/Data/GGNpcAnimBlendspaceData.h"
+#include "Game/Data/GGGameTypes.h"
 #include "GGNpcLocomotionAnimComponent.generated.h"
 
 
@@ -22,5 +23,5 @@ public:
 	// Called every frame
 	virtual UPaperFlipbook* GetCurrentAnimation() const;
 
-	virtual UPaperFlipbook* GetDeathFlipbook(uint8 type) const;
+	virtual UPaperFlipbook* GetDeathFlipbook(EGGDamageType type) const;
 };

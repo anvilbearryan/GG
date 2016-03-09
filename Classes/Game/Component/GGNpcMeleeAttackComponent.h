@@ -24,7 +24,7 @@ struct FGGNpcHitBoxData
 	UPROPERTY(EditAnywhere, Category = "GGAttack|NpcMelee")
 		int32 IndirectDamageBase;
 	UPROPERTY(EditAnywhere)
-		TEnumAsByte<EGGDamageType::Type> Type;
+		EGGDamageType Type;
 
 	FCollisionShape HitShapeInternal;
 

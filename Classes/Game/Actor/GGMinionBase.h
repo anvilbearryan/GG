@@ -76,7 +76,7 @@ protected:
 	//********************************
 	//	Behaviour states
 	UPROPERTY(Category = "GGAI|State", EditDefaultsOnly, BlueprintReadOnly, Replicated)
-		TEnumAsByte<EGGAIActionState::Type> ActionState;
+		EGGAIActionState ActionState;
 	uint8 bIsBehaviourTickEnabled : 1;
 	FTimerHandle BehaviourHandle;
 	uint8 AttackInstructionCache;

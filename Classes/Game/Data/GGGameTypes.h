@@ -5,18 +5,16 @@
 #include "GGGameTypes.generated.h"
 
 UENUM(BlueprintType)
-namespace EGGShape
+enum class EGGShape : uint8
 {
-	enum Type
-	{
-		//	Just for exposing to BP...
-		Line = 0,
-		Box,
-		Sphere,
-		Capsule,
-		TYPES_COUNT
-	};
-}
+	//	Just for exposing to BP...
+	Line = 0,
+	Box,
+	Sphere,
+	Capsule,
+	TYPES_COUNT
+};
+
 /** Placeholder struct for configuring FCollisionShape in Blueprints */
 USTRUCT(BlueprintType)
 struct FGGCollisionShapeParser
@@ -25,7 +23,7 @@ struct FGGCollisionShapeParser
 
 		FGGCollisionShapeParser() {}
 	UPROPERTY(EditAnywhere, Category = "GGCollisionShape")
-		TEnumAsByte<EGGShape::Type> Shape;
+		EGGShape Shape;
 	UPROPERTY(EditAnywhere, Category = "GGCollisionShape")
 		FVector HalfExtent;
 
@@ -50,16 +48,14 @@ struct FGGCollisionShapeParser
 ***** Game types for damage ****
 */
 UENUM(BlueprintType)
-namespace EGGDamageType
+enum class EGGDamageType : uint8
 {
-	enum Type
-	{
-		//	Just for exposing to BP...
-		Standard = 0,
-		Slash = 1,
-		TYPES_COUNT
-	};
-}
+	//	Just for exposing to BP...
+	Standard = 0,
+	Slash = 1,
+	TYPES_COUNT
+
+};
 
 USTRUCT(BlueprintType)
 struct FGGDamageDealingInfo
@@ -75,7 +71,7 @@ public:
 	UPROPERTY()
 		uint8 ImpactDirection;
 	UPROPERTY()
-		TEnumAsByte<EGGDamageType::Type> Type;	
+		EGGDamageType Type;	
 	
 	uint8 Direct_BaseMultiplier;	
 	uint8 Direct_PrecisionMultiplier;	
@@ -99,7 +95,7 @@ public:
 	FGGDamageDealingInfo(uint32 DamageData, APlayerState* InPlayerState)
 	{		
 		const uint32 TypeBits = 15;
-		Type = (EGGDamageType::Type)(DamageData & TypeBits);
+		Type = EGGDamageType(DamageData & TypeBits);
 
 		const uint32 ImpactDirectionBits = 15 << 4;
 		ImpactDirection = (DamageData & ImpactDirectionBits) >> 4;
@@ -140,7 +136,7 @@ public:
 
 		result |= ImpactDirection;
 		result = result << 4;
-		result |= Type;
+		result |= (uint8) Type;
 		return result;
 	}
 	FORCEINLINE int32 GetDirectDamage() const
@@ -172,7 +168,7 @@ public:
 	UPROPERTY()
 		uint8 ImpactDirection;
 	UPROPERTY(EditAnywhere)
-		TEnumAsByte<EGGDamageType::Type> Type;
+		EGGDamageType Type;
 
 	uint8 Direct_BaseMultiplier;
 	uint8 Direct_PrecisionMultiplier;
@@ -200,7 +196,7 @@ public:
 	FGGDamageReceivingInfo(uint32 DamageData)
 	{
 		const uint32 TypeBits = 15;
-		Type = (EGGDamageType::Type)(DamageData & TypeBits);
+		Type = EGGDamageType(DamageData & TypeBits);
 
 		const uint32 ImpactDirectionBits = 15 << 4;
 		ImpactDirection = (DamageData & ImpactDirectionBits) >> 4;
@@ -239,7 +235,7 @@ public:
 
 		result |= ImpactDirection;
 		result = result << 4;
-		result |= Type;
+		result |= (uint8) Type;
 		return result;
 	}
 
@@ -258,11 +254,9 @@ public:
 };
 
 UENUM(BlueprintType)
-namespace EGGActionCategory
+enum class EGGActionCategory : uint8
 {
 	// Categories describes the general behaviour of any unit in games
-	enum Type
-	{
 		Locomotion = 0,  //
 		Attack = 1,   //
 		Defend = 2, //
@@ -272,8 +266,8 @@ namespace EGGActionCategory
 		Special = 6,
 		Reserved = 7,
 		TYPES_COUNT
-	};
-}
+};
+
 
 /**
 ******** BEGIN ENEMY AI TYPES ********
@@ -281,31 +275,25 @@ namespace EGGActionCategory
 
 /** Possible states of an enemy's player sensing behaviour */
 UENUM(BlueprintType)
-namespace EGGAISensingState
+enum class EGGAISensingState : uint8
 {
-	enum Type
-	{
-		Inactive = 0,
-		Active = 1,
-		Alert = 2,
-		TYPE_COUNT
-	};
-}
+	Inactive = 0,
+	Active = 1,
+	Alert = 2,
+	TYPE_COUNT
+};
 
 /** Generalized phases of AI action */
 UENUM(BlueprintType)
-namespace EGGAIActionState
+enum class EGGAIActionState : uint8
 {
-	enum Type
-	{
-		Inactive = 0,
-		Patrol = 1,
-		PrepareAttack = 2,
-		Attack = 3,
-		Evade = 4,
-		TYPE_COUNT
-	};
-}
+	Inactive = 0,
+	Patrol = 1,
+	PrepareAttack = 2,
+	Attack = 3,
+	Evade = 4,
+	TYPE_COUNT
+};
 
 /**
 ******** END ENEMY AI TYPES ********
@@ -402,7 +390,6 @@ struct FLaunchedProjectile
 		Lifespan = 0;
 		SpawnTime = 0;
 	}
-
 	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data, float time);	
 };
 
