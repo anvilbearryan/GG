@@ -3,6 +3,7 @@
 #include "GG.h"
 #include "Game/Component/GGFlipbookFlashHandler.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperSpriteComponent.h"
 
 // Sets default values for this component's properties
 UGGFlipbookFlashHandler::UGGFlipbookFlashHandler()
@@ -13,7 +14,7 @@ UGGFlipbookFlashHandler::UGGFlipbookFlashHandler()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void UGGFlipbookFlashHandler::SetFlashSchedule(UPaperFlipbookComponent* InUpdatedComponent, float InDuration)
+void UGGFlipbookFlashHandler::SetFlashSchedule(UPrimitiveComponent* InUpdatedComponent, float InDuration)
 {	
 	UpdatedComponent = InUpdatedComponent;
 	if (UpdatedComponent.IsValid())
@@ -21,12 +22,21 @@ void UGGFlipbookFlashHandler::SetFlashSchedule(UPaperFlipbookComponent* InUpdate
 		Duration = InDuration;
 		Timemark = 0.f;
 		FrameCount = 0;
-		SetActive(true);
+
+		bIsFlipbook = !!Cast<UPaperFlipbookComponent>(InUpdatedComponent);
+		if (!bIsFlipbook)
+		{
+			bIsSprite = !!Cast<UPaperSpriteComponent>(InUpdatedComponent);
+		}
+		if (bIsFlipbook || !bIsSprite)
+		{
+			SetActive(true);
+		}
 	}
 	else
 	{
 		SetActive(false);
-	}
+	}	
 }
 
 // Called every frame
@@ -34,7 +44,24 @@ void UGGFlipbookFlashHandler::TickComponent( float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent( DeltaTime, TickType, ThisTickFunction );
 
-	UPaperFlipbookComponent* updatedFlipbook = UpdatedComponent.Get();
+	if (bIsFlipbook)
+	{
+		TickFlipbook(DeltaTime);
+	}
+	else if (bIsSprite)
+	{
+		TickSprite(DeltaTime);
+	}
+	else
+	{
+		UE_LOG(GGWarning, Warning, TEXT("Something is wrong in this flashhandler"));
+		SetActive(false);
+	}
+}
+
+void UGGFlipbookFlashHandler::TickFlipbook(float DeltaTime)
+{
+	UPaperFlipbookComponent* updatedFlipbook = static_cast<UPaperFlipbookComponent*>(UpdatedComponent.Get());
 	if (!!updatedFlipbook && Timemark < Duration)
 	{
 		Timemark += DeltaTime;
@@ -57,7 +84,7 @@ void UGGFlipbookFlashHandler::TickComponent( float DeltaTime, ELevelTick TickTyp
 	}
 	else
 	{
-		if (updatedFlipbook) 
+		if (updatedFlipbook)
 		{
 			updatedFlipbook->SetSpriteColor(FLinearColor(0.f, 0.f, 0.f));
 			UpdatedComponent = nullptr;
@@ -66,3 +93,36 @@ void UGGFlipbookFlashHandler::TickComponent( float DeltaTime, ELevelTick TickTyp
 	}
 }
 
+void UGGFlipbookFlashHandler::TickSprite(float DeltaTime)
+{
+	UPaperSpriteComponent* updatedSprite = static_cast<UPaperSpriteComponent*>(UpdatedComponent.Get());
+	if (!!updatedSprite && Timemark < Duration)
+	{
+		Timemark += DeltaTime;
+		FrameCount++;
+		if (FrameCount % 3 == 0)
+		{
+			// == normal color for out additive material
+			updatedSprite->SetSpriteColor(FLinearColor(0.f, 0.f, 0.f));
+		}
+		else if (FrameCount % 3 == 1)
+		{
+			// == white color for out additive material
+			updatedSprite->SetSpriteColor(FLinearColor(1.f, 1.f, 1.f));
+		}
+		else
+		{
+			// == invisible for out additive material
+			updatedSprite->SetSpriteColor(FLinearColor(0.f, 0.f, 0.f, 0.f));
+		}
+	}
+	else
+	{
+		if (updatedSprite)
+		{
+			updatedSprite->SetSpriteColor(FLinearColor(0.f, 0.f, 0.f));
+			UpdatedComponent = nullptr;
+		}
+		SetActive(false);
+	}
+}

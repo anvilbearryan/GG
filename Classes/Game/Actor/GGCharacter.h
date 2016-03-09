@@ -183,7 +183,11 @@ private:
     void MulticastReceiveDamage_Implementation(uint32 CompressedData);
 protected:
     virtual void ReceiveDamage(FGGDamageReceivingInfo& InDamageInfo);
-    
+
+public:   
+	UFUNCTION(unreliable, NetMulticast, Category = "GG|GGDamage")
+		void MulticastHealCharacter(uint16 value);
+	void MulticastHealCharacter_Implementation(uint16 value);
 	//**************************
 
 	// ****	Damage reaction	****

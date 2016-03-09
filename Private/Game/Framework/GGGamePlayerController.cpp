@@ -5,6 +5,7 @@
 #include "Game/Framework/GGModeInGame.h"
 #include "Game/Component/GGDamageReceiveComponent.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Sound/SoundCue.h"
 
 // ********************************
 
@@ -99,4 +100,12 @@ void AGGGamePlayerController::ClientOnRespawn_Implementation()
 
 // ********************************
 
-// UI update
+// General utility
+void AGGGamePlayerController::ClientPlaySound2D_Implementation(USoundCue* sound)
+{
+	if (sound == nullptr)
+	{
+		return;
+	}
+	UGameplayStatics::PlaySound2D(GetWorld(), sound);
+}

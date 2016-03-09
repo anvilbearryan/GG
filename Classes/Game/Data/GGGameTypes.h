@@ -4,48 +4,9 @@
 
 #include "GGGameTypes.generated.h"
 
-UENUM(BlueprintType)
-enum class EGGShape : uint8
-{
-	//	Just for exposing to BP...
-	Line = 0,
-	Box,
-	Sphere,
-	Capsule,
-	TYPES_COUNT
-};
-
-/** Placeholder struct for configuring FCollisionShape in Blueprints */
-USTRUCT(BlueprintType)
-struct FGGCollisionShapeParser
-{
-	GENERATED_BODY()
-
-		FGGCollisionShapeParser() {}
-	UPROPERTY(EditAnywhere, Category = "GGCollisionShape")
-		EGGShape Shape;
-	UPROPERTY(EditAnywhere, Category = "GGCollisionShape")
-		FVector HalfExtent;
-
-	FORCEINLINE FCollisionShape ConvertToEngineShape()
-	{
-		switch (Shape)
-		{
-		case EGGShape::Box:
-			return FCollisionShape::MakeBox(HalfExtent);
-		case EGGShape::Sphere:
-			return FCollisionShape::MakeSphere(HalfExtent.GetAbsMax());
-		case EGGShape::Capsule:
-			return FCollisionShape::MakeCapsule(FMath::Max(HalfExtent.X, HalfExtent.Y), HalfExtent.Z);
-		}
-		// other cases are un-defined
-		UE_LOG(GGWarning, Warning, TEXT("No sensible FCollisionShape can be constructed from this struct"));
-		return FCollisionShape();
-	}
-};
 
 /**
-***** Game types for damage ****
+***** Damage logic types ****
 */
 UENUM(BlueprintType)
 enum class EGGDamageType : uint8
@@ -253,25 +214,57 @@ public:
 	}
 };
 
+class UGGPooledSpriteComponent;
+class UGGProjectileData;
+/** Contains information necessary in updating projectile's state and handling events*/
+USTRUCT()
+struct FLaunchedProjectile
+{
+	GENERATED_BODY()
+
+		// safe guard in case sprite component is destroyed somehow
+		UGGPooledSpriteComponent* SpriteBody;
+	// this is stored to make delayed launch possible
+	FVector LaunchDirection;
+	FVector ContinualAcceleration;
+	// since we are using PaperSpriteComponent, they do not store velocity by default unlike an AActor
+	FVector CurrentVelocity;
+	UGGProjectileData* ProjectileData;
+	float Lifespan;
+	float SpawnTime;
+	int8 CurrentCollisionCount;
+
+	FLaunchedProjectile()
+	{
+		SpriteBody = nullptr;
+		LaunchDirection = FVector::ZeroVector;
+		ContinualAcceleration = FVector::ZeroVector;
+		ProjectileData = nullptr;
+		CurrentCollisionCount = 0;
+		Lifespan = 0;
+		SpawnTime = 0;
+	}
+	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data, float time);
+};
+
+/**
+******** Entity States ********
+*/
+/** States of player character */
 UENUM(BlueprintType)
 enum class EGGActionCategory : uint8
 {
 	// Categories describes the general behaviour of any unit in games
-		Locomotion = 0,  //
-		Attack = 1,   //
-		Defend = 2, //
-		Evade = 3,   //
-		Damaged = 4,
-		Death = 5,
-		Special = 6,
-		Reserved = 7,
-		TYPES_COUNT
+	Locomotion = 0,  //
+	Attack = 1,   //
+	Defend = 2, //
+	Evade = 3,   //
+	Damaged = 4,
+	Death = 5,
+	Special = 6,
+	Reserved = 7,
+	TYPES_COUNT
 };
-
-
-/**
-******** BEGIN ENEMY AI TYPES ********
-*/
 
 /** Possible states of an enemy's player sensing behaviour */
 UENUM(BlueprintType)
@@ -296,11 +289,7 @@ enum class EGGAIActionState : uint8
 };
 
 /**
-******** END ENEMY AI TYPES ********
-*/
-
-/**
-******** BEGIN 2D GEOMETRY TYPES ********
+******** 2D Geometry Types ********
 */
 
 USTRUCT(BlueprintType)
@@ -356,42 +345,60 @@ struct FGGBox2D
 	}
 };
 
-/**
-******** END 2D GEOMETRY TYPES ********
-*/
+UENUM(BlueprintType)
+enum class EGGShape : uint8
+{
+	//	Just for exposing to BP...
+	Line = 0,
+	Box,
+	Sphere,
+	Capsule,
+	TYPES_COUNT
+};
 
-class UGGPooledSpriteComponent;
-class UGGProjectileData;
-/** Contains information necessary in updating projectile's state and handling events*/
-USTRUCT()
-struct FLaunchedProjectile
+/** Placeholder struct for configuring FCollisionShape in Blueprints */
+USTRUCT(BlueprintType)
+struct FGGCollisionShapeParser
 {
 	GENERATED_BODY()
 
-	// safe guard in case sprite component is destroyed somehow
-	UGGPooledSpriteComponent* SpriteBody;
-	// this is stored to make delayed launch possible
-	FVector LaunchDirection;
-	FVector ContinualAcceleration;
-	// since we are using PaperSpriteComponent, they do not store velocity by default unlike an AActor
-	FVector CurrentVelocity;
-	UGGProjectileData* ProjectileData;
-	float Lifespan;
-	float SpawnTime;
-	int8 CurrentCollisionCount;
+		FGGCollisionShapeParser() {}
+	UPROPERTY(EditAnywhere, Category = "GGCollisionShape")
+		EGGShape Shape;
+	UPROPERTY(EditAnywhere, Category = "GGCollisionShape")
+		FVector HalfExtent;
 
-	FLaunchedProjectile()
+	FORCEINLINE FCollisionShape ConvertToEngineShape()
 	{
-		SpriteBody = nullptr;
-		LaunchDirection = FVector::ZeroVector;
-		ContinualAcceleration = FVector::ZeroVector;
-		ProjectileData = nullptr;
-		CurrentCollisionCount = 0;
-		Lifespan = 0;
-		SpawnTime = 0;
+		switch (Shape)
+		{
+		case EGGShape::Box:
+			return FCollisionShape::MakeBox(HalfExtent);
+		case EGGShape::Sphere:
+			return FCollisionShape::MakeSphere(HalfExtent.GetAbsMax());
+		case EGGShape::Capsule:
+			return FCollisionShape::MakeCapsule(FMath::Max(HalfExtent.X, HalfExtent.Y), HalfExtent.Z);
+		}
+		// other cases are un-defined
+		UE_LOG(GGWarning, Warning, TEXT("No sensible FCollisionShape can be constructed from this struct"));
+		return FCollisionShape();
 	}
-	FLaunchedProjectile(UGGPooledSpriteComponent* body, const FVector& direction, UGGProjectileData* data, float time);	
 };
+
+/**
+******** In-game numeric value types ********
+*/
+UENUM(BlueprintType)
+enum class EGGLootTypes : uint8
+{
+	//	Just for exposing to BP...
+	None,
+	Hp,
+	Mp,
+	Score,
+	TYPES_COUNT
+};
+
 
 UCLASS()
 class GG_API UGGGameTypes : public UObject

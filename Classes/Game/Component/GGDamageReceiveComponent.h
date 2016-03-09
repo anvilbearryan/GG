@@ -56,6 +56,8 @@ public:
     UFUNCTION()
 		void ApplyDamageInformation(FGGDamageReceivingInfo& information);
 
+	void HealHp(uint16 value);
+
 	/** Handy hp getter */
 	UFUNCTION(BlueprintPure, BlueprintCallable, Category = "GG|Damage")
 		int32 GetCurrentHp() const;

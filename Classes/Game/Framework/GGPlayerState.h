@@ -18,6 +18,7 @@ public:
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_PlayerScore)
 	int32 PlayerScore;
 	
+	void AddToPlayerScore(int32 value);
 	UFUNCTION()
 		void OnRep_PlayerScore();
 };

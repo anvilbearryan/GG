@@ -75,4 +75,11 @@ public:
 		void OnRemoteCharacterDealDamage();
 	UFUNCTION(BlueprintImplementableEvent, Category = DamageEvents)
 		void OnRemoteCharacterReceiveDamage(int32 InDamageReceived);
+
+	// ********************************
+
+	// General utility
+	UFUNCTION(Client, Unreliable)
+		void ClientPlaySound2D(USoundCue* sound);
+	void ClientPlaySound2D_Implementation(USoundCue* sound);
 };

@@ -445,6 +445,23 @@ void AGGCharacter::ReceiveDamage(FGGDamageReceivingInfo& InDamageInfo)
 	}	
 }
 
+void AGGCharacter::MulticastHealCharacter_Implementation(uint16 value)
+{
+	UGGDamageReceiveComponent* locHealth = HealthComponent.Get();
+	if (value > 0 && locHealth)
+	{
+		locHealth->HealHp(value);
+		if (IsLocallyControlled())
+		{
+			AGGGamePlayerController* locController = static_cast<AGGGamePlayerController*>(Controller);			
+			if (locController)
+			{
+				locController->UpdateHealthDisplay(locHealth->GetCurrentHp(), locHealth->Hp_Max);				
+			}
+		}
+	}
+}
+
 //**************************
 
 // ****	Damage reaction	****

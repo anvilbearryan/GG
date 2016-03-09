@@ -10,11 +10,25 @@ void AGGPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION(AGGPlayerState, Score, COND_OwnerOnly);
 }
+
+void AGGPlayerState::AddToPlayerScore(int32 value)
+{
+	if (value == 0)
+	{
+		return;
+	}
+	PlayerScore += value;
+	if (GetNetMode() == NM_ListenServer)
+	{
+		OnRep_PlayerScore();
+	}
+}
+
 void AGGPlayerState::OnRep_PlayerScore()
 {
 	AGGGamePlayerController* controller = static_cast<AGGGamePlayerController*>(
 		GetWorld()->GetFirstPlayerController());
-	if (controller)
+	if (controller && controller->IsLocalController())
 	{
 		controller->UpdateScoreDisplay(PlayerScore);
 	}

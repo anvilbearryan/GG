@@ -87,6 +87,11 @@ void UGGDamageReceiveComponent::ApplyDamageInformation(FGGDamageReceivingInfo& i
     }
 }
 
+void UGGDamageReceiveComponent::HealHp(uint16 value)
+{
+	Hp_Current += value;
+}
+
 int32 UGGDamageReceiveComponent::GetCurrentHp() const
 {
 	return Hp_Current;
