@@ -99,10 +99,15 @@ public:
 	UFUNCTION(NetMulticast, unreliable)
 		void MulticastReceiveDamage(uint32 Delta, APlayerState* InCauser);
 	void MulticastReceiveDamage_Implementation(uint32 Delta, APlayerState* InCauser);
+
+	virtual void ReceiveDamage(FGGDamageDealingInfo InDamageInfo);
+	
+	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo);
 	UFUNCTION()
-		virtual void ReceiveDamage(FGGDamageDealingInfo InDamageInfo);
+		virtual void OnCompleteDamageReaction();
+	virtual void CommenceDeathReaction();
 	UFUNCTION()
-		virtual void PlayDeathSequence();
+		virtual void OnCompleteDeathReaction();
 
 	//********************************
 	//	Sensing callbacks

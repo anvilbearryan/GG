@@ -43,13 +43,11 @@ void AGGShooterMinion::OnReachWalkingBound()
 	bReachedWalkingBound = true;
 }
 
-void AGGShooterMinion::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
+void AGGShooterMinion::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
 {
-	// takes care of damage receiving logic
-	Super::ReceiveDamage(DamageInfo);
-	UE_LOG(GGMessage, Log, TEXT("%s receive damage"), *GetName());
+	Super::CommenceDamageReaction(InDamageInfo);
 	// play damage taking event
-	FVector2D impactDirection = DamageInfo.GetImpactDirection();
+	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
 	float forwardY = GetPlanarForwardVector().Y;
 	// USE X, because its 2D vector!
 	if (impactDirection.X * forwardY > 0.f)
@@ -58,31 +56,32 @@ void AGGShooterMinion::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 	}
 	if (FlashHandler.IsValid())
 	{
-		UE_LOG(GGMessage, Log, TEXT("%s Flashes"), *GetName());
 		FlashHandler.Get()->SetFlashSchedule(FlipbookComponent.Get(), SecondsFlashesOnReceiveDamage);
 	}
 }
 
-void AGGShooterMinion::PlayDeathSequence()
+void AGGShooterMinion::CommenceDeathReaction()
 {
+	Super::CommenceDeathReaction();
 	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
 	UGGNpcLocomotionAnimComponent* animator = PrimitiveAnimator.Get();
 	if (flipbook && animator)
 	{
 		flipbook->SetFlipbook(animator->GetDeathFlipbook(Cache_DamageReceived.Type));
 		flipbook->SetLooping(false);
-		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGShooterMinion::CompleteDeath);
+		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGShooterMinion::OnCompleteDeathReaction);
 		// plays death flipbook
 		flipbook->PlayFromStart();
 	}
 }
 
-void AGGShooterMinion::CompleteDeath()
+void AGGShooterMinion::OnCompleteDeathReaction()
 {
+	Super::OnCompleteDeathReaction();
 	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
 	if (flipbook)
 	{
-		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGShooterMinion::CompleteDeath);
+		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGShooterMinion::OnCompleteDeathReaction);
 	}
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);

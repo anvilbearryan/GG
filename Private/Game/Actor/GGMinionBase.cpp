@@ -9,6 +9,7 @@
 #include "Game/Component/GGNpcLocomotionAnimComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Game/Framework/GGGamePlayerController.h"
+#include "Game/Framework/GGModeInGame.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
 
@@ -119,16 +120,52 @@ void AGGMinionBase::MulticastReceiveDamage_Implementation(uint32 Data, APlayerSt
 
 void AGGMinionBase::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 {
-	Cache_DamageReceived = DamageInfo;
-	if (HealthComponent.IsValid())
+	Cache_DamageReceived = DamageInfo;	
+	UGGNpcDamageReceiveComponent* locHealth = HealthComponent.Get();
+	if (locHealth)
 	{
-		HealthComponent.Get()->ApplyDamageInformation(DamageInfo);
+		locHealth->ApplyDamageInformation(DamageInfo);
+		if (locHealth->GetCurrentHealth() <= 0)
+		{
+			CommenceDeathReaction();
+		}
+		else
+		{
+			CommenceDamageReaction(Cache_DamageReceived);
+		}
 	}
 }
 
-void AGGMinionBase::PlayDeathSequence()
+void AGGMinionBase::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
 {
-	UE_LOG(GGWarning, Warning, TEXT("MinionBase empty implementation method: PlayDeathSequence called, meaningless"));
+	UE_LOG(GGMessage, Log, TEXT("%s CommenceDamageReaction"), *GetName());
+}
+
+void AGGMinionBase::OnCompleteDamageReaction()
+{
+	UE_LOG(GGMessage, Log, TEXT("%s CompleteDamageReaction"), *GetName());
+}
+
+void AGGMinionBase::CommenceDeathReaction()
+{
+	UE_LOG(GGMessage, Log, TEXT("%s CommenceDeathReaction"), *GetName());
+}
+
+void AGGMinionBase::OnCompleteDeathReaction()
+{
+	UE_LOG(GGMessage, Log, TEXT("%s CompleteDeathReaction"), *GetName());
+	if (Role == ROLE_Authority)
+	{
+		UWorld* world = GetWorld();
+		if (world)
+		{
+			AGGModeInGame* gamemode = world->GetAuthGameMode<AGGModeInGame>();
+			if (gamemode) 
+			{
+				gamemode->OnMinionKilledByPlayer(this, Cache_DamageReceived.CauserPlayerState);
+			}
+		}
+	}
 }
 
 //********************************

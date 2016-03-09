@@ -76,15 +76,23 @@ class GG_API AGGPunchMinion : public AGGMinionBase
 		float SecondsFlashesOnReceiveDamage;
 	TWeakObjectPtr<UGGFlipbookFlashHandler> FlashHandler;
 
+	// ********************************
+
+	// AActor interface
 	virtual void PostInitializeComponents() override;
 
+	// ********************************
+
+	// Movement
 	virtual void OnReachWalkingBound() override;
 
-	virtual void ReceiveDamage(FGGDamageDealingInfo DamageInfo) override;
-	virtual void PlayDeathSequence() override;
-	
-	UFUNCTION()
-		void CompleteDeath();
+	// ********************************
+
+	// Damage
+	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo) override;
+	virtual void CommenceDeathReaction() override;		
+	virtual	void OnCompleteDeathReaction() override;
+
 	virtual void OnSensorActivate_Implementation() override;
 	virtual void OnSensorAlert_Implementation() override;
 	virtual void OnSensorUnalert_Implementation() override;

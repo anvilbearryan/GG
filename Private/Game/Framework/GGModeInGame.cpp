@@ -107,6 +107,20 @@ FVector AGGModeInGame::GetCharacterSpawnPosition(APlayerController* InController
 	return CheckpointPosition;
 }
 
+void AGGModeInGame::OnPlayerKilledByMinion(const class APlayerState* playerState, const class AGGMinionBase* minion)
+{
+
+}
+
+/* 
+*	We may wish to give him hp/mp/score reward depending on the player's status.
+*	While a reward could have been put within the minion, this increases the complexity to implement situational 
+*	drops. Moreover, it brings unnecessary increase in number of components/variables repicated simultaneously.
+*/
+void AGGModeInGame::OnMinionKilledByPlayer(const class AGGMinionBase* minion, const class APlayerState* playerState)
+{
+	// analyze PlayerState and branch
+}
 
 
 

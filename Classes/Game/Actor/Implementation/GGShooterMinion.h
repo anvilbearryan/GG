@@ -93,21 +93,39 @@ public:
 		float SecondsFlashesOnReceiveDamage;
 	TWeakObjectPtr<UGGFlipbookFlashHandler> FlashHandler;
 
-	virtual void PostInitializeComponents() override;
+	// ********************************
 
+	// AActor interface
+	virtual void PostInitializeComponents() override;
+	
+	// ********************************
+
+	// Movement
 	virtual void OnReachWalkingBound() override;
 	
-	virtual void ReceiveDamage(FGGDamageDealingInfo DamageInfo) override;
-	virtual void PlayDeathSequence() override;
-	UFUNCTION()
-		void CompleteDeath();
+	// ********************************
+
+	// Damage
+	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo) override;
+	virtual void CommenceDeathReaction() override;
+	virtual	void OnCompleteDeathReaction() override;
+
+	// ********************************
+
+	// Character sensing
 	virtual void OnSensorActivate_Implementation() override;
 	virtual void OnSensorAlert_Implementation() override;
 	virtual void OnSensorUnalert_Implementation() override;
 	virtual void OnSensorDeactivate_Implementation() override;
 
+	// ********************************
+
+	// Animation
 	virtual void TickAnimation(float DeltaSeconds) override;
 
+	// ********************************
+
+	// Behaviour
 	virtual void TickPatrol(float DeltaSeconds) override;
 	virtual void TickPrepareAttack(float DeltaSeconds) override;
 	virtual void TickEvade(float DeltaSeconds) override;
@@ -115,6 +133,9 @@ public:
 	/**	For 1-directional behaviour */
 	void SyncFlipbookComponentWithTravelDirection();
 
+	// ********************************
+
+	// Attacking
 	virtual void MinionAttack_Internal(uint8 InInstruction) override;
 
 	UFUNCTION()
@@ -123,6 +144,7 @@ public:
 		void CompleteAttack();
 
 	//********************************
+
 	//	One-way facing enemy utility, potentiall abstract into base
 	bool IsTargetInSuppliedRange(const FVector2D& Range) const;
 

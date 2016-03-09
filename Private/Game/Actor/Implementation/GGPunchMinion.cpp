@@ -29,47 +29,46 @@ void AGGPunchMinion::OnReachWalkingBound()
 	bReachedWalkingBound = true;
 }
 
-void AGGPunchMinion::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
+void AGGPunchMinion::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
 {
-	// takes care of damage receiving logic
-	Super::ReceiveDamage(DamageInfo);
-	UE_LOG(GGMessage, Log, TEXT("%s receive damage"), *GetName());
+	Super::CommenceDamageReaction(InDamageInfo);
 	// play damage taking event
-	FVector2D impactDirection = DamageInfo.GetImpactDirection();
+	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
 	float forwardY = GetPlanarForwardVector().Y;
-	
+
 	// USE X, because its 2D vector!
 	if (impactDirection.X * forwardY > 0.f)
 	{
 		FlipFlipbookComponent();
 	}
 	if (FlashHandler.IsValid())
-	{
-		UE_LOG(GGMessage, Log, TEXT("%s Flashes"), *GetName());
+	{		
 		FlashHandler.Get()->SetFlashSchedule(FlipbookComponent.Get(), SecondsFlashesOnReceiveDamage);
 	}
 }
 
-void AGGPunchMinion::PlayDeathSequence()
+void AGGPunchMinion::CommenceDeathReaction()
 {
+	Super::CommenceDeathReaction();
 	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
 	UGGNpcLocomotionAnimComponent* animator = PrimitiveAnimator.Get();
 	if (flipbook && animator)
 	{
 		flipbook->SetFlipbook(animator->GetDeathFlipbook(Cache_DamageReceived.Type));
 		flipbook->SetLooping(false);
-		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGPunchMinion::CompleteDeath);
+		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGPunchMinion::OnCompleteDeathReaction);
 		// plays death flipbook
 		flipbook->PlayFromStart();
 	}
 }
 
-void AGGPunchMinion::CompleteDeath()
+void AGGPunchMinion::OnCompleteDeathReaction()
 {
+	Super::OnCompleteDeathReaction();
 	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
 	if (flipbook)
 	{
-		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGPunchMinion::CompleteDeath);
+		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGPunchMinion::OnCompleteDeathReaction);
 	}
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);

@@ -7,7 +7,7 @@
 
 class AGGCharacter;
 class APlayerController;
-
+/** Struct representing the information of a spawn character request from client*/
 USTRUCT()
 struct FSpawnRequestDetail
 {
@@ -33,7 +33,9 @@ class GG_API AGGModeInGame : public AGameMode
 	GENERATED_BODY()
 
 public:
-	// Speicfication
+	/* 
+	*	Character spawning sepcification - BPs representing the character we shall spawn
+	*/
 	UPROPERTY(EditDefaultsOnly, Category=GameSetting)
 		TAssetSubclassOf<AGGCharacter> AssaultBP;
 	UPROPERTY(EditDefaultsOnly, Category = GameSetting)
@@ -43,14 +45,26 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = GameSetting)
 		TAssetSubclassOf<AGGCharacter> DemolitionBP;
 
-	// Level state
+	/*
+	*	The world positions characters are spawned at
+	*/
 	UPROPERTY(BlueprintReadWrite)
 		FVector CheckpointPosition;
 
+	/*
+	*	As character assets are loaded async, we need to store a queue of the spawn requests we have received
+	*	to know what next to be processed.
+	*/
 	TArray<FSpawnRequestDetail, TInlineAllocator<4>> SpawnRequestQueue;
 
+	/*
+	*	AGameMode interface
+	*/
 	virtual void PostLogin(APlayerController* InController) override;
 
+	/*
+	*	Character spawning interface
+	*/
 	void HandleClientSpawnRequest(APlayerController* InController, uint8 InCharacterClass, uint32 InCharacterSaveData);
 
 	UFUNCTION()
@@ -62,5 +76,11 @@ public:
 
 	FVector GetCharacterSpawnPosition(APlayerController* InController) const;
 	
+	/*
+	*	Runtime game events
+	*/
+	void OnPlayerKilledByMinion(const class APlayerState* playerState, const class AGGMinionBase* minion);
+
+	void OnMinionKilledByPlayer(const class AGGMinionBase* minion, const class APlayerState* playerState);
 
 };
