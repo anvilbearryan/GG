@@ -14,7 +14,7 @@ UGGFlipbookFlashHandler::UGGFlipbookFlashHandler()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void UGGFlipbookFlashHandler::SetFlashSchedule(UPrimitiveComponent* InUpdatedComponent, float InDuration)
+void UGGFlipbookFlashHandler::SetFlashSchedule(UMeshComponent* InUpdatedComponent, float InDuration)
 {	
 	UpdatedComponent = InUpdatedComponent;
 	if (UpdatedComponent.IsValid())

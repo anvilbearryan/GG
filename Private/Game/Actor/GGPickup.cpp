@@ -17,15 +17,27 @@ AGGPickup::AGGPickup()
 
 void AGGPickup::PostInitializeComponents()
 {
+	Super::PostInitializeComponents();
 	ViewComponent = FindComponentByClass<UMeshComponent>();
 	FlashComponent = FindComponentByClass<UGGFlipbookFlashHandler>();
+	UPrimitiveComponent* prim = Cast<UPrimitiveComponent>(RootComponent);
+	if (prim) 
+	{
+		prim->SetSimulatePhysics(true);		
+	}
 }
 
 void AGGPickup::BeginPlay()
 {
 	Super::BeginPlay();
 	GetWorld()->GetTimerManager().SetTimer(LifecycleHandle, this, &AGGPickup::BeginVanishing, Lifetime_Normal);
+	UPrimitiveComponent* prim = static_cast<UPrimitiveComponent*>(RootComponent);	
+	if (prim)
+	{
+		prim->AddImpulse(FVector(0.f, 0.f, 300.f), NAME_None, true);
+	}
 }
+
 
 void AGGPickup::NotifyActorBeginOverlap(AActor* Other)
 {

@@ -5,7 +5,7 @@
 #include "Components/ActorComponent.h"
 #include "GGFlipbookFlashHandler.generated.h"
 
-class UPrimitiveComponent;
+class UMeshComponent;
 UCLASS(ClassGroup="GGEffects", meta = (BlueprintSpawnableComponent))
 class GG_API UGGFlipbookFlashHandler : public UActorComponent
 {
@@ -13,7 +13,7 @@ class GG_API UGGFlipbookFlashHandler : public UActorComponent
 
 protected:
 	// Composition
-	TWeakObjectPtr<UPrimitiveComponent> UpdatedComponent;	
+	TWeakObjectPtr<UMeshComponent> UpdatedComponent;
 	
 	// State
 	float Timemark;
@@ -25,7 +25,7 @@ public:
 	// Sets default values for this component's properties
 	UGGFlipbookFlashHandler();
 
-	void SetFlashSchedule(UPrimitiveComponent* InUpdatedComponent, float InDuration);
+	void SetFlashSchedule(UMeshComponent* InUpdatedComponent, float InDuration);
 
 	// Called every frame
 	virtual void TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction ) override;

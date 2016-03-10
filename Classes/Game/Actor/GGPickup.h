@@ -6,7 +6,7 @@
 #include "Game/Data/GGGameTypes.h"
 #include "GGPickup.generated.h"
 
-class UPaperSpriteComponent;
+class UMeshComponent;
 class UGGFlipbookFlashHandler;
 class AGGCharacter;
 
@@ -38,9 +38,10 @@ class GG_API AGGPickup : public AActor
 		float Lifetime_Vanishing;
 	UPROPERTY(EditAnywhere, Category = "GGPickups")
 		USoundCue* PickupSound;
+
 	// ********************************
 	// Composition	 
-	TWeakObjectPtr<UPrimitiveComponent> ViewComponent; // so it can be a sprite or flipbook
+	TWeakObjectPtr<UMeshComponent> ViewComponent; // so it can be a sprite or flipbook
 	// for disappearing
 	TWeakObjectPtr<UGGFlipbookFlashHandler> FlashComponent;
 
