@@ -51,6 +51,14 @@ public:
 
 	FGGDamageDealingInfo()
 	{
+		Direct_BaseMultiplier = 0;
+		Direct_PrecisionMultiplier = 0;
+		Direct_Unit = 0;
+
+		Indirect_BaseMultiplier = 0;
+		Indirect_PrecisionMultiplier = 0;
+		Indirect_Unit = 0;
+
 		Type = EGGDamageType::Standard;
 	}
 	FGGDamageDealingInfo(uint32 DamageData, APlayerState* InPlayerState)
@@ -98,6 +106,13 @@ public:
 		result |= ImpactDirection;
 		result = result << 4;
 		result |= (uint8) Type;
+		/*
+		UE_LOG(GGMessage, Log, TEXT("FDmaageDealing: Attempting to Convert the following DirectDmgInfo:"));
+		UE_LOG(GGMessage, Log, TEXT("DirectBaseMultiplier: %d"), Direct_BaseMultiplier);
+		UE_LOG(GGMessage, Log, TEXT("Direct_PrecisionMultiplier: %d"), Direct_PrecisionMultiplier);
+		UE_LOG(GGMessage, Log, TEXT("Direct_Unit: %d"), Direct_Unit);
+		UE_LOG(GGMessage, Log, TEXT("FDmaageDealing: Resulting compressed bits: %d"), result);		
+		*/
 		return result;
 	}
 	FORCEINLINE int32 GetDirectDamage() const

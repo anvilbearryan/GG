@@ -30,6 +30,8 @@ class GG_API AGGPickup : public AActor
 	// Specification
 	UPROPERTY(EditAnywhere, Category ="GGPickups")
 		FGGLootReward LootReward;
+	UPROPERTY(EditAnywhere, Category = "GGPickups")
+		FVector SpawnImpulse;
 	/** Time this pickup exist normally before starting disappeareance sequence */
 	UPROPERTY(EditAnywhere, Category = "GGPickups")
 		float Lifetime_Normal;

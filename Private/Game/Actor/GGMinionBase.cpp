@@ -120,6 +120,7 @@ void AGGMinionBase::MulticastReceiveDamage_Implementation(uint32 Data, APlayerSt
 
 void AGGMinionBase::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 {
+	UE_LOG(GGMessage, Log, TEXT("%s ReceiveDamage"), *GetName());
 	Cache_DamageReceived = DamageInfo;	
 	UGGNpcDamageReceiveComponent* locHealth = HealthComponent.Get();
 	if (locHealth)
@@ -133,6 +134,10 @@ void AGGMinionBase::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 		{
 			CommenceDamageReaction(Cache_DamageReceived);
 		}
+	}
+	else
+	{
+		UE_LOG(GGMessage, Log, TEXT("%s tried to ReceiveDamage but has no health component"), *GetName());
 	}
 }
 

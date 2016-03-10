@@ -32,15 +32,19 @@ void AGGPunchMinion::OnReachWalkingBound()
 void AGGPunchMinion::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
 {
 	Super::CommenceDamageReaction(InDamageInfo);
-	// play damage taking event
+	
+	// Reaction flip functionality removed, does not look natural
+	/*	
 	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
 	float forwardY = GetPlanarForwardVector().Y;
-
+	 
 	// USE X, because its 2D vector!
 	if (impactDirection.X * forwardY > 0.f)
 	{
 		FlipFlipbookComponent();
 	}
+	*/
+	// Flashes flipbook
 	if (FlashHandler.IsValid())
 	{		
 		FlashHandler.Get()->SetFlashSchedule(FlipbookComponent.Get(), SecondsFlashesOnReceiveDamage);
@@ -56,7 +60,7 @@ void AGGPunchMinion::CommenceDeathReaction()
 	{
 		flipbook->SetFlipbook(animator->GetDeathFlipbook(Cache_DamageReceived.Type));
 		flipbook->SetLooping(false);
-		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGPunchMinion::OnCompleteDeathReaction);
+		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGMinionBase::OnCompleteDeathReaction);
 		// plays death flipbook
 		flipbook->PlayFromStart();
 	}

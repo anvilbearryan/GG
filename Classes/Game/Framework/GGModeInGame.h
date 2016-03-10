@@ -7,6 +7,7 @@
 
 class AGGCharacter;
 class APlayerController;
+class AGGPickup;
 /** Struct representing the information of a spawn character request from client*/
 USTRUCT()
 struct FSpawnRequestDetail
@@ -33,9 +34,8 @@ class GG_API AGGModeInGame : public AGameMode
 	GENERATED_BODY()
 
 public:
-	/* 
-	*	Character spawning sepcification - BPs representing the character we shall spawn
-	*/
+	// ********************************
+	// Character spawning sepcification - BPs representing the character we shall spawn
 	UPROPERTY(EditDefaultsOnly, Category=GameSetting)
 		TAssetSubclassOf<AGGCharacter> AssaultBP;
 	UPROPERTY(EditDefaultsOnly, Category = GameSetting)
@@ -43,44 +43,43 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = GameSetting)
 		TAssetSubclassOf<AGGCharacter> EngineerBP;
 	UPROPERTY(EditDefaultsOnly, Category = GameSetting)
-		TAssetSubclassOf<AGGCharacter> DemolitionBP;
+		TAssetSubclassOf<AGGCharacter> DemolitionBP;	
+	
+	// ********************************
+	// Runtime game sepcification - BPs representing the character we shall spawn
+	UPROPERTY(EditDefaultsOnly, Category = GameSetting)
+		TAssetSubclassOf<AGGPickup> HealthPickupBP;
+	UPROPERTY(EditDefaultsOnly, Category = GameSetting)
+		TAssetSubclassOf<AGGPickup> ScorePickupBP;
 
-	/*
-	*	The world positions characters are spawned at
+	// ********************************
+	// Character spawning states
+	/*	As character assets are loaded async, we need to store a queue of the spawn requests we have received
+	*	to know what next to be processed.	
 	*/
+	TArray<FSpawnRequestDetail, TInlineAllocator<4>> SpawnRequestQueue;
+	/* The world positions characters are spawned at */
 	UPROPERTY(BlueprintReadWrite)
 		FVector CheckpointPosition;
 
-	/*
-	*	As character assets are loaded async, we need to store a queue of the spawn requests we have received
-	*	to know what next to be processed.
-	*/
-	TArray<FSpawnRequestDetail, TInlineAllocator<4>> SpawnRequestQueue;
-
-	/*
-	*	AGameMode interface
-	*/
+	// ********************************
+	// AGameMode interface
 	virtual void PostLogin(APlayerController* InController) override;
 
-	/*
-	*	Character spawning interface
-	*/
+	// ********************************
+	// Character spawning interface
 	void HandleClientSpawnRequest(APlayerController* InController, uint8 InCharacterClass, uint32 InCharacterSaveData);
-
 	UFUNCTION()
 		void InitiateCharacterAssetLoadingSequence();
 	UFUNCTION()
 		void OnLoadedCharacterAsset();
-
 	void SpawnCharacterForController(APlayerController* InController, UClass* InClass);
-
 	FVector GetCharacterSpawnPosition(APlayerController* InController) const;
 	
-	/*
-	*	Runtime game events
-	*/
+	// ********************************
+	// Runtime game events
 	void OnPlayerKilledByMinion(const class APlayerState* playerState, const class AGGMinionBase* minion);
-
 	void OnMinionKilledByPlayer(const class AGGMinionBase* minion, const class APlayerState* playerState);
 
+	AGGPickup* SpawnPickupAtLocation(const FTransform& InLocation, const TAssetSubclassOf<AGGPickup>& InPickupClass);
 };

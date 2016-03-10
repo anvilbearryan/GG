@@ -323,6 +323,7 @@ bool UGGSlashAttackComponent::ShouldRemainInState() const
 		bool loc_onGround = loc_Character && loc_Character->GetCharacterMovement() && loc_Character->GetCharacterMovement()->IsMovingOnGround();
 		if (loc_onGround)
 		{
+
 			UE_LOG(GGMessage, Log, TEXT("Should not remain in attack state"));
 			return false;
 		}

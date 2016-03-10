@@ -202,12 +202,12 @@ public:
 		float SecondsDisabledOnReceiveDamage;
 	
 	// States
-	uint8 bUseEnforcedMovement : 1;		// governs movement direction
-protected:	
+	uint8 bUseEnforcedMovement : 1;		// governs movement direction	
 	uint8 bLockedFacing : 1;			// governs sprite facing
 	uint8 bActionInputDisabled : 1;		// governs movement abilities
 	FVector EnforcedMovementDirection;
 	float EnforcedMovementStrength;
+protected:
 	FTimerHandle DamageReactHandle;
 
 	/** Separate from ReceiveeDamage so that we have a chance in ReceiveDamage to determine function route depending on whether this is a fatal damage */

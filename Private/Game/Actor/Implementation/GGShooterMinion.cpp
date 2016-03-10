@@ -46,7 +46,8 @@ void AGGShooterMinion::OnReachWalkingBound()
 void AGGShooterMinion::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
 {
 	Super::CommenceDamageReaction(InDamageInfo);
-	// play damage taking event
+	// Reaction flip functionality removed, does not look natural
+	/*
 	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
 	float forwardY = GetPlanarForwardVector().Y;
 	// USE X, because its 2D vector!
@@ -54,6 +55,8 @@ void AGGShooterMinion::CommenceDamageReaction(const FGGDamageDealingInfo& InDama
 	{
 		FlipFlipbookComponent();
 	}
+	*/
+	// Flashes flipbook
 	if (FlashHandler.IsValid())
 	{
 		FlashHandler.Get()->SetFlashSchedule(FlipbookComponent.Get(), SecondsFlashesOnReceiveDamage);
@@ -81,7 +84,7 @@ void AGGShooterMinion::OnCompleteDeathReaction()
 	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
 	if (flipbook)
 	{
-		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGShooterMinion::OnCompleteDeathReaction);
+		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGMinionBase::OnCompleteDeathReaction);
 	}
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);

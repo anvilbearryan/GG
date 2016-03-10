@@ -34,10 +34,9 @@ void AGGPickup::BeginPlay()
 	UPrimitiveComponent* prim = static_cast<UPrimitiveComponent*>(RootComponent);	
 	if (prim)
 	{
-		prim->AddImpulse(FVector(0.f, 0.f, 300.f), NAME_None, true);
+		prim->AddImpulse(SpawnImpulse, NAME_None, true);
 	}
 }
-
 
 void AGGPickup::NotifyActorBeginOverlap(AActor* Other)
 {

@@ -158,11 +158,17 @@ void UGGMeleeAttackComponent::SetControllerIgnoreMoveInput()
 	AGGCharacter* Character = static_cast<AGGCharacter*>(GetOwner());
 	if (Character && Character->IsLocallyControlled())
 	{
+		Character->bUseEnforcedMovement = true;
+		Character->EnforcedMovementStrength = 0.f;
+		Character->EnforcedMovementDirection = FVector::ZeroVector;
+		Character->bLockedFacing = true;
+		/*
 		APlayerController* PlayerController = static_cast<APlayerController*>(Character->GetController());
 		if (PlayerController)
 		{
 			PlayerController->SetIgnoreMoveInput(true);
 		}
+		*/
 	}
 }
 
@@ -171,10 +177,14 @@ void UGGMeleeAttackComponent::SetControllerReceiveMoveInput()
 	AGGCharacter* Character = static_cast<AGGCharacter*>(GetOwner());
 	if (Character && Character->IsLocallyControlled())
 	{
+		Character->bUseEnforcedMovement = false;		
+		Character->bLockedFacing = false;
+		/*
 		APlayerController* PlayerController = static_cast<APlayerController*>(Character->GetController());
 		if (PlayerController)
 		{
 			PlayerController->SetIgnoreMoveInput(false);
 		}
+		*/
 	}
 }

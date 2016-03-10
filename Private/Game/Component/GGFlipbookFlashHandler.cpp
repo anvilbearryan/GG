@@ -30,12 +30,13 @@ void UGGFlipbookFlashHandler::SetFlashSchedule(UMeshComponent* InUpdatedComponen
 		}
 		if (bIsFlipbook || !bIsSprite)
 		{
-			SetActive(true);
+			SetActive(true);			
 		}
 	}
 	else
 	{
 		SetActive(false);
+		SetComponentTickEnabled(false);
 	}	
 }
 
@@ -56,6 +57,7 @@ void UGGFlipbookFlashHandler::TickComponent( float DeltaTime, ELevelTick TickTyp
 	{
 		UE_LOG(GGWarning, Warning, TEXT("Something is wrong in this flashhandler"));
 		SetActive(false);
+		SetComponentTickEnabled(false);
 	}
 }
 
@@ -90,6 +92,7 @@ void UGGFlipbookFlashHandler::TickFlipbook(float DeltaTime)
 			UpdatedComponent = nullptr;
 		}
 		SetActive(false);
+		SetComponentTickEnabled(false);
 	}
 }
 
@@ -124,5 +127,6 @@ void UGGFlipbookFlashHandler::TickSprite(float DeltaTime)
 			UpdatedComponent = nullptr;
 		}
 		SetActive(false);
+		SetComponentTickEnabled(false);
 	}
 }

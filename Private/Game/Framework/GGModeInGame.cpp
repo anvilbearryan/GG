@@ -3,8 +3,11 @@
 #include "GG.h"
 #include "Game/Framework/GGModeInGame.h"
 #include "Game/Actor/GGCharacter.h"
+#include "Game/Actor/GGMinionBase.h"
 #include "Game/Framework/GGGamePlayerController.h"
+#include "Game/Actor/GGPickup.h"
 #include "Global/GGGameInstance.h"
+
 
 void AGGModeInGame::PostLogin(APlayerController* InController)
 {
@@ -120,7 +123,31 @@ void AGGModeInGame::OnPlayerKilledByMinion(const class APlayerState* playerState
 void AGGModeInGame::OnMinionKilledByPlayer(const class AGGMinionBase* minion, const class APlayerState* playerState)
 {
 	// analyze PlayerState and branch
+	if (!!minion)
+	{
+		SpawnPickupAtLocation(minion->GetTransform(), HealthPickupBP);
+	}
 }
 
-
-
+AGGPickup* AGGModeInGame::SpawnPickupAtLocation(const FTransform& InTransform, const TAssetSubclassOf<AGGPickup>& InPickupClass)
+{
+	UClass* pickupClass = InPickupClass.Get();
+	if (pickupClass == nullptr)
+	{
+		// loads the asset (blocking)
+		UGGGameInstance* locGameInstance = static_cast<UGGGameInstance*>(GetGameInstance());
+		FStreamableManager& StreamableManager = locGameInstance->StreamableManager;
+		pickupClass = Cast<UClass>(StreamableManager.SynchronousLoad(InPickupClass.ToStringReference()));
+	}	
+	if (!!pickupClass)
+	{
+		FActorSpawnParameters pickupSpawnParams;
+		pickupSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		return GetWorld()->SpawnActor<AGGPickup>(pickupClass, InTransform, pickupSpawnParams);
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Sync load called but still null"));
+		return nullptr;
+	}
+}
