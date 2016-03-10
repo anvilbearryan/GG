@@ -68,13 +68,6 @@ class GG_API AGGPunchMinion : public AGGMinionBase
 	UPROPERTY(Category = "GGAI|Attack", EditAnywhere)
 		UPaperFlipbook* AttackFlipbook;
 	TWeakObjectPtr<UGGNpcMeleeAttackComponent> AttackComponent;
-	// ********************************
-
-	// Receive damage properties 	
-	// TODO: Do minions have damage immune?
-	UPROPERTY(EditAnywhere, Category = "GG|Damage")
-		float SecondsFlashesOnReceiveDamage;
-	TWeakObjectPtr<UGGFlipbookFlashHandler> FlashHandler;
 
 	// ********************************
 
@@ -85,13 +78,6 @@ class GG_API AGGPunchMinion : public AGGMinionBase
 
 	// Movement
 	virtual void OnReachWalkingBound() override;
-
-	// ********************************
-
-	// Damage
-	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo) override;
-	virtual void CommenceDeathReaction() override;		
-	virtual	void OnCompleteDeathReaction() override;
 
 	virtual void OnSensorActivate_Implementation() override;
 	virtual void OnSensorAlert_Implementation() override;

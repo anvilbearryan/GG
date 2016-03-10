@@ -5,18 +5,17 @@
 #include "Game/Component/GGCharacterSensingComponent.h"
 #include "Game/Component/GGAIMovementComponent.h"
 #include "PaperFlipbookComponent.h"
-#include "Game/Component/GGNpcDamageReceiveComponent.h"
 #include "Game/Component/GGNpcLocomotionAnimComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "Game/Framework/GGGamePlayerController.h"
+
 #include "Game/Framework/GGModeInGame.h"
+#include "Game/Component/GGFlipbookFlashHandler.h"
 
 FName AGGMinionBase::CapsuleComponentName = TEXT("CapsuleComponent");
 
-AGGMinionBase::AGGMinionBase()
+AGGMinionBase::AGGMinionBase() : Super()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	bReplicateMovement = true;
     MovementCapsule = CreateDefaultSubobject<UCapsuleComponent>(AGGMinionBase::CapsuleComponentName);
     if (MovementCapsule)
     {
@@ -41,13 +40,7 @@ void AGGMinionBase::PostInitializeComponents()
 		MovementComponent.Get()->MinionOwner = this;
 	}
 
-	FlipbookComponent = FindComponentByClass<UPaperFlipbookComponent>();    
-
-	HealthComponent = FindComponentByClass<UGGNpcDamageReceiveComponent>();
-	if (HealthComponent.IsValid())
-	{
-		HealthComponent.Get()->InitializeHpState();		
-	}
+	FlipbookComponent = FindComponentByClass<UPaperFlipbookComponent>();    	
 
 	/** Bind pawn sensing delegates */
 	Sensor = FindComponentByClass<UGGCharacterSensingComponent>();
@@ -61,6 +54,12 @@ void AGGMinionBase::PostInitializeComponents()
 	}
 
 	PrimitiveAnimator = FindComponentByClass<UGGNpcLocomotionAnimComponent>();
+
+	FlashHandler = FindComponentByClass<UGGFlipbookFlashHandler>();
+	if (!FlashHandler.IsValid())
+	{
+		UE_LOG(GGMessage, Log, TEXT("%s has no flashy flipbook handler"), *GetName());
+	}
 }
 
 //********************************
@@ -106,59 +105,54 @@ void AGGMinionBase::OnReachWalkingBound()
 //********************************
 
 //	Damage interface
-void AGGMinionBase::MulticastReceiveDamage_Implementation(uint32 Data, APlayerState* InCauser)
-{
-	// the local causer do not rely on the OnRep to display the damage, hence the check for duplication
-	// suffice as the server does not fire OnReps
-	AGGGamePlayerController* localPlayerController = Cast<AGGGamePlayerController>(GetWorld()->GetFirstPlayerController());
-	if (localPlayerController && InCauser != localPlayerController->PlayerState)
-	{
-		ReceiveDamage(FGGDamageDealingInfo(Data, InCauser));
-		localPlayerController->OnRemoteCharacterDealDamage();
-	}
-}
-
-void AGGMinionBase::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
-{
-	UE_LOG(GGMessage, Log, TEXT("%s ReceiveDamage"), *GetName());
-	Cache_DamageReceived = DamageInfo;	
-	UGGNpcDamageReceiveComponent* locHealth = HealthComponent.Get();
-	if (locHealth)
-	{
-		locHealth->ApplyDamageInformation(DamageInfo);
-		if (locHealth->GetCurrentHealth() <= 0)
-		{
-			CommenceDeathReaction();
-		}
-		else
-		{
-			CommenceDamageReaction(Cache_DamageReceived);
-		}
-	}
-	else
-	{
-		UE_LOG(GGMessage, Log, TEXT("%s tried to ReceiveDamage but has no health component"), *GetName());
-	}
-}
-
 void AGGMinionBase::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
 {
-	UE_LOG(GGMessage, Log, TEXT("%s CommenceDamageReaction"), *GetName());
+	Super::CommenceDamageReaction(InDamageInfo);
+	if (FlashHandler.IsValid())
+	{
+		FlashHandler.Get()->SetFlashSchedule(FlipbookComponent.Get(), SecondsFlashesOnReceiveDamage);
+	}
+	if (SecondsFlashesOnReceiveDamage > 0)
+	{		
+		FTimerManager& tm = GetWorld()->GetTimerManager();
+		if (SecondsFlashesOnReceiveDamage > tm.GetTimerRemaining(BehaviourHandle))
+		{
+			PauseBehaviourTick(SecondsFlashesOnReceiveDamage);			
+		}
+	}
 }
 
 void AGGMinionBase::OnCompleteDamageReaction()
 {
-	UE_LOG(GGMessage, Log, TEXT("%s CompleteDamageReaction"), *GetName());
+	Super::OnCompleteDamageReaction();
 }
 
 void AGGMinionBase::CommenceDeathReaction()
 {
-	UE_LOG(GGMessage, Log, TEXT("%s CommenceDeathReaction"), *GetName());
+	Super::CommenceDeathReaction();
+
+	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
+	UGGNpcLocomotionAnimComponent* animator = PrimitiveAnimator.Get();
+	if (flipbook && animator)
+	{
+		flipbook->SetFlipbook(animator->GetDeathFlipbook(Cache_DamageReceived.Type));
+		flipbook->SetLooping(false);
+		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGDamageableActor::OnCompleteDeathReaction);
+		// plays death flipbook
+		flipbook->PlayFromStart();
+	}
 }
 
 void AGGMinionBase::OnCompleteDeathReaction()
 {
-	UE_LOG(GGMessage, Log, TEXT("%s CompleteDeathReaction"), *GetName());
+	Super::OnCompleteDeathReaction();
+	
+	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
+	if (flipbook)
+	{
+		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGDamageableActor::OnCompleteDeathReaction);
+	}
+	
 	if (Role == ROLE_Authority)
 	{
 		UWorld* world = GetWorld();

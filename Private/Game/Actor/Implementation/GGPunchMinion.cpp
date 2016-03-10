@@ -17,67 +17,11 @@ void AGGPunchMinion::PostInitializeComponents()
 	{
 		UE_LOG(GGMessage, Log, TEXT("%s has no attack component"), *GetName());
 	}
-	FlashHandler = FindComponentByClass<UGGFlipbookFlashHandler>();
-	if (!FlashHandler.IsValid())
-	{
-		UE_LOG(GGMessage, Log, TEXT("%s has no flashy flipbook handler"), *GetName());
-	}
 }
 
 void AGGPunchMinion::OnReachWalkingBound()
 {
 	bReachedWalkingBound = true;
-}
-
-void AGGPunchMinion::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
-{
-	Super::CommenceDamageReaction(InDamageInfo);
-	
-	// Reaction flip functionality removed, does not look natural
-	/*	
-	FVector2D impactDirection = InDamageInfo.GetImpactDirection();
-	float forwardY = GetPlanarForwardVector().Y;
-	 
-	// USE X, because its 2D vector!
-	if (impactDirection.X * forwardY > 0.f)
-	{
-		FlipFlipbookComponent();
-	}
-	*/
-	// Flashes flipbook
-	if (FlashHandler.IsValid())
-	{		
-		FlashHandler.Get()->SetFlashSchedule(FlipbookComponent.Get(), SecondsFlashesOnReceiveDamage);
-	}
-}
-
-void AGGPunchMinion::CommenceDeathReaction()
-{
-	Super::CommenceDeathReaction();
-	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
-	UGGNpcLocomotionAnimComponent* animator = PrimitiveAnimator.Get();
-	if (flipbook && animator)
-	{
-		flipbook->SetFlipbook(animator->GetDeathFlipbook(Cache_DamageReceived.Type));
-		flipbook->SetLooping(false);
-		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGMinionBase::OnCompleteDeathReaction);
-		// plays death flipbook
-		flipbook->PlayFromStart();
-	}
-}
-
-void AGGPunchMinion::OnCompleteDeathReaction()
-{
-	Super::OnCompleteDeathReaction();
-	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
-	if (flipbook)
-	{
-		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGPunchMinion::OnCompleteDeathReaction);
-	}
-	SetActorHiddenInGame(true);
-	SetActorEnableCollision(false);
-	SetActorTickEnabled(false);
-	//TODO disable relevant components too
 }
 
 void AGGPunchMinion::OnSensorActivate_Implementation()

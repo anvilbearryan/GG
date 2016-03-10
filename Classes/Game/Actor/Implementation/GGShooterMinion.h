@@ -86,14 +86,6 @@ public:
 	int32 CurrentAttackCount;
 
 	// ********************************
-	
-	// Receive damage properties 	
-	// TODO: Do minions have damage immune?
-	UPROPERTY(EditAnywhere, Category = "GG|Damage")
-		float SecondsFlashesOnReceiveDamage;
-	TWeakObjectPtr<UGGFlipbookFlashHandler> FlashHandler;
-
-	// ********************************
 
 	// AActor interface
 	virtual void PostInitializeComponents() override;
@@ -103,13 +95,6 @@ public:
 	// Movement
 	virtual void OnReachWalkingBound() override;
 	
-	// ********************************
-
-	// Damage
-	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo) override;
-	virtual void CommenceDeathReaction() override;
-	virtual	void OnCompleteDeathReaction() override;
-
 	// ********************************
 
 	// Character sensing

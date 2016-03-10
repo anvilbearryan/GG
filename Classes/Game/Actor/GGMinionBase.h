@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "GameFramework/Actor.h"
-#include "Game/Data/GGGameTypes.h"
+#include "Game/Actor/GGDamageableActor.h"
 #include "GGMinionBase.generated.h"
 
 /**
@@ -26,10 +25,10 @@ class UActorComponent;
 class UGGNpcLocomotionAnimComponent;
 class UGGAIMovementComponent;
 class UPaperFlipbookComponent;
-class UGGNpcDamageReceiveComponent;
+class UGGFlipbookFlashHandler;
 
 UCLASS()
-class GG_API AGGMinionBase : public AActor
+class GG_API AGGMinionBase : public AGGDamageableActor
 {
 	GENERATED_BODY()
 
@@ -43,17 +42,23 @@ protected:
 
 	/** Defaults to the first flipbook component in the component hierarchy */
 	TWeakObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
-
-	TWeakObjectPtr<UGGNpcDamageReceiveComponent> HealthComponent;
 	
 	TWeakObjectPtr<UGGCharacterSensingComponent> Sensor;
 
 	/** Defaults to the first animator in the component hierarchy */
 	TWeakObjectPtr<UGGNpcLocomotionAnimComponent> PrimitiveAnimator;
+	
+	TWeakObjectPtr<UGGFlipbookFlashHandler> FlashHandler;
+
+	// ********************************
+public:
+	// Receive damage properties 	
+	// TODO: Do minions have damage immune?
+	UPROPERTY(EditAnywhere, Category = "GG|Damage")
+		float SecondsFlashesOnReceiveDamage;
 
 	//********************************
 	//	Movement states    	
-public:
 	FORCEINLINE UGGAIMovementComponent* GetAIMovement() const
 	{
 		return MovementComponent.Get();
@@ -64,10 +69,6 @@ public:
 	FGGBasePlatform BasePlatform;
 protected:
 	uint8 bReachedWalkingBound : 1;
-
-	//********************************
-	//	Movement states    	
-	FGGDamageDealingInfo Cache_DamageReceived;
 
 	//********************************
 	//	Character sensing states	
@@ -95,19 +96,11 @@ public:
 	virtual void OnReachWalkingBound();
 
 	//********************************
-	//	Damage interface	
-	UFUNCTION(NetMulticast, unreliable)
-		void MulticastReceiveDamage(uint32 Delta, APlayerState* InCauser);
-	void MulticastReceiveDamage_Implementation(uint32 Delta, APlayerState* InCauser);
-
-	virtual void ReceiveDamage(FGGDamageDealingInfo InDamageInfo);
-	
-	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo);
-	UFUNCTION()
-		virtual void OnCompleteDamageReaction();
-	virtual void CommenceDeathReaction();
-	UFUNCTION()
-		virtual void OnCompleteDeathReaction();
+	//	Damage interface
+	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo) override;
+	virtual void OnCompleteDamageReaction() override;
+	virtual void CommenceDeathReaction() override;
+	virtual void OnCompleteDeathReaction() override;
 
 	//********************************
 	//	Sensing callbacks

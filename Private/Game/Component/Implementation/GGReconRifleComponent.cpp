@@ -4,8 +4,6 @@
 #include "Game/Component/Implementation/GGReconRifleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Game/Actor/GGCharacter.h"
-#include "Game/Actor/GGMinionBase.h"
-
 #include "Net/UnrealNetwork.h"
 
 #include "Game/Data/GGProjectileData.h"

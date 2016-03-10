@@ -4,8 +4,9 @@
 #include "Game/Component/Implementation/GGSlashAttackComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Game/Actor/GGCharacter.h"
-#include "Game/Actor/GGMinionBase.h"
+
 #include "Game/Utility/GGFunctionLibrary.h"
+
 #include "Net/UnrealNetwork.h"
 
 void UGGSlashAttackComponent::InitializeComponent()

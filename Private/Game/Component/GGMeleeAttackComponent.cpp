@@ -4,7 +4,7 @@
 #include "Game/Component/GGMeleeAttackComponent.h"
 #include "Game/Actor/GGCharacter.h"
 #include "Net/UnrealNetwork.h"
-#include "Game/Actor/GGMinionBase.h"
+#include "Game/Actor/GGDamageableActor.h"
 #include "Game/Framework/GGGamePlayerController.h"
 
 UGGMeleeAttackComponent::UGGMeleeAttackComponent() : Super()
@@ -56,14 +56,14 @@ void UGGMeleeAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 	if (InHitNotify.HasValidData()) 
 	{
 		MostRecentHitNotify = InHitNotify;
-		AGGMinionBase* loc_Minion = Cast<AGGMinionBase>(InHitNotify.Target);
-		if (loc_Minion)
+		AGGDamageableActor* loc_Target = Cast<AGGDamageableActor>(InHitNotify.Target);
+		if (loc_Target)
 		{
 			FGGDamageDealingInfo loc_DmgInfo = TranslateNotify(InHitNotify);
 			APawn* loc_Owner = static_cast<APawn*>(GetOwner());
 			if (loc_Owner->IsLocallyControlled())
 			{
-				loc_Minion->ReceiveDamage(loc_DmgInfo);
+				loc_Target->ReceiveDamage(loc_DmgInfo);
 
 				AGGGamePlayerController* locController = Cast<AGGGamePlayerController>(loc_Owner->Controller);
 				if (locController)
@@ -73,7 +73,7 @@ void UGGMeleeAttackComponent::HitTarget(const FMeleeHitNotify& InHitNotify)
 			}
 			if (GetOwnerRole() == ROLE_Authority)
 			{
-				loc_Minion->MulticastReceiveDamage(loc_DmgInfo.GetCompressedData(), loc_DmgInfo.CauserPlayerState);
+				loc_Target->MulticastReceiveDamage(loc_DmgInfo.GetCompressedData(), loc_DmgInfo.CauserPlayerState);
 			}
 		}
 	}
