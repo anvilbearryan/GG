@@ -123,6 +123,10 @@ void AGGMinionBase::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageI
 			PauseBehaviourTick(SecondsFlashesOnReceiveDamage);			
 		}
 	}
+	if (ActionState == EGGAIActionState::Patrol || ActionState == EGGAIActionState::Inactive)
+	{
+		OnSensorAlert();
+	}
 }
 
 void AGGMinionBase::OnCompleteDamageReaction()

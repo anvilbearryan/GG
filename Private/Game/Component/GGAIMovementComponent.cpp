@@ -164,6 +164,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
 		{
 			//GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: Totla blockage"));
 			GetMinionOwner()->OnReachWalkingBound();
+			Velocity = FVector::ZeroVector;
 		}
     }
     else
@@ -317,7 +318,7 @@ void UGGAIMovementComponent::TickFlying(float DeltaTime)
 	{
 		// we reach the end of walkable area
 		GetMinionOwner()->OnReachWalkingBound();
-		//SafeMoveUpdatedComponent(-MoveDelta, Quat, false, MoveResult);
+		Velocity = FVector::ZeroVector;
 	}
 	else
 	{

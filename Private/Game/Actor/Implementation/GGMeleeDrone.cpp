@@ -16,7 +16,6 @@ void AGGMeleeDrone::PostInitializeComponents()
 void AGGMeleeDrone::OnReachWalkingBound()
 {
 	bReachedWalkingBound = true;	
-	UE_LOG(GGMessage, Log, TEXT("Crash"));
 }
 
 void AGGMeleeDrone::OnSensorActivate_Implementation()
@@ -114,10 +113,10 @@ void AGGMeleeDrone::TickPatrol(float DeltaSeconds)
 			DestinationY = CentreGuardPosition.Y - CurrentDirectionY * PatrolRange.X;
 			CurrentDirectionY *= -1.f;
 			TImeWalkedContinually = 0.f; // reset timer for next cycle
-			SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.5f);
+			SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.25f);
 			UE_LOG(GGMessage, Log, TEXT("Flip from patrol"));
 		}		
-		TravelDirection = FVector(0.f, CurrentDirectionY, -FMath::Clamp(dz, -0.15f, 0.15f));
+		TravelDirection = FVector(0.f, CurrentDirectionY, -FMath::Clamp(dz, -0.05f, 0.05f));
 		TravelDirection.X = 0.f;
 	}
 	else
@@ -128,20 +127,20 @@ void AGGMeleeDrone::TickPatrol(float DeltaSeconds)
 		{
 			DestinationY = CentreGuardPosition.Y - PatrolRange.X;
 			CurrentDirectionY = -1.f;
-			SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.5f);
+			SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.25f);
 			TImeWalkedContinually = 0.f;
 		}
 		else if (myY < CentreGuardPosition.Y && CurrentDirectionY < 0.f)
 		{
 			DestinationY = CentreGuardPosition.Y + PatrolRange.X;
 			CurrentDirectionY = 1.f;
-			SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.5f);
+			SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.25f);
 			TImeWalkedContinually = 0.f;
 		}
 		else
 		{
 			float dz = DistanceFromGround() - HoverDistanceZ;
-			TravelDirection = FVector(0.f, CurrentDirectionY, -FMath::Clamp(dz, -0.15f, 0.15f));
+			TravelDirection = FVector(0.f, CurrentDirectionY, -FMath::Clamp(dz, -0.05f, 0.05f));
 		}
 	}
 }
@@ -163,7 +162,7 @@ void AGGMeleeDrone::TickPrepareAttack(float DeltaSeconds)
 		else
 		{
 			TravelDirection = GetPlanarForwardVector();
-			TravelDirection.Z = FMath::Sign(ds.Z);
+			TravelDirection.Z = FMath::Abs(ds.Z) > AttackMaxDistance ? FMath::Sign(ds.Z) : 0.f;
 			TravelDirection.X = 0.f; // secure			
 		}		
 	}
