@@ -17,12 +17,12 @@ private:
 	int32 Hp_Current;
 	UPROPERTY(Transient)
 	int32 HpDebuffer;
-	
+
+public:
 	UPROPERTY(ReplicatedUsing = OnRep_IsAlive, Transient)
 		uint8 bIsAlive_Rep : 1;
 	uint8 bIsAlive_Local : 1;
 
-public:	
 	UPROPERTY(EditAnywhere, replicated, Category = "GG|Damage", meta = (DisplayName = "Max Hp"))
 		int32 Hp_Max;
 	UPROPERTY(EditAnywhere, replicated, Category = "GG|Damage", meta = (DisplayName = "Defense by value"))

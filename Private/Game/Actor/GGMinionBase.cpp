@@ -41,7 +41,10 @@ void AGGMinionBase::PostInitializeComponents()
 	}
 
 	FlipbookComponent = FindComponentByClass<UPaperFlipbookComponent>();    	
-
+	if (FlipbookComponent.IsValid())
+	{
+		FlipbookComponent.Get()->SetLooping(true);
+	}
 	/** Bind pawn sensing delegates */
 	Sensor = FindComponentByClass<UGGCharacterSensingComponent>();
 	UGGCharacterSensingComponent* loc_Sensor = Sensor.Get();
@@ -137,7 +140,7 @@ void AGGMinionBase::CommenceDeathReaction()
 	{
 		flipbook->SetFlipbook(animator->GetDeathFlipbook(Cache_DamageReceived.Type));
 		flipbook->SetLooping(false);
-		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGDamageableActor::OnCompleteDeathReaction);
+		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGMinionBase::OnCompleteDeathReaction);
 		// plays death flipbook
 		flipbook->PlayFromStart();
 	}
@@ -150,7 +153,7 @@ void AGGMinionBase::OnCompleteDeathReaction()
 	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
 	if (flipbook)
 	{
-		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGDamageableActor::OnCompleteDeathReaction);
+		flipbook->OnFinishedPlaying.RemoveDynamic(this, &AGGMinionBase::OnCompleteDeathReaction);
 	}
 	
 	if (Role == ROLE_Authority)
@@ -194,12 +197,12 @@ void AGGMinionBase::OnSensorDeactivate_Implementation()
 void AGGMinionBase::Tick( float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (Role == ROLE_Authority)
+	if (true) //Role == ROLE_Authority)
 	{
 		TickBehaviour(DeltaSeconds);
 	}
 	TickData_Internal(DeltaSeconds);
-	TickAnimation(DeltaSeconds);
+	TickAnimation(DeltaSeconds);	
 }
 
 void AGGMinionBase::TickBehaviour(float DeltaSeconds)
@@ -224,9 +227,10 @@ void AGGMinionBase::TickBehaviour(float DeltaSeconds)
 
 void AGGMinionBase::TickData_Internal(float DeltaSeconds)
 {
-	if (Role < ROLE_Authority)
+	if (Role == ROLE_SimulatedProxy)
 	{
-		RootComponent->ComponentVelocity = ReplicatedMovement.LinearVelocity;
+		RootComponent->ComponentVelocity = (ReplicatedMovement.LinearVelocity + RootComponent->ComponentVelocity) * 0.5f;
+		//UE_LOG(GGMessage, Log, TEXT("ComponentVelocity: %s"), *RootComponent->ComponentVelocity.ToString());
 	}
 	TickData(DeltaSeconds);
 }
@@ -236,9 +240,15 @@ void AGGMinionBase::TickData(float DeltaSeconds){}
 void AGGMinionBase::TickAnimation(float DeltaSeconds)
 {
 	UGGNpcLocomotionAnimComponent* ActiveAnimComp = GetActiveLocomotionAnimator();
-	if (ActiveAnimComp && FlipbookComponent.IsValid())
+	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
+	if (ActiveAnimComp && flipbook)//&& flipbook->IsLooping())
 	{
-		FlipbookComponent.Get()->SetFlipbook(ActiveAnimComp->GetCurrentAnimation());
+		flipbook->SetFlipbook(ActiveAnimComp->GetCurrentAnimation());
+		flipbook->Play();		
+	}
+	else
+	{
+		UE_LOG(GGMessage, Warning, TEXT("TickAnimation checks fail"));
 	}
 }
 
@@ -253,14 +263,14 @@ void AGGMinionBase::PauseBehaviourTick(float Duration)
 	if (Duration > 0.f) 
 	{
 		GetWorld()->GetTimerManager().SetTimer(BehaviourHandle, this, &AGGMinionBase::EnableBehaviourTick, Duration);
-	}
+	}	
 }
 
 void AGGMinionBase::EnableBehaviourTick()
 {
     if (bIsBehaviourTickEnabled)
     {
-        UE_LOG(GGAIError, Warning, TEXT("Attempting to re-enable Behaviour Tick"));
+        UE_LOG(GGAIError, Warning, TEXT("%s Attempting to re-enable Behaviour Tick"), *GetName());
         return;
     }
     bIsBehaviourTickEnabled = true;

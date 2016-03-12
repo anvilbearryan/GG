@@ -44,6 +44,7 @@ void UGGNpcMeleeAttackComponent::FinishAttack()
 {
 	AffectedEntities.Reset(false);
 	SetActive(false);
+	SetComponentTickEnabled(false);
 }
 
 // Called every frame

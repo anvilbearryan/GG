@@ -3,33 +3,31 @@
 #include "GG.h"
 #include "Game/Component/GGNpcDamageReceiveComponent.h"
 #include "Net/UnrealNetwork.h"
-
+#include "Game/Actor/GGDamageableActor.h"
 // Sets default values for this component's properties
 UGGNpcDamageReceiveComponent::UGGNpcDamageReceiveComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	bReplicates = true;
 }
 
 void UGGNpcDamageReceiveComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UGGNpcDamageReceiveComponent, bIsAlive_Rep);
+	//DOREPLIFETIME(UGGNpcDamageReceiveComponent, Hp_Current);
 }
 
 void UGGNpcDamageReceiveComponent::InitializeHpState()
 {
 	UE_LOG(GGMessage, Log, TEXT("NpcDamage: Initializing HpState for minion"));
-	if (bIsAlive_Rep) 
+	if (GetOwnerRole() == ROLE_Authority)
 	{
-		Hp_Current = Hp_Max;
-		// need to inform owner to "get alive"
+		bIsAlive_Rep = true;						
+		HpDebuffer = 0;
 	}
-	else
-	{
-		Hp_Current = 0;		
-		// need to inform owner to "snap to death"
-	}
-	HpDebuffer = 0;
+	Hp_Current = Hp_Max;
+	bIsAlive_Local = true;
 }
 
 void UGGNpcDamageReceiveComponent::ApplyDamageInformation(FGGDamageDealingInfo & information)
@@ -37,11 +35,11 @@ void UGGNpcDamageReceiveComponent::ApplyDamageInformation(FGGDamageDealingInfo &
 	// adjustment
 	int32 DirectDamage = information.GetDirectDamage();
 	DirectDamage -= Defense_Subtractive;
-	DirectDamage = FMath::RoundToInt((DirectDamage * Defense_Multiplicative) / 100.f);
+	DirectDamage = FMath::RoundToInt((DirectDamage * (100 - Defense_Multiplicative)) / 100.f);
 
 	int32 IndirectDamage = information.GetIndirectDamage();
 	IndirectDamage -= Defense_Subtractive;
-	IndirectDamage = FMath::RoundToInt((IndirectDamage * Defense_Multiplicative) / 100.f);
+	IndirectDamage = FMath::RoundToInt((IndirectDamage * (100 - Defense_Multiplicative)) / 100.f);
 
 	Hp_Current -= HpDebuffer;
 	Hp_Current -= DirectDamage;
@@ -56,11 +54,16 @@ void UGGNpcDamageReceiveComponent::ApplyDamageInformation(FGGDamageDealingInfo &
 
 void UGGNpcDamageReceiveComponent::OnRep_IsAlive()
 {
-	if (bIsAlive_Local != !bIsAlive_Rep)
+	if (!bIsAlive_Rep && bIsAlive_Local)
 	{
-		// either missed some damage; updated from network relevance; or mid-join, reinitialize
-		InitializeHpState();
-	}	
+		bIsAlive_Local = bIsAlive_Rep;
+		// this is the situation where we received delayed death info
+		AGGDamageableActor* locOwner = static_cast<AGGDamageableActor*>(GetOwner());
+		if (locOwner)
+		{
+			locOwner->OnCompleteDeathReaction();
+		}
+	}
 }
 
 int32 UGGNpcDamageReceiveComponent::GetCurrentHealth() const

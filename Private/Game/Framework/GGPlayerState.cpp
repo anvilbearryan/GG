@@ -8,7 +8,7 @@
 void AGGPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME_CONDITION(AGGPlayerState, Score, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AGGPlayerState, PlayerScore, COND_OwnerOnly);
 }
 
 void AGGPlayerState::AddToPlayerScore(int32 value)

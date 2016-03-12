@@ -45,27 +45,23 @@ void AGGDamageableActor::ReceiveDamage(FGGDamageDealingInfo DamageInfo)
 	UE_LOG(GGMessage, Log, TEXT("%s ReceiveDamage"), *GetName());
 	Cache_DamageReceived = DamageInfo;
 	UGGNpcDamageReceiveComponent* locHealth = HealthComponent.Get();
-	if (locHealth)
+	if (locHealth && locHealth->GetCurrentHealth() > 0)
 	{
 		locHealth->ApplyDamageInformation(DamageInfo);
-		if (locHealth->GetCurrentHealth() <= 0)
+		if (Role == ROLE_Authority && locHealth->GetCurrentHealth() <= 0)
 		{
-			CommenceDeathReaction();
+			MulticastInformDeath();			
 		}
-		else
+		else if (locHealth->GetCurrentHealth() > 0)
 		{
 			CommenceDamageReaction(Cache_DamageReceived);
 		}
-	}
-	else
-	{
-		UE_LOG(GGMessage, Log, TEXT("%s tried to ReceiveDamage but has no health component"), *GetName());
 	}
 }
 
 void AGGDamageableActor::CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo)
 {
-	UE_LOG(GGMessage, Log, TEXT("%s CommenceDamageReaction"), *GetName());
+	UE_LOG(GGMessage, Log, TEXT("%s CommenceDamageReaction: %d"), *GetName(), InDamageInfo.GetDirectDamage());
 }
 
 void AGGDamageableActor::OnCompleteDamageReaction()
@@ -73,9 +69,19 @@ void AGGDamageableActor::OnCompleteDamageReaction()
 	UE_LOG(GGMessage, Log, TEXT("%s CompleteDamageReaction"), *GetName());
 }
 
+void AGGDamageableActor::MulticastInformDeath_Implementation()
+{
+	CommenceDeathReaction();
+}
+
 void AGGDamageableActor::CommenceDeathReaction()
 {
 	UE_LOG(GGMessage, Log, TEXT("%s CommenceDeathReaction"), *GetName());
+	UGGNpcDamageReceiveComponent* locHealth = HealthComponent.Get();
+	if (locHealth)
+	{
+		locHealth->bIsAlive_Local = false;
+	}
 }
 
 void AGGDamageableActor::OnCompleteDeathReaction()

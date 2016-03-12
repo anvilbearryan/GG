@@ -35,8 +35,7 @@ void UGGNpcCollisionBoxComponent::BeginOverlapToggle(AActor * OtherActor, UPrimi
 
 void UGGNpcCollisionBoxComponent::EndOverlapToggle(AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
 {
-	AGGCharacter* OtherCharacter = Cast<AGGCharacter>(OtherActor);
-	if (OtherCharacter && OtherCharacter->IsLocallyControlled())
+	if (OtherActor == OverlappeddCharacter)
 	{
 		OverlappeddCharacter = nullptr;
 		OverlappedCharacterHitbox = nullptr;

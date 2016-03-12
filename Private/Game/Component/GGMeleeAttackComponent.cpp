@@ -91,13 +91,17 @@ FGGDamageDealingInfo UGGMeleeAttackComponent::TranslateNotify(const FMeleeHitNot
 
 	loc_DmgInfo.Type = InHitNotify.DamageCategory;
 	AGGCharacter* loc_Owner = static_cast<AGGCharacter*>(GetOwner());
-	if (!!loc_Owner)
+	if (loc_Owner)
 	{
 		// We enter here already ensured target non-null
 		check(InHitNotify.Target != nullptr);
 		loc_DmgInfo.ImpactDirection = FGGDamageDealingInfo::ConvertDeltaPosition(
 			InHitNotify.Target->GetActorLocation() - GetOwner()->GetActorLocation());
 		loc_DmgInfo.CauserPlayerState = loc_Owner->PlayerState;
+	}
+	else
+	{
+		UE_LOG(GGWarning, Warning, TEXT("Unowned component"));
 	}
 	return loc_DmgInfo;
 }

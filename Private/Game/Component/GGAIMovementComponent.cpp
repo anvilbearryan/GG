@@ -52,12 +52,34 @@ void UGGAIMovementComponent::ConfineAcceleration(FVector& OutAcceleration)
 void UGGAIMovementComponent::CalcVelocity(FVector& OutVelocity, FVector& CurrentVelocity, const FVector& InAcceleration, float DeltaTime)
 {
     OutVelocity.X = 0.f;
-    if (bUseGradualAcceleration)
+	// Get max speed
+	float YMax = 0.f;
+	float ZMin = 0.f;
+	float ZMax = 0.f;
+	switch(MovementMode)
+	{
+		case EMovementMode::MOVE_Walking:
+			YMax = WalkSpeed;
+			break;
+		case EMovementMode::MOVE_Falling:
+			ZMin = -TerminalFallSpeed;
+			ZMax = JumpSpeed;
+			break;
+		case EMovementMode::MOVE_Flying:
+			YMax = FlySpeed * FMath::Abs(InAcceleration.Y / FMath::Max(0.f, 
+				FMath::Abs(InAcceleration.Y) + FMath::Abs(InAcceleration.Z))				
+				);
+			ZMax = FMath::Abs(FlySpeed - YMax);
+			ZMin = -ZMax;
+			break;
+	}
+    
+	if (bUseGradualAcceleration)
     {
         OutVelocity = CurrentVelocity + InAcceleration * DeltaTime;
         if (InAcceleration.Y != 0.f)
         {
-            OutVelocity.Y = FMath::Clamp(OutVelocity.Y, -WalkSpeed, WalkSpeed);
+            OutVelocity.Y = FMath::Clamp(OutVelocity.Y, -YMax, YMax);
         }
         else
         {
@@ -70,12 +92,12 @@ void UGGAIMovementComponent::CalcVelocity(FVector& OutVelocity, FVector& Current
             // change in horizontal direction, nullify
             OutVelocity.Y = 0.f;
         }
-        OutVelocity.Z = FMath::Clamp(OutVelocity.Z, -TerminalFallSpeed, JumpSpeed);
+        OutVelocity.Z = FMath::Clamp(OutVelocity.Z, ZMin, ZMax);
     }
     else
     {
         //  resolve horizontal
-        OutVelocity.Y = FMath::Sign(InAcceleration.Y) * WalkSpeed;
+        OutVelocity.Y = FMath::Sign(InAcceleration.Y) * YMax;
         //  resolve vertical
         float z = OutVelocity.Z;
         float az = InAcceleration.Z;
@@ -85,24 +107,23 @@ void UGGAIMovementComponent::CalcVelocity(FVector& OutVelocity, FVector& Current
         }
         else if (az > 0.f)
         {
-            OutVelocity.Z = JumpSpeed;
+            OutVelocity.Z = ZMax;
         }
         else if (az < 0.f)
         {
-            OutVelocity.Z = -TerminalFallSpeed;
+            OutVelocity.Z = ZMin;
         }
     }
 }
 
 float GROUND_CHECK_DELTA_AIMOVEMENT = 10.f;
-void UGGAIMovementComponent::CheckForGround(FHitResult& Result, ECollisionChannel Channel, float Direction)
+void UGGAIMovementComponent::CheckForGround(FHitResult& Result, ECollisionChannel Channel, float Direction) const
 {
     FVector Start = UpdatedComponent->GetComponentLocation();
     Start.Y = Start.Y + Direction * GetMinionOwner()->GetHalfWidth();
     FVector End = Start;
     End.Z = End.Z - GROUND_CHECK_DELTA_AIMOVEMENT - MinionOwner->GetHalfHeight();
     GetWorld()->LineTraceSingleByChannel(Result, Start, End, Channel, GroundQueryParams);
-    
 }
 
 void UGGAIMovementComponent::TickWalking(float DeltaTime)
@@ -141,7 +162,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
         }
 		if (slid == 0.f)
 		{
-			GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: Totla blockage"));
+			//GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: Totla blockage"));
 			GetMinionOwner()->OnReachWalkingBound();
 		}
     }
@@ -158,7 +179,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
             SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA_AIMOVEMENT * 15.f * DeltaTime), Quat, true, ZPushResult);
             GetMinionOwner()->SetMovementBase(StepResult.GetComponent(), this);
         
-            GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Step channel"));
+            //GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Step channel"));
         }
         else
         {
@@ -170,7 +191,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
                 SafeMoveUpdatedComponent(FVector(0.f,0.f, -GROUND_CHECK_DELTA_AIMOVEMENT * 15.f * DeltaTime), Quat, true, ZPushResult);
                 GetMinionOwner()->SetMovementBase(PlatformResult.GetComponent(), this);
                 
-                GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Platform channel"));
+                //GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: has ground - Platform channel"));
             }
             else
             {
@@ -179,7 +200,7 @@ void UGGAIMovementComponent::TickWalking(float DeltaTime)
                 GetMinionOwner()->OnReachWalkingBound();
                 
                 Velocity = FVector::ZeroVector;
-                GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: NO ground"));
+                //GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Walking: NO ground"));
             }
         }
     }
@@ -190,9 +211,34 @@ void UGGAIMovementComponent::ConfineWalkingMoveDelta(FVector& MoveDelta)
 
 }
 
-bool UGGAIMovementComponent::IsMovingOnGround() const
+bool UGGAIMovementComponent::IsMovingOnGround()
 {
-    return (UpdatedComponent && MovementMode == EMovementMode::MOVE_Walking);
+	if (UpdatedComponent)
+	{
+		if (MovementMode == EMovementMode::MOVE_Walking)
+		{
+			return true;
+		}
+		if (MovementMode == EMovementMode::MOVE_Falling)
+		{
+			FHitResult hit;
+			CheckForGround(hit, SteppingChannel, 0.f);
+			if (hit.bBlockingHit)
+			{
+				return true;
+			}
+			else
+			{
+				CheckForGround(hit, PlatformChannel, 0.f);
+				if (hit.bBlockingHit)
+				{
+					MovementMode = EMovementMode::MOVE_Walking;
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 void UGGAIMovementComponent::TickFalling(float DeltaTime)
@@ -224,7 +270,7 @@ void UGGAIMovementComponent::TickFalling(float DeltaTime)
             OldBaseLocation = MoveResult.GetComponent()->GetComponentLocation();
         }
         
-        GEngine->AddOnScreenDebugMessage(0, 1.5f, FColor::Cyan, TEXT("Falling: Initial blocking hit"));
+        //GEngine->AddOnScreenDebugMessage(0, 1.5f, FColor::Cyan, TEXT("Falling: Initial blocking hit"));
     }
     else if (MoveDelta.Z < 0.f)
     {
@@ -234,31 +280,49 @@ void UGGAIMovementComponent::TickFalling(float DeltaTime)
 
         if (Hit.bBlockingHit)
         {
-            /** we hit a ground that didn't stop us from movement, need to nudge back up
-            */
+            /** we hit a ground that didn't stop us from movement, need to nudge back up */            
             float halfheight = GetMinionOwner()->GetHalfHeight();
             float ZDelta = Hit.ImpactPoint.Z + halfheight + 0.1f - UpdatedComponent->GetComponentLocation().Z;
             GetMinionOwner()->AddActorWorldOffset(FVector(0.f, 0.f, ZDelta));
-
-            //set new base from hit result
             // set new base
             GetMinionOwner()->SetMovementBase(Hit.GetComponent(), this);
             // set movement mode to walking
             MovementMode = EMovementMode::MOVE_Walking;
             Velocity = FVector::ZeroVector;
-            OldBaseLocation = Hit.GetComponent()->GetComponentLocation();
-            GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Cyan, TEXT("Falling: secondary hit"));
+            OldBaseLocation = Hit.GetComponent()->GetComponentLocation();            
         }
         else
         {
-            Velocity = NewVelocity;
-            GEngine->AddOnScreenDebugMessage(2, 1.f, FColor::Cyan, TEXT("Falling: Not hits at all"));
+            Velocity = NewVelocity;       
         }
     }
     else
     {
-        GEngine->AddOnScreenDebugMessage(3, 1.f, FColor::Cyan, TEXT("Falling: WTF"));
+		Velocity = NewVelocity;
+        GEngine->AddOnScreenDebugMessage(3, 4.f, FColor::Cyan, TEXT("Falling: Jumping"));
     }
+}
+
+void UGGAIMovementComponent::TickFlying(float DeltaTime)
+{
+	FVector NewVelocity = Velocity;	
+	CalcVelocity(NewVelocity, Velocity, Acceleration, DeltaTime);
+	FVector MoveDelta = (NewVelocity + Velocity) * 0.5f * DeltaTime;
+
+	FHitResult MoveResult;
+	FQuat Quat = UpdatedComponent->GetComponentQuat();
+	SafeMoveUpdatedComponent(MoveDelta, Quat, true, MoveResult);
+
+	if (MoveResult.bBlockingHit)
+	{
+		// we reach the end of walkable area
+		GetMinionOwner()->OnReachWalkingBound();
+		//SafeMoveUpdatedComponent(-MoveDelta, Quat, false, MoveResult);
+	}
+	else
+	{
+		Velocity = NewVelocity;
+	}
 }
 
 void UGGAIMovementComponent::GetTravelDirection()
@@ -277,10 +341,7 @@ void UGGAIMovementComponent::GetTravelDirection()
 void UGGAIMovementComponent::InitializeComponent()
 {
     Super::InitializeComponent();
-    
-    MovementMode = EMovementMode::MOVE_Falling;
     GroundQueryParams.AddIgnoredActor(GetOwner());
-
 }
 
 void UGGAIMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -296,13 +357,18 @@ void UGGAIMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType,
     {
         ConfineAcceleration(Acceleration);
     }
-    if (MovementMode == EMovementMode::MOVE_Walking)
-    {
-        TickWalking(DeltaTime);
-    }
-    else if (MovementMode == EMovementMode::MOVE_Falling)
-    {
-        TickFalling(DeltaTime);
-    }
+	switch (MovementMode)
+	{
+		case EMovementMode::MOVE_Walking:
+			TickWalking(DeltaTime);
+			break;
+		case EMovementMode::MOVE_Falling:
+			TickFalling(DeltaTime);
+			break;
+		case EMovementMode::MOVE_Flying:
+			TickFlying(DeltaTime);
+			break;
+	}
+
     UpdateComponentVelocity();
 }

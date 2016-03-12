@@ -15,35 +15,41 @@ class GG_API UGGAIMovementComponent : public UMovementComponent
 	GENERATED_BODY()
 	
 private:
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
+    UPROPERTY(Category="GGAI|General", EditDefaultsOnly)
     float MaxAccelerationY;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
+    UPROPERTY(Category="GGAI|General", EditDefaultsOnly)
     float MaxAccelerationZ;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
-    float WalkSpeed;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
-    float JumpSpeed;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
-    float TerminalFallSpeed;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
-    float GravityScale;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
-    TEnumAsByte<ECollisionChannel> SteppingChannel;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
-    TEnumAsByte<ECollisionChannel> PlatformChannel;
-    UPROPERTY(Category="GGAI|Movement", EditDefaultsOnly)
-    uint32 bUseGradualAcceleration : 1;
+	UPROPERTY(Category = "GGAI|General", EditDefaultsOnly)
+		uint32 bUseGradualAcceleration : 1;
+	UPROPERTY(Category = "GGAI|General", EditDefaultsOnly, meta = (DisplayName = "Initial movement mode"))
+		TEnumAsByte<EMovementMode> MovementMode;
 
+    UPROPERTY(Category="GGAI|Pedals", EditDefaultsOnly)
+		float WalkSpeed;
+    UPROPERTY(Category="GGAI|Pedals", EditDefaultsOnly)
+		float JumpSpeed;
+    UPROPERTY(Category="GGAI|Pedals", EditDefaultsOnly)
+		float TerminalFallSpeed;
+    UPROPERTY(Category="GGAI|Pedals", EditDefaultsOnly)
+		float GravityScale;
+	
+	UPROPERTY(Category = "GGAI|Rotors", EditDefaultsOnly)
+		float FlySpeed;
 public:
+	UPROPERTY(Category="GGAI|General", EditDefaultsOnly)
+		TEnumAsByte<ECollisionChannel> SteppingChannel;
+	UPROPERTY(Category = "GGAI|General", EditDefaultsOnly)
+		TEnumAsByte<ECollisionChannel> PlatformChannel;	
+
     UGGAIMovementComponent();
     
     AGGMinionBase* MinionOwner;
-    EMovementMode MovementMode;
+	
     FVector Acceleration;
     // used to ensure we follow the movement base whenever possible
     FVector OldBaseLocation;
     // used for ground check
-    FCollisionQueryParams GroundQueryParams;
+	FCollisionQueryParams GroundQueryParams;
     
 protected:
     virtual bool HasValidData();
@@ -58,7 +64,7 @@ protected:
     
     virtual void CalcVelocity(FVector& OutVelocity, FVector& CurrentVelocity, const FVector& InAcceleration, float DeltaTime);
     
-    virtual void CheckForGround(FHitResult &Result, ECollisionChannel Channel, float Direction);
+    virtual void CheckForGround(FHitResult &Result, ECollisionChannel Channel, float Direction) const;
     
     virtual void TickWalking(float DeltatTime);
     
@@ -67,11 +73,14 @@ protected:
     
     /** Helper functions */
 public:    
-    bool IsMovingOnGround() const;
+	// not const as we update movement mode if we found ground from falling
+    bool IsMovingOnGround();
 
 protected:
     virtual void TickFalling(float DeltaTime);
     
+	virtual void TickFlying(float DeltaTime);
+
 public:
     virtual void InitializeComponent() override;
 

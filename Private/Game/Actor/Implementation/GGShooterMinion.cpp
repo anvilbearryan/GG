@@ -58,6 +58,20 @@ void AGGShooterMinion::OnSensorAlert_Implementation()
 			ActionState = EGGAIActionState::PrepareAttack;
 		}
 	}
+	else if (ActionState == EGGAIActionState::Inactive)
+	{
+		check(Sensor.IsValid());
+		Target = static_cast<AActor*>(Sensor.Get()->Target.Get());
+		if (IsFacingTarget())
+		{
+			ActionState = EGGAIActionState::PrepareAttack;
+		}
+		else
+		{
+			ActionState = EGGAIActionState::Patrol;
+		}
+		EnableBehaviourTick();
+	}
 }
 
 void AGGShooterMinion::OnSensorUnalert_Implementation()
@@ -81,6 +95,9 @@ void AGGShooterMinion::TickAnimation(float DeltaSeconds)
 	if (ActionState != EGGAIActionState::Attack)
 	{
 		Super::TickAnimation(DeltaSeconds);
+
+		// sync flipbook facing
+		SyncFlipbookComponentWithTravelDirection();
 	}
 }
 
@@ -107,7 +124,6 @@ void AGGShooterMinion::TickPatrol(float DeltaSeconds)
 		TimeWalkedContinually = 0.f; // reset timer for next cycle
 		SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.5f);
 	}
-	SyncFlipbookComponentWithTravelDirection();
 }
 
 void AGGShooterMinion::TickPrepareAttack(float DeltaSeconds)
@@ -115,10 +131,10 @@ void AGGShooterMinion::TickPrepareAttack(float DeltaSeconds)
     Super::TickPrepareAttack(DeltaSeconds);    
     bool IsInAttackMaxRange = IsTargetInSuppliedRange(AttackMaxRange);
 	bool IsInAttackMinRange = IsTargetInSuppliedRange(AttackMinRange);
-    if (IsInAttackMaxRange && !IsInAttackMinRange)
+    if (MaxPrepareTime < TimePreparedFor || (IsInAttackMaxRange && !IsInAttackMinRange))
     {
         // we may need to do a turn first
-        if (IsFacingTarget())
+        if (Role == ROLE_Authority && IsFacingTarget())
         {
             // can attack
 			MulticastAttack(0);
@@ -155,7 +171,6 @@ void AGGShooterMinion::TickPrepareAttack(float DeltaSeconds)
 			}
 		}
 	}
-	SyncFlipbookComponentWithTravelDirection();
 }
 
 void AGGShooterMinion::TickEvade(float DeltaSeconds)
@@ -212,7 +227,6 @@ void AGGShooterMinion::TickEvade(float DeltaSeconds)
 			}
 		}
 	}
-	SyncFlipbookComponentWithTravelDirection();
 }
 
 void AGGShooterMinion::SyncFlipbookComponentWithTravelDirection()
@@ -220,7 +234,7 @@ void AGGShooterMinion::SyncFlipbookComponentWithTravelDirection()
 	float Facing_Y = GetPlanarForwardVector().Y;
 	float Velocity_Y = GetVelocity().Y;
 	// check for conflict
-	if (Facing_Y * Velocity_Y < 0.f)
+	if (Facing_Y * Velocity_Y < 0.f && !FMath::IsNaN(Velocity_Y))
 	{
 		FlipFlipbookComponent();
 	}
@@ -228,6 +242,7 @@ void AGGShooterMinion::SyncFlipbookComponentWithTravelDirection()
 
 void AGGShooterMinion::MinionAttack_Internal(uint8 InInstruction)
 {
+	Super::MinionAttack_Internal(InInstruction);
 	ActionState = EGGAIActionState::Attack;
 	UGGNpcRangedAttackComponent* locRAComp = RangedAttackComponent.Get();
 	if (locRAComp)
@@ -235,6 +250,10 @@ void AGGShooterMinion::MinionAttack_Internal(uint8 InInstruction)
 		PauseBehaviourTick();
 		CurrentAttackCount = 0;
 		GetWorld()->GetTimerManager().SetTimer(ActionHandle, this, &AGGShooterMinion::ShootForward, DelayBetweenShots, true, ShootStartupDelay);
+	}
+	else
+	{
+		UE_LOG(GGWarning, Warning, TEXT("Ranged attack component not found"));
 	}
 	UPaperFlipbookComponent* flipbook = FlipbookComponent.Get();
 	if (flipbook)
@@ -259,6 +278,10 @@ void AGGShooterMinion::ShootForward()
 		locRAComp->LaunchProjectile(AttackProjectileData, 
 			shootLocation, facingDirection, locFipbook->RelativeScale3D);
 	}
+	else
+	{
+		UE_LOG(GGWarning, Warning, TEXT("No ranged attack component or flipbook, probably former"));
+	}
 	if (CurrentAttackCount >= NumberOfShotsPerAttack)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(ActionHandle);
@@ -277,6 +300,8 @@ void AGGShooterMinion::CompleteAttack()
 	ActionState = EGGAIActionState::Evade;
 	bIsInActiveEvasionMode = false;
 	EnableBehaviourTick();
+
+	UE_LOG(GGWarning, Warning, TEXT("ShooterMinion CompleteAttack"));
 }
 
 bool AGGShooterMinion::IsTargetInSuppliedRange(const FVector2D& Range) const

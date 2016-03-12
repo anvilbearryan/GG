@@ -92,20 +92,17 @@ public:
 	}
 	FORCEINLINE uint32 GetCompressedData() const
 	{
-		uint32 result = 0;
-		result |= Direct_BaseMultiplier;
-		result |= (Direct_PrecisionMultiplier << 8);
-		result |= (Direct_Unit << 10);
-		result = result << 12;
+		uint32 result;
+		uint32 directBits = Direct_BaseMultiplier | (Direct_PrecisionMultiplier << 8) | (Direct_Unit << 10);
+		directBits = (directBits << 20);		
 		
-		result |= Indirect_BaseMultiplier;
-		result |= (Indirect_PrecisionMultiplier << 8);
-		result |= (Indirect_Unit << 10);
-		result = result << 12;
+		uint32 indirectBits = Indirect_BaseMultiplier | (Indirect_PrecisionMultiplier << 8) | (Indirect_Unit << 10);
+		indirectBits = (indirectBits << 8);
+		
+		uint32 impactBits = (ImpactDirection << 4);		
+		uint32 typeBits = static_cast<uint32>(Type);
 
-		result |= ImpactDirection;
-		result = result << 4;
-		result |= (uint8) Type;
+		result = directBits | indirectBits | impactBits | typeBits;
 		/*
 		UE_LOG(GGMessage, Log, TEXT("FDmaageDealing: Attempting to Convert the following DirectDmgInfo:"));
 		UE_LOG(GGMessage, Log, TEXT("DirectBaseMultiplier: %d"), Direct_BaseMultiplier);
@@ -198,20 +195,17 @@ public:
 	}
 	uint32 GetCompressedData() const
 	{
-		uint32 result = 0;
-		result |= Direct_BaseMultiplier;
-		result |= (Direct_PrecisionMultiplier << 8);
-		result |= (Direct_Unit << 10);
-		result = result << 12;
+		uint32 result;
+		uint32 directBits = Direct_BaseMultiplier | (Direct_PrecisionMultiplier << 8) | (Direct_Unit << 10);
+		directBits = (directBits << 20);
 
-		result |= Indirect_BaseMultiplier;
-		result |= (Indirect_PrecisionMultiplier << 8);
-		result |= (Indirect_Unit << 10);
-		result = result << 12;
+		uint32 indirectBits = Indirect_BaseMultiplier | (Indirect_PrecisionMultiplier << 8) | (Indirect_Unit << 10);
+		indirectBits = (indirectBits << 8);
 
-		result |= ImpactDirection;
-		result = result << 4;
-		result |= (uint8) Type;
+		uint32 impactBits = (ImpactDirection << 4);
+		uint32 typeBits = static_cast<uint32>(Type);
+
+		result = directBits | indirectBits | impactBits | typeBits;
 		return result;
 	}
 

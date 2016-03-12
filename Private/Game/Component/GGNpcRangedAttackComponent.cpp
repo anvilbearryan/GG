@@ -5,6 +5,7 @@
 #include "Game/Component/GGPooledSpriteComponent.h"
 #include "Game/Actor/GGCharacter.h"
 #include "Game/Data/GGGameTypes.h"
+#include "Game/Framework/GGGameState.h"
 #include "Game/Data/GGProjectileData.h"
 #include "Game/Actor/GGSpritePool.h"
 
@@ -17,18 +18,29 @@ UGGNpcRangedAttackComponent::UGGNpcRangedAttackComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void UGGNpcRangedAttackComponent::LaunchProjectile(UGGProjectileData * InData, 
+void UGGNpcRangedAttackComponent::LaunchProjectile(UGGProjectileData * InData,
 	const FVector & InLaunchLocation, const FVector & InLaunchDirection, FVector InLaunchScale, FQuat InLaunchRotation)
 {
-	if (SpritePool.IsValid())
+	if (!SpritePool.IsValid())
 	{
-		// if the ptr is valid, or not valid but set to be valid in Find
+		AGGGameState* loc_GS = GetWorld()->GetGameState<AGGGameState>();
+		if (loc_GS)
+		{
+			SpritePool = loc_GS->GetSpritePool();
+		}
+		if (SpritePool == nullptr)
+		{
+			UE_LOG(GGWarning, Warning, TEXT("Sprite pool cant be located"));
+		}
+	}
+	if (SpritePool.IsValid())
+	{// if the ptr is valid, or not valid but set to be valid in Find
 		UGGPooledSpriteComponent* spriteInstance = SpritePool.Get()->CheckoutInstance();
 		// initialize spriteInstance
 		spriteInstance->PreCheckout();
 		// set sprite transform, scale (face left / face right)  is copied from owning character's body directly
 		FTransform spriteTransform = FTransform(InLaunchRotation, InLaunchLocation, InLaunchScale);
-				
+
 		// apply transform						
 		spriteInstance->SetWorldTransform(spriteTransform, false, nullptr, ETeleportType::TeleportPhysics);
 		// set display information
@@ -44,7 +56,6 @@ void UGGNpcRangedAttackComponent::LaunchProjectile(UGGProjectileData * InData,
 		UpdatedProjectiles.Add(FLaunchedProjectile(spriteInstance, InLaunchDirection, InData, GetWorld()->GetTimeSeconds()));
 	}
 }
-
 // Called every frame
 void UGGNpcRangedAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {

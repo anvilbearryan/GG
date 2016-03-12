@@ -39,7 +39,9 @@ class GG_API AGGPunchMinion : public AGGMinionBase
 		FVector2D AttackMaxRange;
 	UPROPERTY(Category = "GGAI|PrepareAttack", EditAnywhere)
 		float TurnPauseAim;
-
+	UPROPERTY(Category = "GGAI|PrepareAttack", EditAnywhere)
+		float MaxPrepareTime;
+	float TimePreparedFor;
 	// ********************************
 
 	// Evasion properties 	

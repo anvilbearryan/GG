@@ -45,6 +45,20 @@ void AGGPunchMinion::OnSensorAlert_Implementation()
 			ActionState = EGGAIActionState::PrepareAttack;
 		}
 	}
+	else if (ActionState == EGGAIActionState::Inactive)
+	{
+		check(Sensor.IsValid());
+		Target = static_cast<AActor*>(Sensor.Get()->Target.Get());
+		if (IsFacingTarget())
+		{
+			ActionState = EGGAIActionState::PrepareAttack;
+		}
+		else
+		{
+			ActionState = EGGAIActionState::Patrol;
+		}
+		EnableBehaviourTick();
+	}
 }
 
 void AGGPunchMinion::OnSensorUnalert_Implementation()
@@ -68,6 +82,8 @@ void AGGPunchMinion::TickAnimation(float DeltaSeconds)
 	if (ActionState != EGGAIActionState::Attack)
 	{
 		Super::TickAnimation(DeltaSeconds);
+		// sync flipbook facing
+		SyncFlipbookComponentWithTravelDirection();
 	}
 }
 
@@ -94,16 +110,19 @@ void AGGPunchMinion::TickPatrol(float DeltaSeconds)
 		TimeWalkedContinually = 0.f; // reset timer for next cycle
 		SequenceTurnFacingDirection(TurnPausePatrol, TurnPausePatrol * 0.5f);
 	}
-	SyncFlipbookComponentWithTravelDirection();
 }
 
 void AGGPunchMinion::TickPrepareAttack(float DeltaSeconds)
 {
 	Super::TickPrepareAttack(DeltaSeconds);
+	TimePreparedFor += DeltaSeconds;
 	if (IsFacingTarget())
 	{		
-		if (IsTargetInSuppliedRange(AttackMaxRange))
+		if (Role == ROLE_Authority && 
+			(MaxPrepareTime < TimePreparedFor || IsTargetInSuppliedRange(AttackMaxRange))
+			)
 		{
+			TimePreparedFor = 0.f;
 			MulticastAttack(0);
 		}
 		else
@@ -117,7 +136,6 @@ void AGGPunchMinion::TickPrepareAttack(float DeltaSeconds)
 		// must look at target to attack
 		SequenceTurnFacingDirection(TurnPauseAim, TurnPauseAim * 0.25f);
 	}
-	SyncFlipbookComponentWithTravelDirection();
 }
 
 void AGGPunchMinion::TickEvade(float DeltaSeconds)
@@ -159,7 +177,6 @@ void AGGPunchMinion::TickEvade(float DeltaSeconds)
 			bIsInActiveEvasionMode = !IsTargetInSuppliedRange(EvasionTriggerRange);						
 		}
 	}	
-	SyncFlipbookComponentWithTravelDirection();
 }
 
 void AGGPunchMinion::SyncFlipbookComponentWithTravelDirection()
@@ -167,7 +184,7 @@ void AGGPunchMinion::SyncFlipbookComponentWithTravelDirection()
 	float Facing_Y = GetPlanarForwardVector().Y;
 	float Velocity_Y = GetVelocity().Y;
 	// check for conflict
-	if (Facing_Y * Velocity_Y < 0.f)
+	if (Facing_Y * Velocity_Y < 0.f && !FMath::IsNaN(Velocity_Y))
 	{
 		FlipFlipbookComponent();
 	}
@@ -175,8 +192,8 @@ void AGGPunchMinion::SyncFlipbookComponentWithTravelDirection()
 
 void AGGPunchMinion::MinionAttack_Internal(uint8 InInstruction)
 {
+	Super::MinionAttack_Internal(InInstruction);
 	ActionState = EGGAIActionState::Attack;
-	
 	UGGNpcMeleeAttackComponent* attackComp = AttackComponent.Get();
 	if (attackComp)
 	{
@@ -187,11 +204,12 @@ void AGGPunchMinion::MinionAttack_Internal(uint8 InInstruction)
 	if (flipbook)
 	{
 		flipbook->SetLooping(false);
-		flipbook->SetFlipbook(AttackFlipbook);
-		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGPunchMinion::CompleteAttack);
+		flipbook->SetFlipbook(AttackFlipbook);		
 		// plays attack flipbook
 		flipbook->PlayFromStart();
+		flipbook->OnFinishedPlaying.AddDynamic(this, &AGGPunchMinion::CompleteAttack);
 	}
+	PauseBehaviourTick();
 }
 
 void AGGPunchMinion::CompleteAttack()
@@ -206,6 +224,8 @@ void AGGPunchMinion::CompleteAttack()
 	ActionState = EGGAIActionState::Evade;
 	bIsInActiveEvasionMode = false;
 	EnableBehaviourTick();
+
+	UE_LOG(GGWarning, Warning, TEXT("PunchMinion CompleteAttack"));
 }
 
 bool AGGPunchMinion::IsTargetInSuppliedRange(const FVector2D& Range) const
@@ -227,9 +247,16 @@ bool AGGPunchMinion::IsFacingTarget() const
 {
 	if (Target.IsValid())
 	{
-		FVector Forward = GetPlanarForwardVector();
 		FVector RelativePosition = Target.Get()->GetActorLocation() - GetActorLocation();
-		return FVector::DotProduct(RelativePosition, Forward) > 0.f;
+		if (FMath::Abs(RelativePosition.Y) > 25.f)
+		{
+			FVector Forward = GetPlanarForwardVector();
+			return FVector::DotProduct(RelativePosition, Forward) > 0.f;
+		}
+		else
+		{
+			return true;
+		}
 	}
 	return false;
 }

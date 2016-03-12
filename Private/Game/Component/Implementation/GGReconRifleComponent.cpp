@@ -209,7 +209,7 @@ void UGGReconRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 					projectile.SpriteBody->DestroyComponent();
 				}
 				UpdatedProjectiles.RemoveAtSwap(i, 1, false);
-			}			
+			}
 		}
 		else if (CurrentTime > projectile.Lifespan + projectile.SpawnTime)
 		{	// check lifespan cleanup for everyone			

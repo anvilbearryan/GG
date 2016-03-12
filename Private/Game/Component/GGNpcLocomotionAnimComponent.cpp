@@ -18,7 +18,7 @@ UGGNpcLocomotionAnimComponent::UGGNpcLocomotionAnimComponent()
 	// ...
 }
 
-UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetCurrentAnimation() const
+UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetCurrentAnimation()
 {
 	if (LocomotionData)
 	{
@@ -26,11 +26,12 @@ UPaperFlipbook* UGGNpcLocomotionAnimComponent::GetCurrentAnimation() const
 		if (loc_MinionOwner)
 		{
 			FVector loc_Velocity = loc_MinionOwner->GetVelocity();
-			const UGGAIMovementComponent* loc_AIMovement = loc_MinionOwner->GetAIMovement();
+			UGGAIMovementComponent* loc_AIMovement = loc_MinionOwner->GetAIMovement();
 			bool loc_bOnGround = loc_AIMovement->IsMovingOnGround();
 			// we have all the conditions enough to deduce the locomotion substate
 			if (loc_bOnGround)
 			{
+				//UE_LOG(GGMessage, Log, TEXT("Velocity Y = %f"), loc_Velocity.Y);
 				return LocomotionData->GetGroundFlipbook(loc_Velocity.Y * loc_MinionOwner->GetPlanarForwardVector().Y);
 			}
 			else

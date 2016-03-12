@@ -35,6 +35,10 @@ public:
 	virtual void CommenceDamageReaction(const FGGDamageDealingInfo& InDamageInfo);
 	UFUNCTION()
 		virtual void OnCompleteDamageReaction();
+
+	UFUNCTION(NetMulticast, Unreliable)
+		void MulticastInformDeath();
+	void MulticastInformDeath_Implementation();
 	virtual void CommenceDeathReaction();
 	UFUNCTION()
 		virtual void OnCompleteDeathReaction();

@@ -45,11 +45,11 @@ class GG_API UGGNpcAnimBlendspaceData : public UDataAsset
 public:
 	FORCEINLINE UPaperFlipbook* GetGroundFlipbook(float InSignedSpeed) const
 	{
-		if (bDirectionSensitive_Horizontal && !!RunFlipbook_Backward && InSignedSpeed < -RunMargin)
+		if (bDirectionSensitive_Horizontal && RunFlipbook_Backward && InSignedSpeed < -RunMargin)
 		{
 			return RunFlipbook_Backward;
 		}
-		if (!!RunFlipbook_Forward && FMath::Abs(InSignedSpeed) > RunMargin)
+		if (RunFlipbook_Forward && FMath::Abs(InSignedSpeed) > RunMargin)
 		{
 			return RunFlipbook_Forward;
 		}

@@ -21,7 +21,7 @@ public:
 	UGGNpcLocomotionAnimComponent();
 
 	// Called every frame
-	virtual UPaperFlipbook* GetCurrentAnimation() const;
+	virtual UPaperFlipbook* GetCurrentAnimation();
 
 	virtual UPaperFlipbook* GetDeathFlipbook(EGGDamageType type) const;
 };

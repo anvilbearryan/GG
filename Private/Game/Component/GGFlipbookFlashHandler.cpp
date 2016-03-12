@@ -93,6 +93,7 @@ void UGGFlipbookFlashHandler::TickFlipbook(float DeltaTime)
 		}
 		SetActive(false);
 		SetComponentTickEnabled(false);
+		bIsFlipbook = false;
 	}
 }
 
@@ -128,5 +129,6 @@ void UGGFlipbookFlashHandler::TickSprite(float DeltaTime)
 		}
 		SetActive(false);
 		SetComponentTickEnabled(false);
+		bIsSprite = false;
 	}
 }
